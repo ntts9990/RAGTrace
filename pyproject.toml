@@ -37,7 +37,11 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/*"]
+omit = [
+    "tests/*",
+    "src/presentation/web/components/*",
+    "src/presentation/web/main.py"
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -45,6 +49,7 @@ exclude_lines = [
     "def __repr__",
     "raise AssertionError",
     "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]
 
 [dependency-groups]
