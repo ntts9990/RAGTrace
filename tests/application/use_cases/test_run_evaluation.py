@@ -69,4 +69,74 @@ def test_run_evaluation_runner_fails(mock_ports):
     
     # Act & Assert
     with pytest.raises(EvaluationError, match="평가 실행 중 오류 발생: Ragas API error"):
-        use_case.execute() 
+        use_case.execute()
+
+def test_run_evaluation_missing_metric(mock_ports):
+    """평가 결과에 필수 메트릭이 누락되었을 때 EvaluationError가 발생하는지 테스트합니다."""
+    # Arrange
+    mock_data = [EvaluationData("q", ["c"], "a", "g")]
+    mock_ports["repository_port"].load_data.return_value = mock_data
+    
+    # "faithfulness"가 누락된 결과
+    mock_result_dict = {
+        "answer_relevancy": 1.0,
+        "context_recall": 1.0, "context_precision": 1.0,
+        "ragas_score": 1.0
+    }
+    mock_ports["evaluation_runner"].evaluate.return_value = mock_result_dict
+
+    use_case = RunEvaluationUseCase(**mock_ports)
+
+    # Act & Assert
+    with pytest.raises(EvaluationError, match="필수 메트릭이 누락되었습니다: faithfulness"):
+        use_case.execute()
+
+def test_run_evaluation_all_scores_zero(mock_ports, capsys):
+    """모든 평가 점수가 0일 때 경고 메시지가 출력되는지 테스트합니다."""
+    # Arrange
+    mock_data = [EvaluationData("q", ["c"], "a", "g")]
+    mock_ports["repository_port"].load_data.return_value = mock_data
+    
+    mock_result_dict = {
+        "faithfulness": 0.0, "answer_relevancy": 0.0,
+        "context_recall": 0.0, "context_precision": 0.0,
+        "ragas_score": 0.0
+    }
+    mock_ports["evaluation_runner"].evaluate.return_value = mock_result_dict
+
+    use_case = RunEvaluationUseCase(**mock_ports)
+
+    # Act
+    use_case.execute()
+
+    # Assert
+    captured = capsys.readouterr()
+    assert "경고: 모든 평가 점수가 0입니다." in captured.out 
+
+def test_execute_with_evaluation_error_reraise(mock_ports):
+    """EvaluationError가 발생했을 때 재발생시키는 테스트 (73번 라인)"""
+    # Mock 설정
+    mock_evaluation_data = [
+        EvaluationData(
+            question="테스트 질문",
+            contexts=["테스트 컨텍스트"],
+            answer="테스트 답변",
+            ground_truth="정답"
+        )
+    ]
+    
+    mock_ports["repository_port"].load_data.return_value = mock_evaluation_data
+    mock_ports["llm_port"].get_llm.return_value = MagicMock()
+    
+    # EvaluationError 발생 시뮬레이션
+    evaluation_error = EvaluationError("평가 실행 중 오류")
+    mock_ports["evaluation_runner"].evaluate.side_effect = evaluation_error
+    
+    # 테스트 실행 및 검증
+    with pytest.raises(EvaluationError) as exc_info:
+        use_case = RunEvaluationUseCase(**mock_ports)
+        use_case.execute()
+    
+    # 원래 EvaluationError가 그대로 재발생되는지 확인 (73번 라인)
+    assert exc_info.value is evaluation_error
+    assert str(exc_info.value) == "평가 실행 중 오류" 

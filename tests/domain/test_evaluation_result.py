@@ -63,3 +63,28 @@ def test_to_dict_method():
     }
     
     assert result.to_dict() == expected_dict 
+
+def test_to_dict_with_none_individual_scores_and_metadata():
+    """individual_scores와 metadata가 None일 때 to_dict 테스트 (40번 라인)"""
+    result = EvaluationResult(
+        faithfulness=0.8,
+        answer_relevancy=0.9,
+        context_recall=0.7,
+        context_precision=0.85,
+        ragas_score=0.825,
+        individual_scores=None,  # None으로 설정
+        metadata=None  # None으로 설정
+    )
+    
+    result_dict = result.to_dict()
+    
+    # 기본 메트릭들은 포함되어야 함
+    assert result_dict["faithfulness"] == 0.8
+    assert result_dict["answer_relevancy"] == 0.9
+    assert result_dict["context_recall"] == 0.7
+    assert result_dict["context_precision"] == 0.85
+    assert result_dict["ragas_score"] == 0.825
+    
+    # None인 필드들은 포함되지 않아야 함 (40번 라인 이후의 조건)
+    assert "individual_scores" not in result_dict
+    assert "metadata" not in result_dict 

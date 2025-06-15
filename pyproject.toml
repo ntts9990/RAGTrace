@@ -1,25 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "ragas-test"
 version = "0.1.0"
-description = "RAG-based evaluation dashboard"
+description = "RAG evaluation dashboard using Streamlit and Ragas"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "ragas",
-    "datasets",
-    "langchain-google-genai",
-    "python-dotenv",
     "streamlit>=1.28.0",
+    "ragas>=0.1.0",
+    "langchain-google-genai>=1.0.0",
+    "datasets>=2.14.0",
     "pandas>=2.0.0",
-    "plotly>=5.15.0",
-    "numpy>=1.24.0",
-    "uv"
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 pythonpath = "."
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+]

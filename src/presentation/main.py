@@ -56,8 +56,6 @@ def main():
         print("--------------------")
 
     except Exception as e:
-        print(f"\n오류: {e}")
-    except Exception as e:
         print(f"\n예기치 않은 오류가 발생했습니다: {e}")
         print(f"오류 타입: {type(e).__name__}")
         import traceback
