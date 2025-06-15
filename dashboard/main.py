@@ -28,10 +28,14 @@ from src.infrastructure.ragas_eval import RagasEvalAdapter
 # 대시보드 컴포넌트
 try:
     from dashboard.components.detailed_analysis import show_detailed_analysis as show_detailed_component
+    from dashboard.components.metrics_explanation import show_metrics_explanation as show_metrics_component
+    from dashboard.components.performance_monitor import show_performance_monitor as show_performance_component
 except ImportError:
     # 개발 환경에서 직접 실행할 때 대비
     sys.path.append(str(project_root / "dashboard"))
     from components.detailed_analysis import show_detailed_analysis as show_detailed_component
+    from components.metrics_explanation import show_metrics_explanation as show_metrics_component
+    from components.performance_monitor import show_performance_monitor as show_performance_component
 
 # 페이지 설정
 st.set_page_config(
@@ -43,9 +47,21 @@ st.set_page_config(
 
 # 사이드바 네비게이션
 st.sidebar.title("📊 RAGAS 대시보드")
+
+# 페이지 네비게이션 상태 관리
+if "navigate_to" in st.session_state:
+    default_page = st.session_state.navigate_to
+    del st.session_state.navigate_to
+    # 선택된 페이지의 인덱스 찾기
+    pages = ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "📚 Metrics Guide", "⚡ Performance"]
+    default_index = pages.index(default_page) if default_page in pages else 0
+else:
+    default_index = 0
+
 page = st.sidebar.selectbox(
     "페이지 선택",
-    ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "⚡ Performance"]
+    ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "📚 Metrics Guide", "⚡ Performance"],
+    index=default_index
 )
 
 # 메인 타이틀
@@ -59,6 +75,8 @@ def main():
         show_historical()
     elif page == "🔍 Detailed Analysis":
         show_detailed_analysis()
+    elif page == "📚 Metrics Guide":
+        show_metrics_guide()
     elif page == "⚡ Performance":
         show_performance()
 
@@ -77,6 +95,12 @@ def show_overview():
         if st.button("🔄 결과 새로고침"):
             st.rerun()
     
+    with col3:
+        st.markdown("**📚 도움말**")
+        if st.button("📚 메트릭 가이드", help="점수 의미 이해하기"):
+            st.session_state.navigate_to = "📚 Metrics Guide"
+            st.rerun()
+    
     # 최신 평가 결과 로드
     latest_result = load_latest_result()
     
@@ -86,6 +110,9 @@ def show_overview():
         show_recent_trends()
     else:
         st.info("📝 아직 평가 결과가 없습니다. '새 평가 실행' 버튼을 클릭하여 첫 평가를 시작하세요!")
+        st.markdown("---")
+        st.markdown("### 🤔 RAGAS 메트릭이 궁금하신가요?")
+        st.markdown("📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!")
 
 def show_metric_cards(result):
     """메트릭 카드 표시"""
@@ -321,10 +348,13 @@ def show_detailed_analysis():
     """상세 분석 페이지"""
     show_detailed_component()
 
+def show_metrics_guide():
+    """메트릭 가이드 페이지"""
+    show_metrics_component()
+
 def show_performance():
     """성능 모니터링 페이지"""
-    st.header("⚡ 성능 모니터링")
-    st.info("🚧 성능 모니터링 기능은 곧 추가될 예정입니다.")
+    show_performance_component()
 
 # 데이터 저장/로드 함수들
 def get_db_path():
