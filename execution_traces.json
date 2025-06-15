@@ -1,0 +1,321 @@
+{
+  "6b974c03-063c-4127-9deb-cb8c11ab1a26": {
+    "trace_id": "6b974c03-063c-4127-9deb-cb8c11ab1a26",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "output_keys": [
+      "scores"
+    ]
+  },
+  "e4ac2a51-aa20-4ddc-9791-4327a9123f96": {
+    "trace_id": "e4ac2a51-aa20-4ddc-9791-4327a9123f96",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference_contexts",
+      "response",
+      "multi_responses",
+      "reference",
+      "rubrics"
+    ],
+    "output_keys": [
+      "faithfulness",
+      "answer_relevancy",
+      "context_recall",
+      "context_precision"
+    ]
+  },
+  "3184f560-0c71-4ed4-8d00-4aa39f01628a": {
+    "trace_id": "3184f560-0c71-4ed4-8d00-4aa39f01628a",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference_contexts",
+      "response",
+      "multi_responses",
+      "reference",
+      "rubrics"
+    ],
+    "output_keys": [
+      "faithfulness",
+      "answer_relevancy",
+      "context_recall",
+      "context_precision"
+    ]
+  },
+  "3447ceb9-86b4-432b-b002-bb1794bd014d": {
+    "trace_id": "3447ceb9-86b4-432b-b002-bb1794bd014d",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "response"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "22b71eaa-ab7a-48db-b514-b79053cb1519": {
+    "trace_id": "22b71eaa-ab7a-48db-b514-b79053cb1519",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "response"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "a7932451-83a6-4e52-b4ae-060c1accbf1b": {
+    "trace_id": "a7932451-83a6-4e52-b4ae-060c1accbf1b",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "4efedad5-cddd-4354-8ac6-02d52bdc097a": {
+    "trace_id": "4efedad5-cddd-4354-8ac6-02d52bdc097a",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "c8aae256-e9d9-46d6-a5ef-afad790679b1": {
+    "trace_id": "c8aae256-e9d9-46d6-a5ef-afad790679b1",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "response"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "086f63cb-2fb6-4439-8f2d-be0bb72615d4": {
+    "trace_id": "086f63cb-2fb6-4439-8f2d-be0bb72615d4",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "response"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "e023ceb1-fca7-4c53-8f19-c3109eea7dcb": {
+    "trace_id": "e023ceb1-fca7-4c53-8f19-c3109eea7dcb",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "3ee051f2-9437-44e8-a75a-8e6211422729": {
+    "trace_id": "3ee051f2-9437-44e8-a75a-8e6211422729",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "user_input",
+      "retrieved_contexts",
+      "reference"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "649f051e-d986-4858-9c18-05f93d2a5546": {
+    "trace_id": "649f051e-d986-4858-9c18-05f93d2a5546",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "7adad7c1-f6cd-445a-9c74-2aba88432058": {
+    "trace_id": "7adad7c1-f6cd-445a-9c74-2aba88432058",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "6e94e2a5-abd7-49e0-9de1-2f8c1ac3655f": {
+    "trace_id": "6e94e2a5-abd7-49e0-9de1-2f8c1ac3655f",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "e67a0aab-bcd2-46c8-b21d-156ef1d83a1d": {
+    "trace_id": "e67a0aab-bcd2-46c8-b21d-156ef1d83a1d",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "4e4b1220-484c-4c89-8396-5f1fa72479f2": {
+    "trace_id": "4e4b1220-484c-4c89-8396-5f1fa72479f2",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "ed2b269d-7a16-4059-a40f-1f5432198c11": {
+    "trace_id": "ed2b269d-7a16-4059-a40f-1f5432198c11",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "6dc982fe-64ce-46e3-a2d6-8a01886e79e2": {
+    "trace_id": "6dc982fe-64ce-46e3-a2d6-8a01886e79e2",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "be852042-5a8b-49ee-9196-cb95ff226908": {
+    "trace_id": "be852042-5a8b-49ee-9196-cb95ff226908",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "fd46f04e-946d-43e1-9717-a79f53acb789": {
+    "trace_id": "fd46f04e-946d-43e1-9717-a79f53acb789",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "749e55db-7856-4fe8-8d5c-37ff81301c6a": {
+    "trace_id": "749e55db-7856-4fe8-8d5c-37ff81301c6a",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "d67a3d27-8223-485e-9946-f4b934c8b0e9": {
+    "trace_id": "d67a3d27-8223-485e-9946-f4b934c8b0e9",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "7e357667-d8ef-401b-ad11-78838a4c2952": {
+    "trace_id": "7e357667-d8ef-401b-ad11-78838a4c2952",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "f7027f66-4213-4484-99b2-d17471d2df0c": {
+    "trace_id": "f7027f66-4213-4484-99b2-d17471d2df0c",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "569e8f52-6039-4128-b8a1-9a8334e4e69f": {
+    "trace_id": "569e8f52-6039-4128-b8a1-9a8334e4e69f",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "d3ff8e21-4fca-411d-acfb-475145d74b2e": {
+    "trace_id": "d3ff8e21-4fca-411d-acfb-475145d74b2e",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "fcd43425-7ae5-4df9-806c-637a644cc539": {
+    "trace_id": "fcd43425-7ae5-4df9-806c-637a644cc539",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "d5aa5069-dc56-4e5e-9f97-1ef7d89b07ce": {
+    "trace_id": "d5aa5069-dc56-4e5e-9f97-1ef7d89b07ce",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  },
+  "ace89167-8a21-4f7e-8bc1-b928545faba2": {
+    "trace_id": "ace89167-8a21-4f7e-8bc1-b928545faba2",
+    "type": "<class 'ragas.callbacks.ChainRun'>",
+    "input_keys": [
+      "data"
+    ],
+    "output_keys": [
+      "output"
+    ]
+  }
+}
