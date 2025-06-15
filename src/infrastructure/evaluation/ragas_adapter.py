@@ -2,12 +2,17 @@ import time
 from typing import Any, Dict, Optional
 
 from datasets import Dataset
+
 # Remove problematic import, use simpler approach
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pydantic import Field
 from ragas import evaluate
-from ragas.metrics import (answer_relevancy, context_precision, context_recall,
-                           faithfulness)
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    faithfulness,
+)
 
 import config
 

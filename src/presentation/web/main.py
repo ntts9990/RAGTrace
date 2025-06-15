@@ -24,21 +24,27 @@ from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
 
 # 대시보드 컴포넌트
 try:
-    from src.presentation.web.components.detailed_analysis import \
-        show_detailed_analysis as show_detailed_component
-    from src.presentation.web.components.metrics_explanation import \
-        show_metrics_explanation as show_metrics_component
-    from src.presentation.web.components.performance_monitor import \
-        show_performance_monitor as show_performance_component
+    from src.presentation.web.components.detailed_analysis import (
+        show_detailed_analysis as show_detailed_component,
+    )
+    from src.presentation.web.components.metrics_explanation import (
+        show_metrics_explanation as show_metrics_component,
+    )
+    from src.presentation.web.components.performance_monitor import (
+        show_performance_monitor as show_performance_component,
+    )
 except ImportError:
     # 개발 환경에서 직접 실행할 때 대비
     sys.path.append(str(project_root / "src/presentation/web"))
-    from components.detailed_analysis import \
-        show_detailed_analysis as show_detailed_component
-    from components.metrics_explanation import \
-        show_metrics_explanation as show_metrics_component
-    from components.performance_monitor import \
-        show_performance_monitor as show_performance_component
+    from components.detailed_analysis import (
+        show_detailed_analysis as show_detailed_component,
+    )
+    from components.metrics_explanation import (
+        show_metrics_explanation as show_metrics_component,
+    )
+    from components.performance_monitor import (
+        show_performance_monitor as show_performance_component,
+    )
 
 # 페이지 설정
 st.set_page_config(

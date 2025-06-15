@@ -4,8 +4,11 @@ from typing import Any, Dict
 
 from datasets import Dataset
 
-from src.application.ports import (EvaluationRepositoryPort,
-                                   EvaluationRunnerPort, LlmPort)
+from src.application.ports import (
+    EvaluationRepositoryPort,
+    EvaluationRunnerPort,
+    LlmPort,
+)
 from src.domain import EvaluationData, EvaluationError, EvaluationResult
 
 
