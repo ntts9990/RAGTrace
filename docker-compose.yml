@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  ragas-eval:
+    build: .
+    container_name: ragas-evaluation
+    ports:
+      - "8501:8501"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-preview-05-20}
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - USE_LOCAL_LLM=${USE_LOCAL_LLM:-false}
+      - LOCAL_LLM_BASE_URL=http://ollama:11434
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - evaluation_db:/app/data/db
+    networks:
+      - ragas-network
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ragas-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ragas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # PostgreSQL (선택사항 - 대용량 데이터 저장용)
+  postgres:
+    image: postgres:15-alpine
+    container_name: ragas-postgres
+    environment:
+      - POSTGRES_DB=ragas_db
+      - POSTGRES_USER=ragas_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ragas_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - ragas-network
+    restart: unless-stopped
+    profiles:
+      - database
+
+  # Redis (선택사항 - 캐싱용)
+  redis:
+    image: redis:7-alpine
+    container_name: ragas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ragas-network
+    restart: unless-stopped
+    profiles:
+      - cache
+
+volumes:
+  ollama_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  evaluation_db:
+    driver: local
+
+networks:
+  ragas-network:
+    driver: bridge

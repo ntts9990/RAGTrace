@@ -39,7 +39,7 @@
 ### 1단계: 프로젝트 설정
 ```bash
 # 프로젝트 클론
-git clone https://github.com/your-org/ragas-test.git
+git clone https://github.com/ntts9990/ragas-test.git
 cd ragas-test
 
 # Python 가상환경 생성 (Python 3.11+ 필요)
@@ -99,7 +99,7 @@ sudo apt update && sudo apt install python3.11 python3.11-venv
 
 #### 방법 1: pip 사용 (권장)
 ```bash
-git clone https://github.com/your-org/ragas-test.git
+git clone https://github.com/ntts9990/ragas-test.git
 cd ragas-test
 
 # 가상환경 생성
@@ -118,7 +118,7 @@ pip install -e ".[dev]"
 # uv 설치 (선택사항, 하지만 훨씬 빠름)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-git clone https://github.com/your-org/ragas-test.git
+git clone https://github.com/ntts9990/ragas-test.git
 cd ragas-test
 
 # uv로 환경 설정
@@ -132,13 +132,18 @@ uv sync --dev  # 개발 의존성 포함
 #### 방법 3: Docker 사용
 ```bash
 # Docker로 실행 (환경 설정 없이 바로 사용)
-git clone https://github.com/your-org/ragas-test.git
+git clone https://github.com/ntts9990/ragas-test.git
 cd ragas-test
 
-# Docker 이미지 빌드
-docker build -t ragas-eval .
+# .env 파일 설정
+cp .env.example .env
+# .env 파일 편집하여 GEMINI_API_KEY 설정
 
-# 컨테이너 실행 (.env 파일 필요)
+# Docker Compose로 실행 (권장)
+docker-compose up -d
+
+# 또는 단일 컨테이너 실행
+docker build -t ragas-eval .
 docker run -p 8501:8501 --env-file .env ragas-eval
 ```
 

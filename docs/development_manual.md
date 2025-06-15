@@ -420,28 +420,47 @@ CMD ["streamlit", "run", "src/presentation/web/main.py", "--server.port=8501", "
 
 ```yaml
 version: '3.8'
+
 services:
   ragas-eval:
     build: .
+    container_name: ragas-evaluation
     ports:
       - "8501:8501"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - USE_LOCAL_LLM=${USE_LOCAL_LLM:-false}
+      - LOCAL_LLM_BASE_URL=http://ollama:11434
     volumes:
       - ./data:/app/data
       - ./reports:/app/reports
+      - evaluation_db:/app/data/db
+    networks:
+      - ragas-network
     depends_on:
       - ollama
+    restart: unless-stopped
 
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
+    container_name: ragas-ollama
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    
+    networks:
+      - ragas-network
+    restart: unless-stopped
+
 volumes:
   ollama_data:
+    driver: local
+  evaluation_db:
+    driver: local
+
+networks:
+  ragas-network:
+    driver: bridge
 ```
 
 ### 프로덕션 설정
@@ -464,33 +483,34 @@ SSL_KEY_PATH=/etc/ssl/private/ragas.key
 
 #### CI/CD 파이프라인
 
+실제 구현된 워크플로우는 다음과 같습니다:
+
+- **`.github/workflows/test.yml`**: 테스트 및 코드 품질 검사
+- **`.github/workflows/docker.yml`**: Docker 이미지 빌드 및 푸시
+- **`.github/workflows/deploy.yml`**: 배포 자동화
+
 ```yaml
-# .github/workflows/deploy.yml
-name: Deploy
+# .github/workflows/test.yml
+name: Tests
 on:
   push:
-    branches: [main]
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
-      - run: pytest --cov=src --cov-fail-under=99
-      
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to production
-        run: |
-          docker build -t ragas-eval:latest .
-          docker push ${{ secrets.REGISTRY_URL }}/ragas-eval:latest
+      - run: pytest --cov=src --cov-fail-under=95
 ```
 
 ## 📚 추가 참고자료
