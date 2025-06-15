@@ -87,4 +87,29 @@ def test_to_dict_with_none_individual_scores_and_metadata():
     
     # None인 필드들은 포함되지 않아야 함 (40번 라인 이후의 조건)
     assert "individual_scores" not in result_dict
-    assert "metadata" not in result_dict 
+    assert "metadata" not in result_dict
+
+
+def test_to_dict_with_individual_scores():
+    """individual_scores가 있는 경우 to_dict 테스트 (40번 라인 커버)"""
+    # Given: individual_scores가 포함된 EvaluationResult
+    individual_scores = [
+        {"faithfulness": 0.8, "answer_relevancy": 0.9},
+        {"faithfulness": 0.9, "answer_relevancy": 0.8}
+    ]
+    
+    result = EvaluationResult(
+        faithfulness=0.85,
+        answer_relevancy=0.85,
+        context_recall=0.9,
+        context_precision=0.8,
+        ragas_score=0.85,
+        individual_scores=individual_scores
+    )
+    
+    # When
+    result_dict = result.to_dict()
+    
+    # Then: individual_scores가 포함되어야 함 (40번 라인)
+    assert "individual_scores" in result_dict
+    assert result_dict["individual_scores"] == individual_scores 

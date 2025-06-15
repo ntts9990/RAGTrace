@@ -15,7 +15,9 @@ from datetime import datetime
 
 def get_db_path():
     """데이터베이스 경로 반환"""
-    return Path(__file__).parent.parent / "evaluations.db"
+    # 프로젝트 루트에서 data/db/evaluations.db로 경로 수정
+    project_root = Path(__file__).parent.parent.parent.parent.parent
+    return project_root / "data" / "db" / "evaluations.db"
 
 
 def load_all_evaluations():

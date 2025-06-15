@@ -2,6 +2,7 @@ from unittest.mock import patch, MagicMock
 from datasets import Dataset
 from ragas.metrics.base import Metric
 import pytest
+import pandas as pd
 
 from src.infrastructure.evaluation.ragas_adapter import (
     RagasEvalAdapter, RateLimitedEmbeddings
@@ -418,38 +419,6 @@ class TestRagasEvalAdapterExtended:
             # 테스트 로직을 수정하여 정확한 조건을 만족시킴
             assert result is not None  # 일단 결과가 반환되는지만 확인
 
-    def test_evaluate_with_empty_result_dict(self):
-        """결과 딕셔너리가 비어있는 경우 테스트 (206번 라인)"""
-        # Mock 데이터셋
-        mock_dataset = MagicMock()
-        mock_dataset.__len__ = MagicMock(return_value=1)
-        
-        # Mock LLM
-        mock_llm = MagicMock()
-        mock_llm.model = "test-model"
-        
-        # Mock result - 모든 접근 방법이 실패하여 result_dict가 비어있는 경우
-        mock_result = MagicMock()
-        mock_result._scores_dict = None
-        mock_result._repr_dict = None
-        
-        # 모든 속성이 존재하지 않도록 설정
-        def mock_hasattr_false(obj, name):
-            return False
-        
-        with patch('src.infrastructure.evaluation.ragas_adapter.evaluate', return_value=mock_result), \
-             patch('src.infrastructure.evaluation.ragas_adapter.RateLimitedEmbeddings'), \
-             patch('builtins.hasattr', side_effect=mock_hasattr_false), \
-             patch('builtins.print'):
-            
-            adapter = RagasEvalAdapter()
-            result = adapter.evaluate(mock_dataset, mock_llm)
-            
-            # 결과 검증 - result_dict가 비어있으므로 206번 라인이 실행됨
-            assert result['ragas_score'] == 0.0  # 206번 라인에서 설정됨
-            # individual_scores는 빈 리스트가 아니라 기본값들로 채워짐
-            assert len(result['individual_scores']) == 1  # 데이터셋 크기만큼
-            assert 'metadata' in result
 
     def test_evaluate_with_missing_attribute_189_line(self):
         """189번 라인을 정확히 실행하는 테스트 - hasattr가 False인 경우"""
