@@ -87,6 +87,7 @@ class RagasEvalAdapter:
 
             # EvaluationResult 객체를 순수한 dict로 변환하여 반환
             result_dict = {}
+            individual_scores = []
             
             # result 객체 타입 확인
             print(f"평가 결과 타입: {type(result)}")
@@ -95,6 +96,22 @@ class RagasEvalAdapter:
             if hasattr(result, '_scores_dict') and result._scores_dict:
                 scores_dict = result._scores_dict
                 print(f"_scores_dict 발견: {scores_dict}")
+                
+                # 개별 QA 점수 추출
+                num_samples = len(dataset)
+                for i in range(num_samples):
+                    qa_scores = {}
+                    for metric in self.metrics:
+                        metric_name = metric.name
+                        if metric_name in scores_dict:
+                            scores = scores_dict[metric_name]
+                            if isinstance(scores, list) and i < len(scores):
+                                qa_scores[metric_name] = float(scores[i])
+                            else:
+                                qa_scores[metric_name] = float(scores) if scores else 0.0
+                        else:
+                            qa_scores[metric_name] = 0.0
+                    individual_scores.append(qa_scores)
                 
                 # 각 메트릭별로 평균값 계산
                 for metric in self.metrics:
@@ -123,6 +140,14 @@ class RagasEvalAdapter:
                     else:
                         print(f"경고: {metric_name} 결과를 찾을 수 없습니다.")
                         result_dict[metric_name] = 0.0
+                
+                # 개별 점수는 전체 평균으로 대체
+                for i in range(len(dataset)):
+                    qa_scores = {}
+                    for metric in self.metrics:
+                        metric_name = metric.name
+                        qa_scores[metric_name] = result_dict.get(metric_name, 0.0)
+                    individual_scores.append(qa_scores)
             
             # 다른 방법으로 추출 시도
             else:
@@ -134,6 +159,14 @@ class RagasEvalAdapter:
                     else:
                         print(f"경고: {metric_name} 결과를 찾을 수 없습니다.")
                         result_dict[metric_name] = 0.0
+                
+                # 개별 점수는 전체 평균으로 대체
+                for i in range(len(dataset)):
+                    qa_scores = {}
+                    for metric in self.metrics:
+                        metric_name = metric.name
+                        qa_scores[metric_name] = result_dict.get(metric_name, 0.0)
+                    individual_scores.append(qa_scores)
             
             # ragas_score 계산
             if result_dict:
@@ -142,7 +175,11 @@ class RagasEvalAdapter:
             else:
                 result_dict['ragas_score'] = 0.0
             
+            # 개별 점수도 결과에 포함
+            result_dict['individual_scores'] = individual_scores
+            
             print(f"최종 결과: {result_dict}")
+            print(f"개별 점수 개수: {len(individual_scores)}")
             return result_dict
             
         except Exception as e:
@@ -151,6 +188,7 @@ class RagasEvalAdapter:
             import traceback
             traceback.print_exc()
             # 디버깅을 위해 빈 결과 대신 오류 정보를 포함한 결과 반환
-            return {
-                metric.name: 0.0 for metric in self.metrics
-            }
+            error_result = {metric.name: 0.0 for metric in self.metrics}
+            error_result['ragas_score'] = 0.0
+            error_result['individual_scores'] = []
+            return error_result

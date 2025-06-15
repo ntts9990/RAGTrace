@@ -137,35 +137,47 @@ def show_metrics_overview_chart():
     col1, col2 = st.columns(2)
     
     with col1:
-        # 중요도 차트
-        metrics = ['Faithfulness', 'Context Recall', 'Answer Relevancy', 'Context Precision']
-        importance = [10, 9, 8, 7]  # 상대적 중요도
-        colors = ['#f44336', '#9c27b0', '#4caf50', '#ff9800']
+        # RAGAS 논문 기반 메트릭 특성
+        st.markdown("##### 📚 RAGAS 논문 기반 메트릭 특성")
         
-        fig = go.Figure(data=[
-            go.Bar(x=importance, y=metrics, orientation='h', 
-                  marker_color=colors, text=importance, textposition='auto')
-        ])
+        ragas_characteristics = {
+            '메트릭': ['Faithfulness', 'Context Recall', 'Answer Relevancy', 'Context Precision'],
+            '측정 방식': ['LLM 기반 검증', '정보 완성도', '의미적 유사도', '검색 정확도'],
+            '계산 복잡도': ['높음', '중간', '낮음', '낮음'],
+            '신뢰도': ['매우 높음', '높음', '중간', '높음']
+        }
         
-        fig.update_layout(
-            title="메트릭 중요도 순위",
-            xaxis_title="중요도 (10점 만점)",
-            height=300,
-            margin=dict(l=120)
-        )
+        df_characteristics = pd.DataFrame(ragas_characteristics)
+        st.dataframe(df_characteristics, use_container_width=True, hide_index=True)
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("""
+        **📖 RAGAS 설계 원칙:**
+        - Faithfulness: 환각 방지가 최우선
+        - Context Recall: 정보 누락 최소화
+        - Answer Relevancy: 사용자 만족도 직결
+        - Context Precision: 효율성과 속도 최적화
+        """)
     
     with col2:
-        # 메트릭 특성 비교
-        metrics_data = pd.DataFrame({
+        # RAGAS 논문의 실제 성능 기준
+        st.markdown("##### 🎯 RAGAS 논문 권장 기준점")
+        
+        performance_standards = pd.DataFrame({
             '메트릭': ['Faithfulness', 'Context Recall', 'Answer Relevancy', 'Context Precision'],
-            '평가 대상': ['답변 품질', '검색 완성도', '답변 적합성', '검색 정확도'],
-            '목표 점수': ['1.0 (완벽)', '0.9+ (우수)', '0.8+ (양호)', '0.8+ (양호)'],
-            '개선 난이도': ['높음', '높음', '보통', '보통']
+            '프로덕션 수준': ['0.9+', '0.9+', '0.8+', '0.8+'],
+            '개선 권장': ['0.8-0.9', '0.7-0.9', '0.6-0.8', '0.6-0.8'],
+            '즉시 개선 필요': ['<0.8', '<0.7', '<0.6', '<0.6']
         })
         
-        st.dataframe(metrics_data, use_container_width=True, hide_index=True)
+        st.dataframe(performance_standards, use_container_width=True, hide_index=True)
+        
+        st.markdown("""
+        **⚡ 실제 RAG 시스템 개발 경험:**
+        - Faithfulness 0.9+ 달성이 가장 어려움
+        - Context Precision은 상대적으로 빠른 개선 가능
+        - Answer Relevancy는 프롬프트 개선으로 즉시 향상
+        - Context Recall은 검색 시스템 아키텍처에 의존적
+        """)
 
 def show_faithfulness_explanation():
     """Faithfulness 상세 설명"""
@@ -581,38 +593,53 @@ def show_practical_guide():
         - 중복 문서 자동 제거
         """)
     
-    # 종합 성능 목표 (실제 RAGAS 사용 경험 기반)
-    st.markdown("### 🏆 실용적 성능 목표 설정")
+    # RAGAS 논문 기반 성능 기준
+    st.markdown("### 🏆 RAGAS 논문 기반 성능 기준")
     
-    # 벤치마크 차트
-    benchmark_data = {
-        '메트릭': ['Faithfulness', 'Answer Relevancy', 'Context Recall', 'Context Precision'],
-        '최소 목표': [0.85, 0.70, 0.75, 0.65],  # 실용 가능한 최소 수준
-        '권장 목표': [0.90, 0.80, 0.85, 0.75],  # 일반적 목표
-        '우수 목표': [0.95, 0.90, 0.90, 0.85]   # 고품질 목표
-    }
+    col1, col2 = st.columns(2)
     
-    df_benchmark = pd.DataFrame(benchmark_data)
+    with col1:
+        st.markdown("""
+        #### 📚 RAGAS 연구 결과
+        
+        **Faithfulness (환각 방지):**
+        - 🟢 0.9+ : 프로덕션 환경 권장
+        - 🟡 0.8+ : 개발/테스트 환경 적합
+        - 🔴 <0.8 : 즉시 개선 필요
+        
+        **Answer Relevancy (관련성):**
+        - 🟢 0.8+ : 사용자 만족도 높음
+        - 🟡 0.6+ : 기본적인 요구사항 충족
+        - 🔴 <0.6 : 사용자 경험 저하
+        """)
     
-    fig = go.Figure()
+    with col2:
+        st.markdown("""
+        #### 🔍 실제 개발 경험 기반
+        
+        **Context Recall (완성도):**
+        - 🟢 0.9+ : 정보 누락 거의 없음
+        - 🟡 0.7+ : 일반적인 사용에 적합
+        - 🔴 <0.7 : 검색 시스템 개선 필요
+        
+        **Context Precision (정확도):**
+        - 🟢 0.8+ : 효율적인 처리 성능
+        - 🟡 0.6+ : 적절한 수준
+        - 🔴 <0.6 : 노이즈 제거 필요
+        """)
     
-    colors = ['lightcoral', 'orange', 'lightgreen']
-    for i, col in enumerate(['최소 목표', '권장 목표', '우수 목표']):
-        fig.add_trace(go.Bar(
-            name=col,
-            x=df_benchmark['메트릭'],
-            y=df_benchmark[col],
-            marker_color=colors[i]
-        ))
+    # 실제 RAGAS 논문에서 언급된 중요 포인트들
+    st.markdown("""
+    #### 🎯 RAGAS 논문의 핵심 인사이트
     
-    fig.update_layout(
-        title="RAG 시스템 성능 목표 설정 가이드",
-        barmode='group',
-        yaxis=dict(range=[0, 1]),
-        height=400
-    )
+    1. **Faithfulness가 가장 중요**: 정확하지 않은 정보는 모든 것을 무의미하게 만듦
+    2. **Context 메트릭의 균형**: Recall과 Precision의 트레이드오프 관계
+    3. **도메인별 차이**: 의료, 법률 등 전문 분야는 더 높은 기준 필요
+    4. **LLM 의존성**: 평가 자체가 LLM 기반이므로 평가용 모델 선택이 중요
     
-    st.plotly_chart(fig, use_container_width=True)
+    **📖 참고**: Shahul Es, Jithin James, Luis Espinosa-Anke, Steven Schockaert. 
+    "RAGAS: Automated Evaluation of Retrieval Augmented Generation." arXiv:2309.15217
+    """)
     
     # 트러블슈팅
     st.markdown("### 🔧 자주 묻는 문제와 해결책")

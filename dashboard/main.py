@@ -138,10 +138,17 @@ def show_metric_cards(result):
             else:
                 color = "red"
             
+            # 이전 평가와의 비교를 위한 델타 계산
+            previous_result = get_previous_result()
+            delta_value = None
+            if previous_result and name.lower().replace(' ', '_') in previous_result:
+                prev_value = previous_result[name.lower().replace(' ', '_')]
+                delta_value = value - prev_value
+            
             st.metric(
                 label=f"{icon} {name}",
                 value=f"{value:.3f}",
-                delta=f"{(value-0.5):.3f}" if value > 0 else None
+                delta=f"{delta_value:.3f}" if delta_value is not None else None
             )
 
 def show_metric_charts(result):
@@ -435,6 +442,11 @@ def load_evaluation_history(limit=None):
     conn.close()
     
     return df.to_dict('records')
+
+def get_previous_result():
+    """이전 평가 결과 반환"""
+    history = load_evaluation_history(limit=2)
+    return history[1] if len(history) > 1 else None
 
 if __name__ == "__main__":
     main()
