@@ -7,9 +7,16 @@ import pytest
 import streamlit as st
 from unittest.mock import Mock, patch, MagicMock
 import pandas as pd
-import plotly.graph_objects as go
 import sys
 from pathlib import Path
+
+# 선택적 plotly 임포트
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+    go = None
 
 # 프로젝트 루트 경로 추가
 project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -121,6 +128,9 @@ class TestVisualization:
     
     def test_create_score_histogram(self, sample_qa_data):
         """점수 히스토그램 생성 테스트"""
+        if not HAS_PLOTLY:
+            pytest.skip("plotly not available")
+            
         def create_score_histogram(qa_list, metric="faithfulness"):
             """특정 메트릭의 점수 히스토그램 생성"""
             scores = [qa[metric] for qa in qa_list]
