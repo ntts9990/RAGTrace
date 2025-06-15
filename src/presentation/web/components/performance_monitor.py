@@ -44,8 +44,7 @@ def load_evaluation_history_for_performance():
     """성능 모니터링을 위한 평가 이력 로드"""
     try:
         # 메인 대시보드와 동일한 DB 경로 사용
-        project_root = Path(__file__).parent.parent.parent
-        db_path = project_root / "dashboard" / "evaluations.db"
+        db_path = Path(__file__).parent.parent / "evaluations.db"
         
         if not db_path.exists():
             return []

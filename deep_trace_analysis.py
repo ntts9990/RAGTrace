@@ -16,7 +16,7 @@ from ragas.metrics import (
     context_precision,
 )
 from langchain_google_genai import GoogleGenerativeAI
-from src.infrastructure.ragas_eval import RateLimitedEmbeddings
+from src.infrastructure.evaluation import RateLimitedEmbeddings
 import config
 
 

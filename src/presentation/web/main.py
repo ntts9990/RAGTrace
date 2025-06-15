@@ -17,22 +17,22 @@ import sys
 import os
 
 # 프로젝트 루트를 Python 경로에 추가
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent.parent
 sys.path.append(str(project_root))
 
-from src.application.services import EvaluationService
+from src.application.use_cases import RunEvaluationUseCase
 from src.infrastructure.llm.gemini_adapter import GeminiAdapter
 from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
-from src.infrastructure.ragas_eval import RagasEvalAdapter
+from src.infrastructure.evaluation import RagasEvalAdapter
 
 # 대시보드 컴포넌트
 try:
-    from dashboard.components.detailed_analysis import show_detailed_analysis as show_detailed_component
-    from dashboard.components.metrics_explanation import show_metrics_explanation as show_metrics_component
-    from dashboard.components.performance_monitor import show_performance_monitor as show_performance_component
+    from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
+    from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
+    from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
 except ImportError:
     # 개발 환경에서 직접 실행할 때 대비
-    sys.path.append(str(project_root / "dashboard"))
+    sys.path.append(str(project_root / "src/presentation/web"))
     from components.detailed_analysis import show_detailed_analysis as show_detailed_component
     from components.metrics_explanation import show_metrics_explanation as show_metrics_component
     from components.performance_monitor import show_performance_monitor as show_performance_component
@@ -266,22 +266,22 @@ def run_new_evaluation():
             )
             
             repository_adapter = FileRepositoryAdapter(
-                file_path="data/evaluation_data.json"
+                file_path=str(project_root / "data/evaluation_data.json")
             )
             
             ragas_eval_adapter = RagasEvalAdapter()
             
-            evaluation_service = EvaluationService(
+            evaluation_use_case = RunEvaluationUseCase(
                 llm_port=llm_adapter,
                 repository_port=repository_adapter,
                 evaluation_runner=ragas_eval_adapter,
             )
             
             # 평가 실행
-            result = evaluation_service.run_evaluation()
+            evaluation_result = evaluation_use_case.execute()
             
             # 결과 저장
-            save_evaluation_result(result)
+            save_evaluation_result(evaluation_result.to_dict())
             
             st.success("✅ 평가가 완료되었습니다!")
             st.rerun()
@@ -366,7 +366,7 @@ def show_performance():
 # 데이터 저장/로드 함수들
 def get_db_path():
     """데이터베이스 경로 반환"""
-    return project_root / "dashboard" / "evaluations.db"
+    return Path(__file__).parent / "evaluations.db"
 
 def init_db():
     """데이터베이스 초기화"""

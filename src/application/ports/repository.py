@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-from src.domain.models import EvaluationData
+from src.domain import EvaluationData
 
 
 class EvaluationRepositoryPort(ABC):

@@ -6,10 +6,10 @@ import sys
 # 이 스크립트를 직접 실행할 때 필요합니다.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from src.application.services import EvaluationService
+from src.application.use_cases import RunEvaluationUseCase
 from src.infrastructure.llm.gemini_adapter import GeminiAdapter
 from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
-from src.infrastructure.ragas_eval import RagasEvalAdapter
+from src.infrastructure.evaluation import RagasEvalAdapter
 
 
 def main():
@@ -34,8 +34,8 @@ def main():
 
         ragas_eval_adapter = RagasEvalAdapter()
 
-        # 2. 서비스 계층에 의존성 주입
-        evaluation_service = EvaluationService(
+        # 2. 유스케이스에 의존성 주입
+        evaluation_use_case = RunEvaluationUseCase(
             llm_port=llm_adapter,
             repository_port=repository_adapter,
             evaluation_runner=ragas_eval_adapter,
@@ -43,20 +43,19 @@ def main():
 
         # 3. 평가 실행
         print("평가를 진행 중입니다. 잠시만 기다려주세요...")
-        result = evaluation_service.run_evaluation()
+        evaluation_result = evaluation_use_case.execute()
 
         # 4. 결과 출력
         print("\n--- 평가 결과 ---")
-        for metric, value in result.items():
-            if metric == "ragas_score":
-                continue
-            print(f"- {metric}: {value:.4f}")
-        
+        print(f"- faithfulness: {evaluation_result.faithfulness:.4f}")
+        print(f"- answer_relevancy: {evaluation_result.answer_relevancy:.4f}")
+        print(f"- context_recall: {evaluation_result.context_recall:.4f}")
+        print(f"- context_precision: {evaluation_result.context_precision:.4f}")
         print("--------------------")
-        print(f"** 종합 점수 (ragas_score): {result.get('ragas_score', 0):.4f} **")
+        print(f"** 종합 점수 (ragas_score): {evaluation_result.ragas_score:.4f} **")
         print("--------------------")
 
-    except ValueError as e:
+    except Exception as e:
         print(f"\n오류: {e}")
     except Exception as e:
         print(f"\n예기치 않은 오류가 발생했습니다: {e}")

@@ -2,7 +2,7 @@ import json
 from typing import List
 
 from src.application.ports.repository import EvaluationRepositoryPort
-from src.domain.models import EvaluationData
+from src.domain import EvaluationData
 
 
 class FileRepositoryAdapter(EvaluationRepositoryPort):

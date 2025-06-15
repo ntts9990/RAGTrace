@@ -13,8 +13,7 @@ from pathlib import Path
 
 def get_db_path():
     """데이터베이스 경로 반환"""
-    project_root = Path(__file__).parent.parent.parent
-    return project_root / "dashboard" / "evaluations.db"
+    return Path(__file__).parent.parent / "evaluations.db"
 
 def load_latest_evaluation_results():
     """최신 평가 결과와 개별 QA 점수 로드"""

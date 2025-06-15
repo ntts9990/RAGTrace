@@ -9,7 +9,7 @@ from pathlib import Path
 
 def main():
     """대시보드 실행"""
-    dashboard_path = Path(__file__).parent / "dashboard" / "main.py"
+    dashboard_path = Path(__file__).parent / "src" / "presentation" / "web" / "main.py"
     
     print("🚀 RAGAS 대시보드를 시작합니다...")
     print(f"📂 대시보드 경로: {dashboard_path}")
