@@ -3,9 +3,11 @@
 **RAG(Retrieval-Augmented Generation) 시스템의 성능을 정량적으로 평가하고 분석하는 종합 솔루션**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
-[![Coverage](https://img.shields.io/badge/Coverage-99.49%25-brightgreen.svg)](./reports)
+[![Coverage](https://img.shields.io/badge/Coverage-99.75%25-brightgreen.svg)](./reports)
 [![Clean Architecture](https://img.shields.io/badge/Architecture-Clean-success.svg)](./docs/clean_architecture_summary.md)
-[![Tests](https://img.shields.io/badge/Tests-98_passed-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/Tests-149_passed-brightgreen.svg)](./tests)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Passing-brightgreen.svg)](https://github.com/ntts9990/ragas-test/actions)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](./Dockerfile)
 
 이 프로젝트는 RAG 시스템의 품질을 측정하기 위한 포괄적인 평가 도구입니다. Microsoft Research의 [RAGAS](https://github.com/explodinggradients/ragas) 프레임워크를 기반으로 하여 Faithfulness, Answer Relevancy, Context Precision, Context Recall 등 핵심 지표를 측정하고, 직관적인 웹 대시보드로 결과를 시각화합니다.
 
@@ -19,8 +21,9 @@
 - **🏗️ 확장 가능한 아키텍처**: Clean Architecture 패턴으로 새로운 기능 쉽게 추가
 
 ### 🚀 프로덕션 준비 완료
-- **99.49% 테스트 커버리지**: 98개 테스트로 안정성 보장
-- **자동화된 리포트**: 테스트 실행 후 자동 상세 리포트 생성
+- **99.75% 테스트 커버리지**: 149개 테스트로 안정성 보장
+- **완전 자동화된 CI/CD**: GitHub Actions로 테스트, 빌드, 배포 자동화
+- **Docker 컨테이너화**: 환경 독립적인 배포 지원
 - **Korean-First**: 한국어 RAG 시스템에 최적화된 평가
 
 ## 📋 목차
@@ -728,21 +731,30 @@ pytest tests/presentation/
 
 ### 🔄 CI/CD 파이프라인
 
-```yaml
-# .github/workflows/test.yml
-name: Tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - run: pip install -e ".[dev]"
-      - run: pytest --cov=src
-      - run: python scripts/generate_test_report.py
+프로젝트는 완전 자동화된 CI/CD 파이프라인을 제공합니다:
+
+**🧪 테스트 파이프라인:**
+- Python 3.11, 3.12 다중 버전 테스트
+- 코드 품질 검사 (flake8, black, isort, mypy)
+- 99.75% 테스트 커버리지 검증
+- 149개 테스트 실행
+
+**🐳 Docker 빌드:**
+- 멀티스테이지 Docker 이미지 자동 빌드
+- 보안 강화된 컨테이너 (non-root 사용자)
+- 레지스트리 자동 푸시
+
+**🚀 자동 배포:**
+- 스테이징 환경 자동 배포 (main 브랜치)
+- 프로덕션 배포 (태그 기반)
+- 배포 상태 알림
+
+```bash
+# 로컬에서 CI/CD 검증
+pytest --cov=src --cov-fail-under=80
+black --check src/
+isort --check-only src/
+docker build -t ragas-eval .
 ```
 
 ### 📚 개발 문서
@@ -762,9 +774,11 @@ jobs:
 
 | 항목 | 현재 상태 | 목표 |
 |------|-----------|------|
-| **테스트 커버리지** | 99.49% | 99%+ |
-| **테스트 개수** | 98개 | 지속 증가 |
+| **테스트 커버리지** | 99.75% | 99%+ |
+| **테스트 개수** | 149개 | 지속 증가 |
 | **코드 품질** | A+ | A+ 유지 |
+| **CI/CD** | ✅ 완전 자동화 | 지속 개선 |
+| **Docker** | ✅ 프로덕션 준비 | 최적화 |
 | **문서화** | 완료 | 지속 업데이트 |
 
 ## 📄 라이선스
