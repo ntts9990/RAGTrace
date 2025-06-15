@@ -1069,7 +1069,7 @@ def show_correlation_analysis(evaluation_data, latest_results, individual_scores
 def load_evaluation_data():
     """평가 데이터 로드"""
     try:
-        project_root = Path(__file__).parent.parent.parent
+        project_root = Path(__file__).parent.parent.parent.parent.parent
         data_path = project_root / "data" / "evaluation_data.json"
         
         with open(data_path, 'r', encoding='utf-8') as f:

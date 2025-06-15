@@ -16,13 +16,20 @@ from ragas.metrics import (
     context_precision,
 )
 from langchain_google_genai import GoogleGenerativeAI
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
+
 from src.infrastructure.evaluation import RateLimitedEmbeddings
 import config
 
 
 def load_evaluation_data() -> Dataset:
     """Load evaluation data from JSON file"""
-    with open("data/evaluation_data.json", "r", encoding="utf-8") as f:
+    with open(project_root / "data/evaluation_data.json", "r", encoding="utf-8") as f:
         data = json.load(f)
     
     # Convert to Hugging Face Dataset format
