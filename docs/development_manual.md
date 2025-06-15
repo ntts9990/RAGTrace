@@ -11,6 +11,16 @@
 
 ## 🏗️ 아키텍처 개요
 
+### RAGAS 프레임워크 통합
+
+본 프로젝트는 ExplodingGradients의 [RAGAS](https://github.com/explodinggradients/ragas) 프레임워크를 기반으로 구축되었습니다:
+
+> 🎯 **RAGAS**: "Supercharge Your LLM Application Evaluations"
+> - 객관적 메트릭으로 LLM 애플리케이션 정밀 평가
+> - 지능적 테스트 데이터 자동 생성
+> - LangChain 등 주요 LLM 프레임워크와 완벽 통합
+> - 프로덕션 환경에서 피드백 루프 구축 지원
+
 ### Clean Architecture 구조
 
 ```

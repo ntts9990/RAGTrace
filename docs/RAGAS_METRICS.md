@@ -1,8 +1,10 @@
 # RAGAS 평가 지표: 상세 가이드
 
+> 🎯 **RAGAS**: "Supercharge Your LLM Application Evaluations" by [ExplodingGradients](https://github.com/explodinggradients/ragas)
+
 ## 1. RAGAS란 무엇인가?
 
-RAGAS(Retrieval-Augmented Generation Assessment)는 RAG(Retrieval-Augmented Generation) 파이프라인의 성능을 평가하기 위해 특화된 프레임워크입니다.
+RAGAS(Retrieval-Augmented Generation Assessment)는 ExplodingGradients에서 개발한 LLM 애플리케이션 평가를 위한 궁극의 툴킷입니다. RAG(Retrieval-Augmented Generation) 파이프라인의 성능을 평가하기 위해 특화된 오픈소스 프레임워크로, 객관적 메트릭과 지능적 테스트 생성을 통해 데이터 기반 인사이트를 제공합니다.
 
 RAG는 대규모 언어 모델(LLM)이 외부 지식 베이스(예: 문서 모음, DB)에서 관련 정보를 검색(Retrieve)하고, 이 정보를 바탕으로 답변을 생성(Generate)하는 방식입니다. 이 방식은 LLM의 환각(Hallucination) 현상을 줄이고, 최신 정보에 기반한 정확한 답변을 생성하게 해줍니다.
 

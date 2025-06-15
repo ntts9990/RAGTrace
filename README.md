@@ -9,15 +9,19 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-Passing-brightgreen.svg)](https://github.com/ntts9990/ragas-test/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](./Dockerfile)
 
-이 프로젝트는 RAG 시스템의 품질을 측정하기 위한 포괄적인 평가 도구입니다. Microsoft Research의 [RAGAS](https://github.com/explodinggradients/ragas) 프레임워크를 기반으로 하여 Faithfulness, Answer Relevancy, Context Precision, Context Recall 등 핵심 지표를 측정하고, 직관적인 웹 대시보드로 결과를 시각화합니다.
+이 프로젝트는 RAG 시스템의 품질을 측정하기 위한 포괄적인 평가 도구입니다. ExplodingGradients의 [RAGAS](https://github.com/explodinggradients/ragas) 프레임워크를 기반으로 하여 Faithfulness, Answer Relevancy, Context Precision, Context Recall 등 핵심 지표를 측정하고, 직관적인 웹 대시보드로 결과를 시각화합니다.
+
+> 🎯 **RAGAS**: "Supercharge Your LLM Application Evaluations" - 객관적 메트릭, 지능적 테스트 생성, 데이터 기반 인사이트를 제공하는 궁극의 LLM 평가 툴킷
 
 ## 🎯 주요 특징
 
 ### ✨ 핵심 기능
-- **🔍 정밀한 RAG 평가**: 4가지 핵심 RAGAS 메트릭으로 시스템 성능 정량화
+- **🎯 객관적 메트릭**: RAGAS의 LLM 기반 및 전통적 메트릭으로 정밀한 평가
+- **🧪 지능적 테스트 생성**: 다양한 시나리오를 커버하는 포괄적 테스트 데이터셋 자동 생성  
 - **📊 인터랙티브 대시보드**: Streamlit 기반의 실시간 분석 및 시각화
-- **📈 성능 트렌드 분석**: 평가 이력 추적 및 성능 개선 모니터링
-- **🔧 유연한 LLM 지원**: Google Gemini, 로컬 LLM(Ollama) 등 다양한 모델 연동
+- **📈 데이터 기반 인사이트**: 평가 이력 추적 및 성능 개선 모니터링
+- **🔗 완벽한 통합**: LangChain, Google Gemini, 로컬 LLM(Ollama) 등 주요 LLM 프레임워크 지원
+- **🛡️ 프로덕션 피드백 루프**: 프로덕션 데이터로 LLM 애플리케이션 지속 개선
 - **🏗️ 확장 가능한 아키텍처**: Clean Architecture 패턴으로 새로운 기능 쉽게 추가
 
 ### 🚀 프로덕션 준비 완료
@@ -187,6 +191,9 @@ STREAMLIT_SERVER_ADDRESS=localhost
 # 🔧 디버그 모드 (개발시에만 True)
 DEBUG_MODE=False
 VERBOSE_LOGGING=False
+
+# 📊 RAGAS 분석 비활성화 (옵션)
+RAGAS_DO_NOT_TRACK=false
 ```
 
 #### API 키 발급 가이드
@@ -205,6 +212,8 @@ USE_LOCAL_LLM=True
 LOCAL_LLM_BASE_URL=http://localhost:11434
 LOCAL_LLM_MODEL=qwen2.5:14b
 ```
+
+> 💡 **RAGAS 투명성**: RAGAS는 제품 개선을 위해 최소한의 익명화된 사용 데이터를 수집합니다. 개인 정보나 회사 식별 정보는 수집되지 않으며, 모든 데이터 수집 코드는 오픈소스입니다. 수집을 원하지 않으면 `RAGAS_DO_NOT_TRACK=true`로 설정하세요.
 
 ## 🎮 사용법
 
@@ -787,10 +796,34 @@ docker build -t ragas-eval .
 
 ## 🙏 감사의 말
 
-- **RAGAS 팀**: 훌륭한 RAG 평가 프레임워크 제공
-- **Streamlit 팀**: 직관적인 웹 대시보드 프레임워크
+- **ExplodingGradients**: [RAGAS](https://github.com/explodinggradients/ragas) - 놀라운 LLM 평가 프레임워크 제공
+- **Streamlit 팀**: 직관적인 웹 대시보드 프레임워크  
 - **Google**: Gemini API 지원
+- **LangChain**: 강력한 LLM 프레임워크 통합
 - **커뮤니티**: 피드백과 기여
+
+## 📖 RAGAS에 대해 더 알아보기
+
+RAGAS는 LLM 애플리케이션 평가를 위한 최고의 오픈소스 툴킷입니다:
+
+- 📚 **공식 문서**: [RAGAS Documentation](https://docs.ragas.io/)
+- 🚀 **퀵스타트**: [Quick Start Guide](https://docs.ragas.io/en/stable/getstarted/)  
+- 💬 **커뮤니티**: [Discord 서버](https://discord.gg/5djav8GGNZ)
+- 📝 **블로그**: [RAGAS Blog](https://blog.ragas.io/)
+- 📧 **오피스 아워**: [Office Hours 예약](https://calendly.com/ragas-office-hours) - 매주 진행
+
+### 🔗 인용하기
+
+RAGAS를 연구나 프로젝트에서 사용하신다면:
+
+```bibtex
+@misc{ragas2024,
+  author       = {ExplodingGradients},
+  title        = {Ragas: Supercharge Your LLM Application Evaluations},
+  year         = {2024},
+  howpublished = {\url{https://github.com/explodinggradients/ragas}},
+}
+```
 
 ## 📞 지원 및 문의
 
