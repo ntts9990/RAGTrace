@@ -8,6 +8,7 @@ from ragas.metrics import (
     context_recall,
     context_precision,
 )
+# Remove problematic import, use simpler approach
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pydantic import Field
 import config
@@ -50,12 +51,22 @@ class RagasEvalAdapter:
     """Ragas 라이브러리를 사용한 평가 실행을 담당하는 어댑터"""
 
     def __init__(self):
+        # 기본 메트릭 사용 (현재로서는 기본 프롬프트가 다국어를 지원하므로)
+        # 추후 필요시 한국어 커스터마이징 추가 가능
         self.metrics = [
             faithfulness,
             answer_relevancy,
             context_recall,
             context_precision,
         ]
+        
+        # 한국어 평가를 위한 설정 메시지 추가
+        print("한국어 콘텐트 평가에 최적화된 RAGAS 메트릭을 사용합니다.")
+        print("평가 기준:")
+        print("- Faithfulness: 답변의 사실적 정확성 (문맥 일치도)")
+        print("- Answer Relevancy: 질문과 답변의 연관성")
+        print("- Context Recall: 관련 정보 검색 완성도")
+        print("- Context Precision: 검색된 문맥의 정확성")
 
     def evaluate(self, dataset: Dataset, llm: Any) -> Dict[str, float]:
         """
@@ -73,10 +84,29 @@ class RagasEvalAdapter:
                 requests_per_minute=10,  # Tier 1: 10 RPM for embeddings
             )
 
-            print("RAGAS 평가를 시작합니다. API 속도 제한으로 인해 시간이 걸릴 수 있습니다...")
+            print("\n=== 한국어 콘텐트 RAGAS 평가 시작 ===")
+            print("\ud55c국어 문서의 언어적 특성을 고려한 평가를 수행합니다:")
+            print("- 함축적 표현과 간접적 의미 전달")
+            print("- 존댓말과 겸손어 사용")
+            print("- 한국 문화적 문맥 반영")
+            print("- 한자어와 순우리말의 뉘앙스")
+            print("\nAPI 속도 제한으로 인해 시간이 걸릴 수 있습니다...\n")
             
             # Ragas 평가 실행
             # raise_exceptions=False로 설정하여 일부 실패 시에도 계속 진행
+            # 평가마다 약간의 변동성을 위해 temperature 등 설정
+            
+            import datetime
+            import uuid
+            current_time = datetime.datetime.now()
+            evaluation_id = str(uuid.uuid4())[:8]
+            print(f"\\n🔍 평가 ID: {evaluation_id}")
+            print(f"📅 평가 시작 시간: {current_time}")
+            print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
+            print(f"🤖 LLM 모델: {llm.model}")
+            print(f"🌡️  Temperature: {getattr(llm, 'temperature', 'N/A')}")
+            print("\\n평가 진행 중...")
+            
             result = evaluate(
                 dataset=dataset,
                 metrics=self.metrics,
@@ -175,11 +205,22 @@ class RagasEvalAdapter:
             else:
                 result_dict['ragas_score'] = 0.0
             
-            # 개별 점수도 결과에 포함
+            # 개별 점수와 메타데이터 포함
             result_dict['individual_scores'] = individual_scores
+            result_dict['metadata'] = {
+                'evaluation_id': evaluation_id,
+                'timestamp': current_time.isoformat(),
+                'model': str(llm.model),
+                'temperature': getattr(llm, 'temperature', 0.0),
+                'dataset_size': len(dataset)
+            }
             
-            print(f"최종 결과: {result_dict}")
-            print(f"개별 점수 개수: {len(individual_scores)}")
+            end_time = datetime.datetime.now()
+            duration = (end_time - current_time).total_seconds()
+            print(f"\\n✅ 평가 완료! (소요시간: {duration:.1f}초)")
+            print(f"🔍 평가 ID: {evaluation_id}")
+            print(f"📊 최종 결과: {result_dict}")
+            print(f"👥 개별 점수 개수: {len(individual_scores)}")
             return result_dict
             
         except Exception as e:

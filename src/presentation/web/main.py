@@ -49,20 +49,31 @@ st.set_page_config(
 st.sidebar.title("📊 RAGAS 대시보드")
 
 # 페이지 네비게이션 상태 관리
-if "navigate_to" in st.session_state:
-    default_page = st.session_state.navigate_to
-    del st.session_state.navigate_to
-    # 선택된 페이지의 인덱스 찾기
-    pages = ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "📚 Metrics Guide", "⚡ Performance"]
-    default_index = pages.index(default_page) if default_page in pages else 0
-else:
-    default_index = 0
+pages = ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "📚 Metrics Guide", "⚡ Performance"]
 
-page = st.sidebar.selectbox(
+# 초기 페이지 설정
+if "selected_page" not in st.session_state:
+    st.session_state.selected_page = "🎯 Overview"
+
+# 네비게이션 버튼으로 페이지 이동 처리
+if "navigate_to" in st.session_state:
+    st.session_state.selected_page = st.session_state.navigate_to
+    del st.session_state.navigate_to
+
+# 페이지 선택 콜백 함수
+def on_page_change():
+    st.session_state.selected_page = st.session_state.page_selector
+
+# 사이드바에서 페이지 선택
+st.sidebar.selectbox(
     "페이지 선택",
-    ["🎯 Overview", "📈 Historical", "🔍 Detailed Analysis", "📚 Metrics Guide", "⚡ Performance"],
-    index=default_index
+    pages,
+    index=pages.index(st.session_state.selected_page),
+    key="page_selector",
+    on_change=on_page_change
 )
+
+page = st.session_state.selected_page
 
 # 메인 타이틀
 st.title("🎯 RAGAS 평가 결과 대시보드")
@@ -259,6 +270,30 @@ def run_new_evaluation():
     """새로운 평가 실행"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
+            # 사용자가 선택할 수 있는 데이터셋 옵션
+            import random
+            import os
+            
+            # 사용 가능한 데이터셋 파일들
+            available_datasets = [
+                "data/evaluation_data.json",
+                "data/evaluation_data_variant1.json"
+            ]
+            
+            # 존재하는 데이터셋만 필터링
+            existing_datasets = [
+                ds for ds in available_datasets 
+                if os.path.exists(project_root / ds)
+            ]
+            
+            if not existing_datasets:
+                st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
+                return
+            
+            # 랜덤하게 데이터셋 선택 (다양성을 위해)
+            selected_dataset = random.choice(existing_datasets)
+            st.info(f"📊 선택된 데이터셋: {selected_dataset.split('/')[-1]}")
+            
             # 기존 평가 서비스 활용
             llm_adapter = GeminiAdapter(
                 model_name="gemini-2.5-flash-preview-05-20", 
@@ -266,7 +301,7 @@ def run_new_evaluation():
             )
             
             repository_adapter = FileRepositoryAdapter(
-                file_path=str(project_root / "data/evaluation_data.json")
+                file_path=str(project_root / selected_dataset)
             )
             
             ragas_eval_adapter = RagasEvalAdapter()
@@ -280,8 +315,10 @@ def run_new_evaluation():
             # 평가 실행
             evaluation_result = evaluation_use_case.execute()
             
-            # 결과 저장
-            save_evaluation_result(evaluation_result.to_dict())
+            # 결과 저장 (데이터셋 정보 포함)
+            result_dict = evaluation_result.to_dict()
+            result_dict['metadata']['dataset'] = selected_dataset
+            save_evaluation_result(result_dict)
             
             st.success("✅ 평가가 완료되었습니다!")
             st.rerun()
@@ -293,28 +330,57 @@ def show_historical():
     """히스토리 페이지"""
     st.header("📈 평가 이력")
     
+    # 상세 분석으로 이동하는 안내
+    st.info("💡 특정 평가의 상세 분석을 보려면 '상세 분석' 페이지에서 평가를 선택하세요.")
+    
     history = load_evaluation_history()
     
     if history:
         df = pd.DataFrame(history)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         
-        # 테이블 표시
+        # 테이블 표시 및 상세 분석 버튼 추가
         st.subheader("📋 평가 이력 테이블")
+        
+        # 각 평가에 대한 상세 정보와 상세 분석 버튼
+        for i, row in df.iterrows():
+            with st.expander(f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"):
+                col1, col2, col3 = st.columns([2, 2, 1])
+                
+                with col1:
+                    st.metric("RAGAS 점수", f"{row.get('ragas_score', 0):.3f}")
+                    st.metric("Faithfulness", f"{row.get('faithfulness', 0):.3f}")
+                
+                with col2:
+                    st.metric("Answer Relevancy", f"{row.get('answer_relevancy', 0):.3f}")
+                    st.metric("Context Recall", f"{row.get('context_recall', 0):.3f}")
+                
+                with col3:
+                    st.metric("Context Precision", f"{row.get('context_precision', 0):.3f}")
+                    
+                    # 상세 분석 페이지로 이동 버튼
+                    if st.button(f"🔍 상세 분석", key=f"detail_btn_{i}"):
+                        # 선택된 평가 인덱스를 세션 상태에 저장
+                        st.session_state.selected_evaluation_index = i
+                        st.session_state.navigate_to = "🔍 Detailed Analysis"
+                        st.rerun()
+        
+        # 전체 테이블도 표시
+        st.subheader("📊 전체 평가 이력")
         st.dataframe(df, use_container_width=True)
         
         # 상세 비교 차트
-        st.subheader("📊 상세 비교")
+        st.subheader("📊 평가 비교")
         
         if len(df) > 1:
             # 사용자가 비교할 평가 선택
             col1, col2 = st.columns(2)
             
             with col1:
-                eval1_idx = st.selectbox("첫 번째 평가", range(len(df)), format_func=lambda x: f"{df.iloc[x]['timestamp']} (ID: {x})")
+                eval1_idx = st.selectbox("첫 번째 평가", range(len(df)), format_func=lambda x: f"{df.iloc[x]['timestamp'].strftime('%Y-%m-%d %H:%M')} (#{x+1})")
             
             with col2:
-                eval2_idx = st.selectbox("두 번째 평가", range(len(df)), index=min(1, len(df)-1), format_func=lambda x: f"{df.iloc[x]['timestamp']} (ID: {x})")
+                eval2_idx = st.selectbox("두 번째 평가", range(len(df)), index=min(1, len(df)-1), format_func=lambda x: f"{df.iloc[x]['timestamp'].strftime('%Y-%m-%d %H:%M')} (#{x+1})")
             
             if eval1_idx != eval2_idx:
                 show_comparison_chart(df.iloc[eval1_idx], df.iloc[eval2_idx])

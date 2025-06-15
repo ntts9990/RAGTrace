@@ -57,6 +57,6 @@ class GeminiAdapter(LlmPort):
         return RateLimitedGeminiLLM(
             model=self.model_name,
             google_api_key=config.GEMINI_API_KEY,
-            temperature=0.0,  # 평가의 일관성을 위해 0으로 설정
+            temperature=0.1,  # 평가의 일관성과 변동성의 균형을 위해 0.1로 설정
             requests_per_minute=self.requests_per_minute,
         ) 
