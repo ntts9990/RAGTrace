@@ -26,9 +26,7 @@ class EvaluationResult:
             ("ragas_score", self.ragas_score),
         ]:
             if not 0.0 <= score <= 1.0:
-                raise ValueError(
-                    f"{metric_name} must be between 0.0 and 1.0, got {score}"
-                )
+                raise ValueError(f"{metric_name} must be between 0.0 and 1.0, got {score}")
 
     def to_dict(self) -> Dict[str, Any]:
         """딕셔너리로 변환"""

@@ -22,9 +22,7 @@ class MetricScore:
 
     def __post_init__(self):
         if not 0.0 <= self.value <= 1.0:
-            raise ValueError(
-                f"Metric score must be between 0.0 and 1.0, got {self.value}"
-            )
+            raise ValueError(f"Metric score must be between 0.0 and 1.0, got {self.value}")
 
     def get_level(self, thresholds: "MetricThresholds") -> MetricLevel:
         """임계값을 기준으로 성능 수준 반환"""
@@ -48,9 +46,7 @@ class MetricThresholds:
 
     def __post_init__(self):
         if not (0.0 <= self.fair <= self.good <= self.excellent <= 1.0):
-            raise ValueError(
-                "Thresholds must be in ascending order between 0.0 and 1.0"
-            )
+            raise ValueError("Thresholds must be in ascending order between 0.0 and 1.0")
 
 
 # 기본 임계값 설정

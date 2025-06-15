@@ -28,9 +28,7 @@ def main():
         )
 
         # Repository 어댑터: 로컬 파일 사용
-        repository_adapter = FileRepositoryAdapter(
-            file_path="data/evaluation_data.json"
-        )
+        repository_adapter = FileRepositoryAdapter(file_path="data/evaluation_data.json")
 
         ragas_eval_adapter = RagasEvalAdapter()
 

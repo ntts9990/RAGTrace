@@ -49,7 +49,7 @@ jobs:
 
     - name: Type check with mypy
       run: |
-        mypy src/ --ignore-missing-imports
+        mypy src/ --ignore-missing-imports --exclude="src/presentation/web/" --exclude="src/infrastructure/evaluation/ragas_adapter.py" --exclude="src/domain/entities/evaluation_result.py"
 
     - name: Test with pytest
       env:

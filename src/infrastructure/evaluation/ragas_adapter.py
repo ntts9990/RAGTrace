@@ -7,12 +7,7 @@ from datasets import Dataset
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pydantic import Field
 from ragas import evaluate
-from ragas.metrics import (
-    answer_relevancy,
-    context_precision,
-    context_recall,
-    faithfulness,
-)
+from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
 import config
 
@@ -142,9 +137,7 @@ class RagasEvalAdapter:
                             if isinstance(scores, list) and i < len(scores):
                                 qa_scores[metric_name] = float(scores[i])
                             else:
-                                qa_scores[metric_name] = (
-                                    float(scores) if scores else 0.0
-                                )
+                                qa_scores[metric_name] = float(scores) if scores else 0.0
                         else:
                             qa_scores[metric_name] = 0.0
                     individual_scores.append(qa_scores)
@@ -191,9 +184,7 @@ class RagasEvalAdapter:
                     metric_name = metric.name
                     if hasattr(result, metric_name):
                         value = getattr(result, metric_name)
-                        result_dict[metric_name] = (
-                            float(value) if value is not None else 0.0
-                        )
+                        result_dict[metric_name] = float(value) if value is not None else 0.0
                     else:
                         print(f"경고: {metric_name} 결과를 찾을 수 없습니다.")
                         result_dict[metric_name] = 0.0
@@ -209,9 +200,7 @@ class RagasEvalAdapter:
             # ragas_score 계산
             if result_dict:
                 values = [v for v in result_dict.values() if v > 0]
-                result_dict["ragas_score"] = (
-                    sum(values) / len(values) if values else 0.0
-                )
+                result_dict["ragas_score"] = sum(values) / len(values) if values else 0.0
             else:
                 result_dict["ragas_score"] = 0.0
 

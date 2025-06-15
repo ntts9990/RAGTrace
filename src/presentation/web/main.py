@@ -24,27 +24,15 @@ from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
 
 # 대시보드 컴포넌트
 try:
-    from src.presentation.web.components.detailed_analysis import (
-        show_detailed_analysis as show_detailed_component,
-    )
-    from src.presentation.web.components.metrics_explanation import (
-        show_metrics_explanation as show_metrics_component,
-    )
-    from src.presentation.web.components.performance_monitor import (
-        show_performance_monitor as show_performance_component,
-    )
+    from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
+    from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
+    from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
 except ImportError:
     # 개발 환경에서 직접 실행할 때 대비
     sys.path.append(str(project_root / "src/presentation/web"))
-    from components.detailed_analysis import (
-        show_detailed_analysis as show_detailed_component,
-    )
-    from components.metrics_explanation import (
-        show_metrics_explanation as show_metrics_component,
-    )
-    from components.performance_monitor import (
-        show_performance_monitor as show_performance_component,
-    )
+    from components.detailed_analysis import show_detailed_analysis as show_detailed_component
+    from components.metrics_explanation import show_metrics_explanation as show_metrics_component
+    from components.performance_monitor import show_performance_monitor as show_performance_component
 
 # 페이지 설정
 st.set_page_config(
@@ -139,14 +127,10 @@ def show_overview():
         show_metric_charts(latest_result)
         show_recent_trends()
     else:
-        st.info(
-            "📝 아직 평가 결과가 없습니다. '새 평가 실행' 버튼을 클릭하여 첫 평가를 시작하세요!"
-        )
+        st.info("📝 아직 평가 결과가 없습니다. '새 평가 실행' 버튼을 클릭하여 첫 평가를 시작하세요!")
         st.markdown("---")
         st.markdown("### 🤔 RAGAS 메트릭이 궁금하신가요?")
-        st.markdown(
-            "📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!"
-        )
+        st.markdown("📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!")
 
 
 def show_metric_cards(result):
@@ -324,9 +308,7 @@ def run_new_evaluation():
             ]
 
             # 존재하는 데이터셋만 필터링
-            existing_datasets = [
-                ds for ds in available_datasets if os.path.exists(project_root / ds)
-            ]
+            existing_datasets = [ds for ds in available_datasets if os.path.exists(project_root / ds)]
 
             if not existing_datasets:
                 st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
@@ -337,13 +319,9 @@ def run_new_evaluation():
             st.info(f"📊 선택된 데이터셋: {selected_dataset.split('/')[-1]}")
 
             # 기존 평가 서비스 활용
-            llm_adapter = GeminiAdapter(
-                model_name="gemini-2.5-flash-preview-05-20", requests_per_minute=1000
-            )
+            llm_adapter = GeminiAdapter(model_name="gemini-2.5-flash-preview-05-20", requests_per_minute=1000)
 
-            repository_adapter = FileRepositoryAdapter(
-                file_path=str(project_root / selected_dataset)
-            )
+            repository_adapter = FileRepositoryAdapter(file_path=str(project_root / selected_dataset))
 
             ragas_eval_adapter = RagasEvalAdapter()
 
@@ -384,9 +362,7 @@ def show_historical():
     st.header("📈 평가 이력")
 
     # 상세 분석으로 이동하는 안내
-    st.info(
-        "💡 특정 평가의 상세 분석을 보려면 '상세 분석' 페이지에서 평가를 선택하세요."
-    )
+    st.info("💡 특정 평가의 상세 분석을 보려면 '상세 분석' 페이지에서 평가를 선택하세요.")
 
     history = load_evaluation_history()
 
@@ -399,9 +375,7 @@ def show_historical():
 
         # 각 평가에 대한 상세 정보와 상세 분석 버튼
         for i, row in df.iterrows():
-            with st.expander(
-                f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"
-            ):
+            with st.expander(f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"):
                 col1, col2, col3 = st.columns([2, 2, 1])
 
                 with col1:
@@ -409,15 +383,11 @@ def show_historical():
                     st.metric("Faithfulness", f"{row.get('faithfulness', 0):.3f}")
 
                 with col2:
-                    st.metric(
-                        "Answer Relevancy", f"{row.get('answer_relevancy', 0):.3f}"
-                    )
+                    st.metric("Answer Relevancy", f"{row.get('answer_relevancy', 0):.3f}")
                     st.metric("Context Recall", f"{row.get('context_recall', 0):.3f}")
 
                 with col3:
-                    st.metric(
-                        "Context Precision", f"{row.get('context_precision', 0):.3f}"
-                    )
+                    st.metric("Context Precision", f"{row.get('context_precision', 0):.3f}")
 
                     # 상세 분석 페이지로 이동 버튼
                     if st.button(f"🔍 상세 분석", key=f"detail_btn_{i}"):
@@ -489,9 +459,7 @@ def show_comparison_chart(eval1, eval2):
         )
     )
 
-    fig.update_layout(
-        title="📊 평가 결과 비교", barmode="group", yaxis=dict(range=[0, 1]), height=400
-    )
+    fig.update_layout(title="📊 평가 결과 비교", barmode="group", yaxis=dict(range=[0, 1]), height=400)
 
     st.plotly_chart(fig, use_container_width=True)
 

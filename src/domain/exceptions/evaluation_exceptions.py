@@ -10,7 +10,7 @@ class EvaluationError(Exception):
 class InvalidEvaluationDataError(EvaluationError):
     """평가 데이터가 유효하지 않을 때 발생하는 예외"""
 
-    def __init__(self, message: str, field: str = None):
+    def __init__(self, message: str, field: str | None = None):
         self.field = field
         super().__init__(message)
 
@@ -26,6 +26,6 @@ class EvaluationTimeoutError(EvaluationError):
 class LLMConnectionError(EvaluationError):
     """LLM 연결 오류 시 발생하는 예외"""
 
-    def __init__(self, message: str, error_code: str = None):
+    def __init__(self, message: str, error_code: str | None = None):
         self.error_code = error_code
         super().__init__(message)

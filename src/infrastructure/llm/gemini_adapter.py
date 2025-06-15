@@ -53,9 +53,7 @@ class GeminiAdapter(LlmPort):
         self.model_name = model_name
         self.requests_per_minute = requests_per_minute
         if not config.GEMINI_API_KEY:
-            raise ValueError(
-                "GEMINI_API_KEY가 설정되지 않았습니다. config.py 또는 .env 파일을 확인하세요."
-            )
+            raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다. config.py 또는 .env 파일을 확인하세요.")
 
     def get_llm(self) -> RateLimitedGeminiLLM:
         """
