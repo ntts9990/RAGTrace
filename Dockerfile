@@ -19,6 +19,7 @@ COPY data/ ./data/
 COPY config.py .
 COPY run_dashboard.py .
 COPY pyproject.toml .
+COPY README.md .
 
 # 애플리케이션을 editable mode로 설치
 RUN pip install -e .
