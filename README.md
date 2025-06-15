@@ -775,15 +775,15 @@ jobs:
 
 ## 📞 지원 및 문의
 
-- 📧 **이메일**: support@your-org.com
-- 💬 **이슈 트래커**: [GitHub Issues](https://github.com/your-org/ragas-test/issues)
+- 📧 **이메일**: ntts9990@gmail.com
+<!-- - 💬 **이슈 트래커**: [GitHub Issues](https://github.com/your-org/ragas-test/issues) -->
 - 📖 **문서**: [개발 매뉴얼](./docs/development_manual.md)
-- 🌐 **웹사이트**: https://your-org.com/ragas-test
+<!-- - 🌐 **웹사이트**: https://your-org.com/ragas-test -->
 
 ---
 
 **🚀 지금 시작하세요!** 
 ```bash
-git clone https://github.com/your-org/ragas-test.git
+git clone https://github.com/ntts9990/ragas-test.git
 cd ragas-test && pip install -e . && python run_dashboard.py
 ```
