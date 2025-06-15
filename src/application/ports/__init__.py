@@ -1,6 +1,7 @@
 """Application ports module"""
+
+from .evaluation import EvaluationRunnerPort
 from .llm import LlmPort
 from .repository import EvaluationRepositoryPort
-from .evaluation import EvaluationRunnerPort
 
 __all__ = ["LlmPort", "EvaluationRepositoryPort", "EvaluationRunnerPort"]

@@ -11,4 +11,4 @@
 #
 #     def load_data(self) -> List[EvaluationData]:
 #         # DB에서 데이터를 읽어와 EvaluationData 객체 리스트로 변환하는 로직
-#         pass 
+#         pass

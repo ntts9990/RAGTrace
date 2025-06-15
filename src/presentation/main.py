@@ -1,15 +1,15 @@
 import os
 import sys
 
+from src.application.use_cases import RunEvaluationUseCase
+from src.infrastructure.evaluation import RagasEvalAdapter
+from src.infrastructure.llm.gemini_adapter import GeminiAdapter
+from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
+
 # 프로젝트의 루트 디렉토리를 Python 경로에 추가하여,
 # 'src' 모듈을 찾을 수 있도록 설정합니다.
 # 이 스크립트를 직접 실행할 때 필요합니다.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-from src.application.use_cases import RunEvaluationUseCase
-from src.infrastructure.llm.gemini_adapter import GeminiAdapter
-from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
-from src.infrastructure.evaluation import RagasEvalAdapter
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 
 def main():
@@ -23,8 +23,8 @@ def main():
         # 1. 의존성 객체 생성 (Adapters)
         # 무료 티어는 분당 10 요청으로 제한 - 안전하게 분당 8 요청으로 설정
         llm_adapter = GeminiAdapter(
-            model_name="gemini-2.5-flash-preview-05-20", 
-            requests_per_minute=1000  # Tier 1: 1000 RPM
+            model_name="gemini-2.5-flash-preview-05-20",
+            requests_per_minute=1000,  # Tier 1: 1000 RPM
         )
 
         # Repository 어댑터: 로컬 파일 사용
@@ -59,8 +59,9 @@ def main():
         print(f"\n예기치 않은 오류가 발생했습니다: {e}")
         print(f"오류 타입: {type(e).__name__}")
         import traceback
+
         traceback.print_exc()
 
 
 if __name__ == "__main__":
-    main() 
+    main()

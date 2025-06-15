@@ -3,193 +3,244 @@
 RAGAS 평가 지표에 대한 직관적이고 쉬운 설명 제공
 """
 
-import streamlit as st
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+from plotly.subplots import make_subplots
+
 
 def show_metrics_explanation():
     """메트릭 설명 메인 화면"""
     st.header("📚 RAGAS 평가 지표 완전 가이드")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     🎯 **RAG 시스템의 성능을 정확히 평가하는 4가지 핵심 지표**
     
     RAG(Retrieval-Augmented Generation) 시스템이 얼마나 잘 작동하는지 측정하는 
     네 가지 중요한 점수입니다. 각 지표는 서로 다른 측면을 평가합니다.
-    """)
-    
+    """
+    )
+
     # 한눈에 보는 요약
     show_quick_summary()
-    
+
     # 탭으로 구분된 상세 설명
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "✅ Faithfulness", "🎯 Answer Relevancy", 
-        "🔄 Context Recall", "📍 Context Precision", "💡 실전 가이드", "🔧 RAGAS 프롬프트"
-    ])
-    
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        [
+            "✅ Faithfulness",
+            "🎯 Answer Relevancy",
+            "🔄 Context Recall",
+            "📍 Context Precision",
+            "💡 실전 가이드",
+            "🔧 RAGAS 프롬프트",
+        ]
+    )
+
     with tab1:
         show_faithfulness_explanation()
-    
+
     with tab2:
         show_answer_relevancy_explanation()
-    
+
     with tab3:
         show_context_recall_explanation()
-    
+
     with tab4:
         show_context_precision_explanation()
-    
+
     with tab5:
         show_practical_guide()
-    
+
     with tab6:
         show_ragas_prompts()
+
 
 def show_quick_summary():
     """한눈에 보는 요약"""
     st.markdown("### 🚀 한눈에 보는 요약")
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         #### ✅ **Faithfulness**
         **🔍 답변이 거짓말을 하지 않는가?**
         - 제공된 정보만 사용했는가
         - 지어낸 내용이 없는가
         - **목표**: 1.0 (완벽)
-        """)
-    
+        """
+        )
+
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
         #### 🎯 **Answer Relevancy**
         **💬 질문에 정확히 답했는가?**
         - 질문과 관련이 있는가
         - 불필요한 설명이 없는가
         - **목표**: 0.8 이상
-        """)
-    
+        """
+        )
+
     with col3:
-        st.markdown("""
+        st.markdown(
+            """
         #### 🔄 **Context Recall**
         **📚 필요한 정보를 모두 찾았는가?**
         - 정답에 필요한 모든 정보
         - 검색이 충분했는가
         - **목표**: 0.9 이상
-        """)
-    
+        """
+        )
+
     with col4:
-        st.markdown("""
+        st.markdown(
+            """
         #### 📍 **Context Precision**
         **🗂️ 불필요한 정보는 없는가?**
         - 관련 있는 정보만 제공
         - 노이즈가 적은가
         - **목표**: 0.8 이상
-        """)
-    
+        """
+        )
+
     # 시각적 요약
     show_metrics_overview_chart()
+
 
 def show_metrics_overview_chart():
     """메트릭 개요 차트 - 깔끔하고 직관적인 디자인"""
     st.markdown("#### 📊 RAG 시스템과 RAGAS 메트릭")
-    
+
     # Streamlit 네이티브 컴포넌트로 깔끔한 프로세스 플로우
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col2:
         # 1단계: 질문 입력
         st.markdown("#### 🤔 1단계: 질문 입력")
         st.info("사용자가 질문을 합니다")
-        
+
         # 화살표
-        st.markdown("<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>", unsafe_allow_html=True)
-        
+        st.markdown(
+            "<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>",
+            unsafe_allow_html=True,
+        )
+
         # 2단계: 컨텍스트 검색
         st.markdown("#### 🔍 2단계: 컨텍스트 검색")
         st.success("관련 문서들을 검색합니다")
-        
+
         with st.container():
             st.markdown("**평가되는 메트릭:**")
             st.markdown("🟠 **Context Precision**: 검색된 문서가 얼마나 관련있는가?")
             st.markdown("🟣 **Context Recall**: 필요한 문서를 모두 찾았는가?")
-        
+
         # 화살표
-        st.markdown("<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>", unsafe_allow_html=True)
-        
+        st.markdown(
+            "<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>",
+            unsafe_allow_html=True,
+        )
+
         # 3단계: 답변 생성
         st.markdown("#### 🤖 3단계: 답변 생성")
         st.warning("AI가 검색된 문서를 바탕으로 답변을 생성합니다")
-        
+
         with st.container():
             st.markdown("**평가되는 메트릭:**")
             st.markdown("🔴 **Faithfulness**: 답변이 문서 내용에 충실한가?")
             st.markdown("🟢 **Answer Relevancy**: 질문에 정확히 답했는가?")
-        
+
         # 화살표
-        st.markdown("<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>", unsafe_allow_html=True)
-        
+        st.markdown(
+            "<div style='text-align: center; font-size: 30px; margin: 10px 0;'>⬇️</div>",
+            unsafe_allow_html=True,
+        )
+
         # 4단계: 품질 평가
         st.markdown("#### ✅ 4단계: 품질 평가")
         st.error("RAGAS가 답변의 품질을 종합 평가합니다")
-    
+
     # 메트릭 중요도 차트
     st.markdown("#### 🎯 메트릭별 중요도와 특징")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         # RAGAS 논문 기반 메트릭 특성
         st.markdown("##### 📚 RAGAS 논문 기반 메트릭 특성")
-        
+
         ragas_characteristics = {
-            '메트릭': ['Faithfulness', 'Context Recall', 'Answer Relevancy', 'Context Precision'],
-            '측정 방식': ['LLM 기반 검증', '정보 완성도', '의미적 유사도', '검색 정확도'],
-            '계산 복잡도': ['높음', '중간', '낮음', '낮음'],
-            '신뢰도': ['매우 높음', '높음', '중간', '높음']
+            "메트릭": [
+                "Faithfulness",
+                "Context Recall",
+                "Answer Relevancy",
+                "Context Precision",
+            ],
+            "측정 방식": [
+                "LLM 기반 검증",
+                "정보 완성도",
+                "의미적 유사도",
+                "검색 정확도",
+            ],
+            "계산 복잡도": ["높음", "중간", "낮음", "낮음"],
+            "신뢰도": ["매우 높음", "높음", "중간", "높음"],
         }
-        
+
         df_characteristics = pd.DataFrame(ragas_characteristics)
         st.dataframe(df_characteristics, use_container_width=True, hide_index=True)
-        
-        st.markdown("""
+
+        st.markdown(
+            """
         **📖 RAGAS 설계 원칙:**
         - Faithfulness: 환각 방지가 최우선
         - Context Recall: 정보 누락 최소화
         - Answer Relevancy: 사용자 만족도 직결
         - Context Precision: 효율성과 속도 최적화
-        """)
-    
+        """
+        )
+
     with col2:
         # RAGAS 논문의 실제 성능 기준
         st.markdown("##### 🎯 RAGAS 논문 권장 기준점")
-        
-        performance_standards = pd.DataFrame({
-            '메트릭': ['Faithfulness', 'Context Recall', 'Answer Relevancy', 'Context Precision'],
-            '프로덕션 수준': ['0.9+', '0.9+', '0.8+', '0.8+'],
-            '개선 권장': ['0.8-0.9', '0.7-0.9', '0.6-0.8', '0.6-0.8'],
-            '즉시 개선 필요': ['<0.8', '<0.7', '<0.6', '<0.6']
-        })
-        
+
+        performance_standards = pd.DataFrame(
+            {
+                "메트릭": [
+                    "Faithfulness",
+                    "Context Recall",
+                    "Answer Relevancy",
+                    "Context Precision",
+                ],
+                "프로덕션 수준": ["0.9+", "0.9+", "0.8+", "0.8+"],
+                "개선 권장": ["0.8-0.9", "0.7-0.9", "0.6-0.8", "0.6-0.8"],
+                "즉시 개선 필요": ["<0.8", "<0.7", "<0.6", "<0.6"],
+            }
+        )
+
         st.dataframe(performance_standards, use_container_width=True, hide_index=True)
-        
-        st.markdown("""
+
+        st.markdown(
+            """
         **⚡ 실제 RAG 시스템 개발 경험:**
         - Faithfulness 0.9+ 달성이 가장 어려움
         - Context Precision은 상대적으로 빠른 개선 가능
         - Answer Relevancy는 프롬프트 개선으로 즉시 향상
         - Context Recall은 검색 시스템 아키텍처에 의존적
-        """)
+        """
+        )
+
 
 def show_faithfulness_explanation():
     """Faithfulness 상세 설명"""
     st.markdown("## ✅ Faithfulness (충실성)")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         ### 🤔 **이게 뭔가요?**
         
         **"AI가 거짓말을 하지 않았나요?"**를 측정하는 지표입니다.
@@ -209,43 +260,49 @@ def show_faithfulness_explanation():
         ❌ **나쁜 답변 (Faithfulness = 0.3)**:
         "직원은 연간 15일의 유급휴가를 사용할 수 있으며, 병가는 10일까지 가능합니다."
         → 병가 정보는 문서에 없는데 지어냈습니다!
-        """)
-    
+        """
+        )
+
     with col2:
         # 점수 게이지
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = 1.0,
-            title = {'text': "Faithfulness 점수"},
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            gauge = {
-                'axis': {'range': [None, 1]},
-                'bar': {'color': "green"},
-                'steps': [
-                    {'range': [0, 0.7], 'color': "lightgray"},
-                    {'range': [0.7, 0.9], 'color': "yellow"},
-                    {'range': [0.9, 1], 'color': "lightgreen"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': 0.95
-                }
-            }
-        ))
-        
+        fig = go.Figure(
+            go.Indicator(
+                mode="gauge+number",
+                value=1.0,
+                title={"text": "Faithfulness 점수"},
+                domain={"x": [0, 1], "y": [0, 1]},
+                gauge={
+                    "axis": {"range": [None, 1]},
+                    "bar": {"color": "green"},
+                    "steps": [
+                        {"range": [0, 0.7], "color": "lightgray"},
+                        {"range": [0.7, 0.9], "color": "yellow"},
+                        {"range": [0.9, 1], "color": "lightgreen"},
+                    ],
+                    "threshold": {
+                        "line": {"color": "red", "width": 4},
+                        "thickness": 0.75,
+                        "value": 0.95,
+                    },
+                },
+            )
+        )
+
         fig.update_layout(height=250)
         st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("""
+
+        st.markdown(
+            """
         ### 🎯 **목표 점수**
         - **1.0**: 완벽 (환각 없음)
         - **0.9+**: 우수
         - **0.8+**: 양호
         - **0.7-**: 개선 필요
-        """)
-    
-    st.markdown("""
+        """
+        )
+
+    st.markdown(
+        """
     ### 🔧 **개선 방법**
     
     1. **프롬프트 개선**
@@ -259,16 +316,19 @@ def show_faithfulness_explanation():
     3. **후처리**
        - 답변에서 문서에 없는 내용 자동 제거
        - 출처 표시 기능 추가
-    """)
+    """
+    )
+
 
 def show_answer_relevancy_explanation():
     """Answer Relevancy 상세 설명"""
     st.markdown("## 🎯 Answer Relevancy (답변 관련성)")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         ### 🤔 **이게 뭔가요?**
         
         **"질문에 정확히 답했나요?"**를 측정하는 지표입니다.
@@ -290,37 +350,37 @@ def show_answer_relevancy_explanation():
         ❌ **나쁜 답변 (Relevancy = 0.3)**:
         "프로그래밍에는 다양한 언어가 있습니다. Java, C++, Python 등이 있죠..."
         → 질문에 전혀 답하지 않았습니다!
-        """)
-    
+        """
+        )
+
     with col2:
         # 관련성 차트
-        categories = ['질문 의도 파악', '직접적 답변', '간결성', '완성도']
+        categories = ["질문 의도 파악", "직접적 답변", "간결성", "완성도"]
         scores = [0.9, 0.8, 0.7, 0.9]
-        
+
         fig = go.Figure()
-        
-        fig.add_trace(go.Scatterpolar(
-            r=scores + [scores[0]],
-            theta=categories + [categories[0]],
-            fill='toself',
-            name='Answer Relevancy',
-            line_color='rgb(32, 201, 151)'
-        ))
-        
+
+        fig.add_trace(
+            go.Scatterpolar(
+                r=scores + [scores[0]],
+                theta=categories + [categories[0]],
+                fill="toself",
+                name="Answer Relevancy",
+                line_color="rgb(32, 201, 151)",
+            )
+        )
+
         fig.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[0, 1]
-                )),
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
             showlegend=False,
             title="관련성 구성 요소",
-            height=300
+            height=300,
         )
-        
+
         st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     ### 🎯 **평가 기준**
     
     1. **질문 의도 파악** (30%): 질문자가 정말 원하는 게 뭔지 이해했나?
@@ -341,16 +401,19 @@ def show_answer_relevancy_explanation():
     3. **답변 검증**
        - "이 답변이 질문에 직접 답하는가?" 체크
        - 불필요한 부분 제거
-    """)
+    """
+    )
+
 
 def show_context_recall_explanation():
     """Context Recall 상세 설명"""
     st.markdown("## 🔄 Context Recall (컨텍스트 재현율)")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         ### 🤔 **이게 뭔가요?**
         
         **"필요한 정보를 모두 찾았나요?"**를 측정하는 지표입니다.
@@ -375,39 +438,46 @@ def show_context_recall_explanation():
         ❌ **나쁜 검색 (Recall = 0.33)**:
         - 문서 1: 출장 신청 절차만 설명
         → 출장비와 영수증 정보가 누락됨!
-        """)
-    
+        """
+        )
+
     with col2:
         # 검색 완성도 시각화
         found_info = 3
         total_info = 3
         missing_info = total_info - found_info
-        
-        fig = go.Figure(data=[
-            go.Pie(
-                labels=['찾은 정보', '놓친 정보'],
-                values=[found_info, missing_info] if missing_info > 0 else [found_info, 0.1],
-                hole=.3,
-                marker_colors=['lightgreen', 'lightcoral']
-            )
-        ])
-        
-        fig.update_layout(
-            title=f"정보 발견율: {found_info}/{total_info}",
-            height=300
+
+        fig = go.Figure(
+            data=[
+                go.Pie(
+                    labels=["찾은 정보", "놓친 정보"],
+                    values=(
+                        [found_info, missing_info]
+                        if missing_info > 0
+                        else [found_info, 0.1]
+                    ),
+                    hole=0.3,
+                    marker_colors=["lightgreen", "lightcoral"],
+                )
+            ]
         )
-        
+
+        fig.update_layout(title=f"정보 발견율: {found_info}/{total_info}", height=300)
+
         st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("""
+
+        st.markdown(
+            """
         ### 🎯 **목표 점수**
         - **1.0**: 완벽 (정보 누락 없음)
         - **0.9+**: 우수
         - **0.8+**: 양호  
         - **0.7-**: 검색 개선 필요
-        """)
-    
-    st.markdown("""
+        """
+        )
+
+    st.markdown(
+        """
     ### 🔍 **실제 평가 과정**
     
     1. **정답 분석**: 정답을 만들기 위해 필요한 모든 정보 조각들을 식별
@@ -429,16 +499,19 @@ def show_context_recall_explanation():
     3. **문서 품질 향상**
        - 중요 정보가 누락되지 않도록 문서 보완
        - 정보 간 연결 강화
-    """)
+    """
+    )
+
 
 def show_context_precision_explanation():
     """Context Precision 상세 설명"""
     st.markdown("## 📍 Context Precision (컨텍스트 정확성)")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         ### 🤔 **이게 뭔가요?**
         
         **"불필요한 정보는 없나요?"**를 측정하는 지표입니다.
@@ -460,39 +533,45 @@ def show_context_precision_explanation():
         - 문서 2: 파이썬 역사와 특징 (관련 없음)  
         - 문서 3: Java 프로그래밍 기초 (관련 없음)
         → 3개 중 1개만 유용함!
-        """)
-    
+        """
+        )
+
     with col2:
         # 정확도 시각화
         relevant_docs = 2
         total_docs = 3
         irrelevant_docs = total_docs - relevant_docs
-        
+
         fig = go.Figure()
-        
-        fig.add_trace(go.Bar(
-            x=['관련 있는 문서', '관련 없는 문서'],
-            y=[relevant_docs, irrelevant_docs],
-            marker_color=['lightgreen', 'lightcoral']
-        ))
-        
+
+        fig.add_trace(
+            go.Bar(
+                x=["관련 있는 문서", "관련 없는 문서"],
+                y=[relevant_docs, irrelevant_docs],
+                marker_color=["lightgreen", "lightcoral"],
+            )
+        )
+
         fig.update_layout(
             title=f"문서 관련성: {relevant_docs}/{total_docs}",
             yaxis_title="문서 수",
-            height=300
+            height=300,
         )
-        
+
         st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("""
+
+        st.markdown(
+            """
         ### 📊 **점수 의미**
         - **1.0**: 모든 문서가 유용
         - **0.8+**: 대부분 관련 있음
         - **0.6+**: 절반 정도 유용
         - **0.5-**: 노이즈가 너무 많음
-        """)
-    
-    st.markdown("""
+        """
+        )
+
+    st.markdown(
+        """
     ### 🎯 **왜 중요한가요?**
     
     1. **AI 혼란 방지**: 관련 없는 정보가 많으면 AI가 헷갈려서 잘못된 답변 생성
@@ -515,15 +594,17 @@ def show_context_precision_explanation():
     3. **피드백 학습**
        - 사용자 피드백으로 검색 품질 개선
        - A/B 테스트로 최적 설정 찾기
-    """)
+    """
+    )
+
 
 def show_practical_guide():
     """실전 가이드"""
     st.markdown("## 💡 실전 활용 가이드")
-    
+
     # 점수 해석 가이드 (RAGAS 공식 기준 반영)
     st.markdown("### 📊 점수 해석 및 액션 가이드")
-    
+
     score_guide = {
         "점수 구간": ["0.9 - 1.0", "0.7 - 0.9", "0.5 - 0.7", "0.3 - 0.5", "0.0 - 0.3"],
         "평가": ["🌟 우수", "✅ 양호", "⚠️ 보통", "🔴 개선필요", "❌ 심각"],
@@ -532,26 +613,27 @@ def show_practical_guide():
             "실용적으로 사용 가능",
             "개선이 필요하지만 작동",
             "기본 기능만 작동",
-            "시스템 재검토 필요"
+            "시스템 재검토 필요",
         ],
         "액션": [
             "현재 상태 유지, 미세 조정",
             "일부 개선으로 우수 등급 달성",
             "구체적 개선 계획 수립",
             "즉시 개선 작업 시작",
-            "전면적 재검토 필요"
-        ]
+            "전면적 재검토 필요",
+        ],
     }
-    
+
     st.dataframe(pd.DataFrame(score_guide), use_container_width=True)
-    
+
     # 개선 우선순위
     st.markdown("### 🎯 개선 우선순위 전략")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         #### 📈 **단계별 개선 전략**
         
         **1단계: Faithfulness 확보 (최우선)**
@@ -573,10 +655,12 @@ def show_practical_guide():
         - 효율성과 속도 향상
         - 비용 최적화 효과
         - 목표: 0.7 이상
-        """)
-    
+        """
+        )
+
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
         #### ⚡ **빠른 개선 팁**
         
         **Faithfulness 빠른 개선**
@@ -594,15 +678,17 @@ def show_practical_guide():
         **Context Precision 빠른 개선**
         - 유사도 임계값 상향 조정
         - 중복 문서 자동 제거
-        """)
-    
+        """
+        )
+
     # RAGAS 논문 기반 성능 기준
     st.markdown("### 🏆 RAGAS 논문 기반 성능 기준")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        st.markdown("""
+        st.markdown(
+            """
         #### 📚 RAGAS 연구 결과
         
         **Faithfulness (환각 방지):**
@@ -614,10 +700,12 @@ def show_practical_guide():
         - 🟢 0.8+ : 사용자 만족도 높음
         - 🟡 0.6+ : 기본적인 요구사항 충족
         - 🔴 <0.6 : 사용자 경험 저하
-        """)
-    
+        """
+        )
+
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
         #### 🔍 실제 개발 경험 기반
         
         **Context Recall (완성도):**
@@ -629,10 +717,12 @@ def show_practical_guide():
         - 🟢 0.8+ : 효율적인 처리 성능
         - 🟡 0.6+ : 적절한 수준
         - 🔴 <0.6 : 노이즈 제거 필요
-        """)
-    
+        """
+        )
+
     # 실제 RAGAS 논문에서 언급된 중요 포인트들
-    st.markdown("""
+    st.markdown(
+        """
     #### 🎯 RAGAS 논문의 핵심 인사이트
     
     1. **Faithfulness가 가장 중요**: 정확하지 않은 정보는 모든 것을 무의미하게 만듦
@@ -642,44 +732,45 @@ def show_practical_guide():
     
     **📖 참고**: Shahul Es, Jithin James, Luis Espinosa-Anke, Steven Schockaert. 
     "RAGAS: Automated Evaluation of Retrieval Augmented Generation." arXiv:2309.15217
-    """)
-    
+    """
+    )
+
     # 트러블슈팅
     st.markdown("### 🔧 자주 묻는 문제와 해결책")
-    
+
     troubleshooting = [
         {
             "문제": "모든 점수가 0.5 이하로 매우 낮아요 😢",
             "원인": "시스템 기본 설정 문제 또는 데이터 품질 이슈",
-            "해결책": "1) API 키 확인 2) 프롬프트 템플릿 점검 3) 평가 데이터 형식 검증 4) 모델 설정 확인"
+            "해결책": "1) API 키 확인 2) 프롬프트 템플릿 점검 3) 평가 데이터 형식 검증 4) 모델 설정 확인",
         },
         {
             "문제": "Faithfulness가 0.7 이하로 낮아요",
             "원인": "AI가 컨텍스트에 없는 정보를 생성 (환각 현상)",
-            "해결책": "1) Temperature를 0.1-0.3으로 낮추기 2) '제공된 문서만 사용하세요' 프롬프트 추가 3) 더 안정적인 모델 사용"
+            "해결책": "1) Temperature를 0.1-0.3으로 낮추기 2) '제공된 문서만 사용하세요' 프롬프트 추가 3) 더 안정적인 모델 사용",
         },
         {
             "문제": "Context Precision이 0.6 이하로 낮아요",
             "원인": "검색된 문서 중 관련 없는 내용이 너무 많음",
-            "해결책": "1) 검색 유사도 임계값 높이기 2) 검색 결과 개수 줄이기 3) 검색 알고리즘 개선"
+            "해결책": "1) 검색 유사도 임계값 높이기 2) 검색 결과 개수 줄이기 3) 검색 알고리즘 개선",
         },
         {
             "문제": "Context Recall이 0.7 이하로 낮아요",
             "원인": "필요한 정보를 충분히 검색하지 못함",
-            "해결책": "1) 검색 범위 확대 2) 다양한 키워드로 검색 3) 하이브리드 검색 (키워드+의미) 활용"
+            "해결책": "1) 검색 범위 확대 2) 다양한 키워드로 검색 3) 하이브리드 검색 (키워드+의미) 활용",
         },
         {
             "문제": "Answer Relevancy가 0.6 이하로 낮아요",
             "원인": "질문에 직접 답하지 않거나 불필요한 내용 포함",
-            "해결책": "1) '질문에 직접 답하세요' 프롬프트 추가 2) 답변 길이 제한 3) 질문 의도 파악 개선"
+            "해결책": "1) '질문에 직접 답하세요' 프롬프트 추가 2) 답변 길이 제한 3) 질문 의도 파악 개선",
         },
         {
             "문제": "점수는 높은데 실제 답변이 이상해요",
             "원인": "평가 데이터와 실제 사용 패턴의 차이",
-            "해결책": "1) 실제 사용자 질문으로 추가 평가 2) 도메인별 맞춤 평가 3) 사용자 피드백 수집"
-        }
+            "해결책": "1) 실제 사용자 질문으로 추가 평가 2) 도메인별 맞춤 평가 3) 사용자 피드백 수집",
+        },
     ]
-    
+
     for item in troubleshooting:
         with st.expander(f"❓ {item['문제']}"):
             st.write(f"**원인**: {item['원인']}")
@@ -689,25 +780,29 @@ def show_practical_guide():
 def show_ragas_prompts():
     """RAGAS 평가 프롬프트 표시"""
     st.markdown("### 🔧 RAGAS 평가 프롬프트")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **RAGAS 라이브러리가 각 메트릭을 평가할 때 사용하는 실제 프롬프트를 확인할 수 있습니다.**
     
     이 프롬프트들을 이해하면 왜 특정 점수가 나왔는지, 어떻게 개선할 수 있는지 더 잘 알 수 있습니다.
-    """)
-    
+    """
+    )
+
     # 각 메트릭별 프롬프트
-    prompt_tabs = st.tabs(["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"])
-    
+    prompt_tabs = st.tabs(
+        ["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"]
+    )
+
     with prompt_tabs[0]:
         show_faithfulness_prompt()
-    
+
     with prompt_tabs[1]:
         show_answer_relevancy_prompt()
-    
+
     with prompt_tabs[2]:
         show_context_recall_prompt()
-    
+
     with prompt_tabs[3]:
         show_context_precision_prompt()
 
@@ -715,13 +810,15 @@ def show_ragas_prompts():
 def show_faithfulness_prompt():
     """Faithfulness 평가 프롬프트"""
     st.markdown("#### ✅ Faithfulness 평가 프롬프트 (실제 RAGAS 사용)")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **Faithfulness는 2단계로 평가됩니다:**
     1. **Statement Generator**: 답변을 개별 진술로 분해
     2. **NLI Statement**: 각 진술이 컨텍스트에서 뒷받침되는지 판단
-    """)
-    
+    """
+    )
+
     st.markdown("##### 1단계: Statement Generator")
     statement_generator_prompt = """Given a question and an answer, analyze the complexity of each sentence in the answer. Break down each sentence into one or more fully understandable statements. Ensure that no pronouns are used in any statement. Format the outputs in JSON.
 
@@ -738,9 +835,9 @@ Output:
     "Albert Einstein also made important contributions to the development of the theory of quantum mechanics."
   ]
 }"""
-    
+
     st.code(statement_generator_prompt, language="text")
-    
+
     st.markdown("##### 2단계: NLI Statement (충실도 판단)")
     nli_prompt = """Your task is to judge the faithfulness of a series of statements based on a given context. For each statement you must return verdict as 1 if the statement can be directly inferred based on the context or 0 if the statement can not be directly inferred based on the context.
 
@@ -764,10 +861,11 @@ Output:
     }
   ]
 }"""
-    
+
     st.code(nli_prompt, language="text")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **실제 Faithfulness 계산**: 
     ```
     Faithfulness = (뒷받침되는 진술 수) / (전체 진술 수)
@@ -777,20 +875,23 @@ Output:
     - 답변을 명확한 진술들로 분해
     - 각 진술이 컨텍스트에서 **직접적으로** 추론 가능한지 판단
     - 대명사 없이 완전한 문장으로 변환하여 평가
-    """)
+    """
+    )
 
 
 def show_answer_relevancy_prompt():
     """Answer Relevancy 평가 프롬프트"""
     st.markdown("#### 🎯 Answer Relevancy 평가 프롬프트 (실제 RAGAS 사용)")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **Answer Relevancy는 질문 생성을 통해 평가됩니다:**
     - 주어진 **답변**으로부터 **역으로 질문**을 생성
     - 생성된 질문과 **원래 질문**의 유사성을 측정
     - 관련성 높은 답변일수록 비슷한 질문이 생성됨
-    """)
-    
+    """
+    )
+
     answer_relevancy_prompt = """Generate a question for the given answer. The question should be answerable from the given answer.
 
 Example:
@@ -807,10 +908,11 @@ Answer: Photosynthesis occurs in the chloroplasts and converts carbon dioxide an
 
 Output:
 Question: What is photosynthesis and where does it occur?"""
-    
+
     st.code(answer_relevancy_prompt, language="text")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **실제 Answer Relevancy 계산**:
     1. 답변을 기반으로 N개의 질문 생성 (보통 3개)
     2. 각 생성된 질문과 원본 질문의 유사도 계산 (코사인 유사도)
@@ -823,19 +925,22 @@ Question: What is photosynthesis and where does it occur?"""
     **핵심 평가 원리**:
     - 좋은 답변 → 원본과 비슷한 질문들 생성 → 높은 유사도
     - 관련없는 답변 → 다른 질문들 생성 → 낮은 유사도
-    """)
+    """
+    )
 
 
 def show_context_recall_prompt():
     """Context Recall 평가 프롬프트"""
     st.markdown("#### 🔄 Context Recall 평가 프롬프트 (실제 RAGAS 사용)")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **Context Recall은 Ground Truth를 기반으로 평가됩니다:**
     - Ground Truth의 각 정보가 검색된 컨텍스트에서 발견되는지 판단
     - 분류형 평가: 각 정보별로 "발견됨" 또는 "발견되지 않음"
-    """)
-    
+    """
+    )
+
     context_recall_prompt = """Given a context, and a ground truth, analyze each sentence in the ground truth and classify if the sentence can be attributed to the given context or not. Use only "Attributable" or "Not Attributable" along with a brief explanation.
 
 Example:
@@ -868,10 +973,11 @@ Output:
     }
   ]
 }"""
-    
+
     st.code(context_recall_prompt, language="text")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **실제 Context Recall 계산**:
     1. Ground Truth를 개별 진술(statement)로 분해
     2. 각 진술이 주어진 컨텍스트에서 "Attributable"한지 분류
@@ -885,20 +991,23 @@ Output:
     - Ground Truth의 각 정보가 검색된 문서에서 뒷받침되는지 확인
     - 검색 시스템이 필요한 정보를 얼마나 잘 찾았는지 측정
     - 높은 점수 = 필요한 정보를 모두 검색함
-    """)
+    """
+    )
 
 
 def show_context_precision_prompt():
     """Context Precision 평가 프롬프트"""
     st.markdown("#### 📍 Context Precision 평가 프롬프트 (실제 RAGAS 사용)")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **Context Precision은 검색 순서를 고려한 평가입니다:**
     - 각 검색된 컨텍스트가 질문에 유용한지 판단
     - 상위 랭킹된 컨텍스트일수록 더 높은 가중치
     - 유용한 컨텍스트가 상위에 있을수록 높은 점수
-    """)
-    
+    """
+    )
+
     context_precision_prompt = """Given question and a context, verify if the context is useful in answering the question. Respond with "Useful" or "Not Useful" along with a brief explanation.
 
 Example:
@@ -921,10 +1030,11 @@ Output:
   "verdict": "Not Useful",
   "reason": "While the context is about France, it discusses cuisine rather than providing information about the capital city."
 }"""
-    
+
     st.code(context_precision_prompt, language="text")
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     **실제 Context Precision 계산**:
     1. 각 검색된 컨텍스트를 순서대로 "Useful" 또는 "Not Useful"로 분류
     2. 상위 k개 컨텍스트에서의 precision@k 계산
@@ -938,10 +1048,12 @@ Output:
     - 유용한 컨텍스트가 상위에 랭킹될수록 높은 점수
     - 검색 시스템의 랭킹 품질을 평가
     - 사용자가 빠르게 유용한 정보를 찾을 수 있는지 측정
-    """)
-    
+    """
+    )
+
     st.markdown("---")
-    st.markdown("""
+    st.markdown(
+        """
     **💡 프롬프트 활용 팁**:
     
     1. **프롬프트 커스터마이징**: 도메인 특성에 맞게 평가 기준을 조정할 수 있습니다
@@ -950,4 +1062,5 @@ Output:
     4. **Few-shot 예시**: 더 정확한 평가를 위해 프롬프트에 예시를 추가할 수 있습니다
     
     **주의사항**: 프롬프트를 수정할 때는 평가의 일관성을 유지하기 위해 충분한 테스트가 필요합니다.
-    """)
+    """
+    )

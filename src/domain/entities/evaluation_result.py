@@ -1,11 +1,13 @@
 """Evaluation result entity"""
+
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class EvaluationResult:
     """RAGAs 평가 결과를 나타내는 엔티티"""
+
     faithfulness: float
     answer_relevancy: float
     context_recall: float
@@ -13,7 +15,7 @@ class EvaluationResult:
     ragas_score: float
     individual_scores: Optional[List[Dict[str, float]]] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """평가 결과 유효성 검증"""
         for metric_name, score in [
@@ -21,11 +23,13 @@ class EvaluationResult:
             ("answer_relevancy", self.answer_relevancy),
             ("context_recall", self.context_recall),
             ("context_precision", self.context_precision),
-            ("ragas_score", self.ragas_score)
+            ("ragas_score", self.ragas_score),
         ]:
             if not 0.0 <= score <= 1.0:
-                raise ValueError(f"{metric_name} must be between 0.0 and 1.0, got {score}")
-    
+                raise ValueError(
+                    f"{metric_name} must be between 0.0 and 1.0, got {score}"
+                )
+
     def to_dict(self) -> Dict[str, Any]:
         """딕셔너리로 변환"""
         result = {
@@ -33,12 +37,12 @@ class EvaluationResult:
             "answer_relevancy": self.answer_relevancy,
             "context_recall": self.context_recall,
             "context_precision": self.context_precision,
-            "ragas_score": self.ragas_score
+            "ragas_score": self.ragas_score,
         }
-        
+
         if self.individual_scores:
             result["individual_scores"] = self.individual_scores
         if self.metadata:
             result["metadata"] = self.metadata
-            
+
         return result

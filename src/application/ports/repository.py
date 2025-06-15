@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
+
 from src.domain import EvaluationData
 
 
@@ -11,4 +12,4 @@ class EvaluationRepositoryPort(ABC):
         """
         평가에 사용할 데이터셋을 로드하여 EvaluationData 객체의 리스트로 반환합니다.
         """
-        pass 
+        pass

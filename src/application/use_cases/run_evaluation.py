@@ -1,9 +1,12 @@
 """Run evaluation use case"""
-from typing import Dict, Any
+
+from typing import Any, Dict
+
 from datasets import Dataset
 
-from src.domain import EvaluationData, EvaluationResult, EvaluationError
-from src.application.ports import LlmPort, EvaluationRepositoryPort, EvaluationRunnerPort
+from src.application.ports import (EvaluationRepositoryPort,
+                                   EvaluationRunnerPort, LlmPort)
+from src.domain import EvaluationData, EvaluationError, EvaluationResult
 
 
 class RunEvaluationUseCase:
@@ -22,10 +25,10 @@ class RunEvaluationUseCase:
     def execute(self) -> EvaluationResult:
         """
         평가를 실행하고 결과를 반환합니다.
-        
+
         Returns:
             EvaluationResult: 평가 결과 엔티티
-            
+
         Raises:
             EvaluationError: 평가 실행 중 오류 발생 시
         """
@@ -44,20 +47,19 @@ class RunEvaluationUseCase:
             llm = self.llm_port.get_llm()
 
             # 4. 평가 실행
-            result_dict = self.evaluation_runner.evaluate(
-                dataset=dataset,
-                llm=llm
-            )
-            
+            result_dict = self.evaluation_runner.evaluate(dataset=dataset, llm=llm)
+
             # 5. 결과 검증 및 변환
             return self._validate_and_convert_result(result_dict)
-            
+
         except Exception as e:
             if isinstance(e, EvaluationError):
                 raise
             raise EvaluationError(f"평가 실행 중 오류 발생: {str(e)}") from e
 
-    def _convert_to_dataset(self, evaluation_data_list: list[EvaluationData]) -> Dataset:
+    def _convert_to_dataset(
+        self, evaluation_data_list: list[EvaluationData]
+    ) -> Dataset:
         """평가 데이터를 Ragas Dataset 형식으로 변환"""
         data_dict = {
             "question": [d.question for d in evaluation_data_list],
@@ -67,26 +69,33 @@ class RunEvaluationUseCase:
         }
         return Dataset.from_dict(data_dict)
 
-    def _validate_and_convert_result(self, result_dict: Dict[str, Any]) -> EvaluationResult:
+    def _validate_and_convert_result(
+        self, result_dict: Dict[str, Any]
+    ) -> EvaluationResult:
         """결과 딕셔너리를 검증하고 EvaluationResult로 변환"""
         if not result_dict:
             raise EvaluationError("평가 결과가 비어있습니다.")
-        
+
         # 필수 메트릭 확인
-        required_metrics = ["faithfulness", "answer_relevancy", "context_recall", "context_precision"]
+        required_metrics = [
+            "faithfulness",
+            "answer_relevancy",
+            "context_recall",
+            "context_precision",
+        ]
         for metric in required_metrics:
             if metric not in result_dict:
                 raise EvaluationError(f"필수 메트릭이 누락되었습니다: {metric}")
-        
+
         # 결과가 모두 0인지 확인
         metric_values = [result_dict.get(metric, 0.0) for metric in required_metrics]
         if all(v == 0.0 for v in metric_values):
             print("\n경고: 모든 평가 점수가 0입니다. 다음을 확인해주세요:")
             print("1. API 키가 올바르게 설정되었는지 확인")
-            print("2. Gemini API 할당량이 남아있는지 확인") 
+            print("2. Gemini API 할당량이 남아있는지 확인")
             print("3. 네트워크 연결이 정상인지 확인")
             print("4. 평가 데이터 형식이 올바른지 확인")
-        
+
         # EvaluationResult 생성
         return EvaluationResult(
             faithfulness=result_dict["faithfulness"],
@@ -95,5 +104,5 @@ class RunEvaluationUseCase:
             context_precision=result_dict["context_precision"],
             ragas_score=result_dict.get("ragas_score", 0.0),
             individual_scores=result_dict.get("individual_scores"),
-            metadata={"timestamp": result_dict.get("timestamp")}
+            metadata={"timestamp": result_dict.get("timestamp")},
         )

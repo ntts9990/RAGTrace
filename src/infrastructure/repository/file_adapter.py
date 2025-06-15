@@ -16,7 +16,7 @@ class FileRepositoryAdapter(EvaluationRepositoryPort):
         지정된 경로의 JSON 파일을 읽어 EvaluationData 객체 리스트로 변환합니다.
         """
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
+            with open(self.file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             return [EvaluationData(**item) for item in data]
@@ -28,4 +28,4 @@ class FileRepositoryAdapter(EvaluationRepositoryPort):
             return []
         except Exception as e:
             print(f"데이터 로드 중 예기치 않은 오류 발생: {e}")
-            return [] 
+            return []
