@@ -318,6 +318,17 @@ def run_new_evaluation():
             # 결과 저장 (데이터셋 정보 포함)
             result_dict = evaluation_result.to_dict()
             result_dict['metadata']['dataset'] = selected_dataset
+            
+            # QA 데이터도 함께 저장
+            try:
+                with open(project_root / selected_dataset, 'r', encoding='utf-8') as f:
+                    qa_data = json.load(f)
+                    # 실제 평가된 개수만큼만 저장
+                    qa_count = len(result_dict.get('individual_scores', []))
+                    result_dict['qa_data'] = qa_data[:qa_count]
+            except Exception as e:
+                st.warning(f"QA 데이터 로드 실패: {e}")
+            
             save_evaluation_result(result_dict)
             
             st.success("✅ 평가가 완료되었습니다!")

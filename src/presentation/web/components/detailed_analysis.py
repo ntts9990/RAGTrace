@@ -89,25 +89,112 @@ def load_evaluation_by_id(evaluation_id):
         return None, []
 
 
+def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
+    """간단한 버전 - 직접 파일 로드"""
+    try:
+        # 하드코딩된 절대 경로 사용
+        if "variant1" in dataset_name:
+            path = "/Users/isle/PycharmProjects/ragas-test/data/evaluation_data_variant1.json"
+        else:
+            path = "/Users/isle/PycharmProjects/ragas-test/data/evaluation_data.json"
+        
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data[:qa_count]
+    except Exception as e:
+        st.error(f"데이터 로드 실패: {e}")
+        return None
+
 def load_actual_qa_data_from_dataset(dataset_name, qa_count):
     """데이터셋 파일에서 실제 QA 데이터 로드"""
-    project_root = Path(__file__).parent.parent.parent.parent
+    import os
     
-    possible_paths = [
-        project_root / "data" / dataset_name,
-        project_root / "data" / "evaluation_data.json",
-        project_root / "data" / "evaluation_data_variant1.json"
+    # 디버그: 현재 파일 위치 확인
+    current_file = Path(__file__).resolve()
+    print(f"[DEBUG] Current file: {current_file}")
+    
+    # 다양한 방법으로 project root 찾기
+    # 방법 1: 현재 파일에서 상대 경로
+    project_root = current_file.parent.parent.parent.parent
+    
+    # 방법 2: cwd에서 찾기  
+    cwd = Path.cwd()
+    if 'ragas-test' in cwd.parts:
+        # cwd가 ragas-test 내부에 있으면
+        idx = cwd.parts.index('ragas-test')
+        project_root_alt = Path(*cwd.parts[:idx+1])
+    else:
+        project_root_alt = cwd
+    
+    # 방법 3: 절대 경로 사용 (하드코딩)
+    absolute_data_paths = [
+        Path("/Users/isle/PycharmProjects/ragas-test/data") / dataset_name,
+        Path("/Users/isle/PycharmProjects/ragas-test/data/evaluation_data.json"),
+        Path("/Users/isle/PycharmProjects/ragas-test/data/evaluation_data_variant1.json")
     ]
     
-    for path in possible_paths:
-        if path.exists():
-            try:
+    print(f"[DEBUG] Project root (method 1): {project_root}")
+    print(f"[DEBUG] Project root (method 2): {project_root_alt}")
+    print(f"[DEBUG] Current working directory: {cwd}")
+    
+    # 모든 가능한 경로 조합
+    all_possible_paths = []
+    
+    # 각 project root 방법에 대해
+    for root in [project_root, project_root_alt]:
+        all_possible_paths.extend([
+            root / "data" / dataset_name,
+            root / "data" / "evaluation_data.json",
+            root / "data" / "evaluation_data_variant1.json"
+        ])
+    
+    # 절대 경로 추가
+    all_possible_paths.extend(absolute_data_paths)
+    
+    # 중복 제거
+    unique_paths = list(dict.fromkeys(all_possible_paths))
+    
+    print(f"[DEBUG] Looking for dataset: {dataset_name}")
+    print(f"[DEBUG] QA count requested: {qa_count}")
+    print(f"[DEBUG] Checking {len(unique_paths)} unique paths")
+    
+    # 모든 경로 시도
+    for i, path in enumerate(unique_paths):
+        print(f"[DEBUG] Checking path {i+1}: {path}")
+        
+        try:
+            if path.exists() and path.is_file():
+                print(f"[DEBUG] Found file at: {path}")
                 with open(path, "r", encoding="utf-8") as f:
                     all_qa_data = json.load(f)
-                # qa_count만큼만 반환 (실제 평가된 개수)
-                return all_qa_data[:qa_count]
-            except Exception:
-                continue
+                
+                print(f"[DEBUG] Successfully loaded JSON from {path}")
+                print(f"[DEBUG] Total QA items in file: {len(all_qa_data) if isinstance(all_qa_data, list) else 'Not a list'}")
+                
+                if isinstance(all_qa_data, list) and len(all_qa_data) > 0:
+                    # qa_count만큼만 반환 (실제 평가된 개수)
+                    result = all_qa_data[:qa_count]
+                    print(f"[DEBUG] Returning {len(result)} QA items")
+                    print(f"[DEBUG] First QA item preview: {result[0].get('question', 'No question')[:50] if result else 'No data'}")
+                    return result
+                else:
+                    print(f"[DEBUG] File loaded but invalid format or empty")
+                    
+        except json.JSONDecodeError as e:
+            print(f"[DEBUG] JSON decode error for {path}: {e}")
+        except Exception as e:
+            print(f"[DEBUG] Error with {path}: {type(e).__name__}: {e}")
+    
+    # 모든 경로에서 찾지 못한 경우
+    print("[DEBUG] Failed to load QA data from any path")
+    print(f"[DEBUG] Final attempt: listing files in likely directories...")
+    
+    # 마지막 시도: 가능한 data 디렉토리 내용 표시
+    for root in [project_root, project_root_alt, Path("/Users/isle/PycharmProjects/ragas-test")]:
+        data_dir = root / "data"
+        if data_dir.exists():
+            print(f"[DEBUG] Found data dir at: {data_dir}")
+            print(f"[DEBUG] Contents: {list(data_dir.iterdir())}")
     
     return None
 
@@ -124,8 +211,6 @@ def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     individual_scores = raw_data.get('individual_scores', [])
     actual_qa_count = len(individual_scores)
     
-    st.info(f"📊 실제 평가된 QA 개수: {actual_qa_count}")
-    
     # 메타데이터에서 정보 추출, 없으면 DB ID 사용
     evaluation_id = metadata.get('evaluation_id', f"DB#{evaluation_db_id}")
     model_info = metadata.get('model', 'Gemini-2.5-Flash')
@@ -137,8 +222,8 @@ def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     else:
         dataset_name = dataset_info
     
-    # 실제 QA 데이터 로드
-    actual_qa_data = load_actual_qa_data_from_dataset(dataset_name, actual_qa_count)
+    # 실제 QA 데이터 로드 - 간단한 버전 사용
+    actual_qa_data = load_actual_qa_data_from_dataset_simple(dataset_name, actual_qa_count)
     
     return {
         'qa_count': actual_qa_count,
@@ -240,6 +325,14 @@ def show_detailed_analysis():
     tab1, tab2, tab3 = st.tabs(["📊 QA 개별 분석", "📈 메트릭 분포", "🎯 패턴 분석"])
     
     with tab1:
+        # 디버그: qa_info 상태 확인
+        if qa_info and 'qa_data' in qa_info:
+            if qa_info['qa_data']:
+                st.info(f"📊 QA 데이터 상태: 로드됨 ({len(qa_info['qa_data'])}개)")
+            else:
+                st.warning("📊 QA 데이터 상태: 비어있음")
+                # 터미널 출력 확인 안내
+                st.info("💡 터미널에서 디버그 로그를 확인하세요.")
         show_qa_analysis_actual(individual_scores, evaluation_id, qa_info.get('qa_data'))
     
     with tab2:
@@ -267,14 +360,33 @@ def show_overall_metrics_only(evaluation_data):
 
 def show_qa_analysis_actual(individual_scores, evaluation_id, qa_data=None):
     """실제 평가된 QA 개별 분석"""
-    st.subheader("📋 실제 평가된 QA 분석")
+    st.subheader("📋 QA 개별 분석")
     
     qa_count = len(individual_scores)
-    st.info(f"📊 실제 평가된 QA 개수: {qa_count}개")
     
     if qa_count == 0:
         st.warning("분석할 QA 데이터가 없습니다.")
         return
+    
+    # 디버그: qa_data 상태 확인
+    if qa_data is None:
+        st.error("⚠️ QA 데이터가 로드되지 않았습니다.")
+        with st.expander("🔍 문제 해결 방법"):
+            st.markdown("""
+            **가능한 원인:**
+            1. 평가 데이터 파일이 `/Users/isle/PycharmProjects/ragas-test/data/` 경로에 없음
+            2. 파일 이름이 `evaluation_data.json` 또는 `evaluation_data_variant1.json`이 아님
+            3. 파일 권한 문제
+            
+            **해결 방법:**
+            - 터미널에서 `ls -la /Users/isle/PycharmProjects/ragas-test/data/` 명령으로 파일 확인
+            - 필요한 경우 파일 권한 수정: `chmod 644 /Users/isle/PycharmProjects/ragas-test/data/*.json`
+            - 터미널에서 [DEBUG] 로그를 확인하여 정확한 오류 위치 파악
+            """)
+    elif len(qa_data) == 0:
+        st.error("⚠️ QA 데이터가 비어있습니다.")
+    else:
+        st.success(f"✅ {len(qa_data)}개의 QA 데이터가 로드되었습니다.")
     
     # QA 선택 옵션 생성 (실제 점수와 질문 내용 기반)
     qa_options = []
@@ -288,7 +400,12 @@ def show_qa_analysis_actual(individual_scores, evaluation_id, qa_data=None):
         question_preview = "질문 정보 없음"
         if qa_data and i < len(qa_data):
             question = qa_data[i].get('question', '')
-            question_preview = question[:30] + "..." if len(question) > 30 else question
+            if question:
+                # 질문 길이에 따라 동적으로 처리
+                if len(question) > 50:
+                    question_preview = question[:47] + "..."
+                else:
+                    question_preview = question
         
         qa_options.append(f"QA #{i+1}: {question_preview} (평균: {avg_score:.3f})")
     

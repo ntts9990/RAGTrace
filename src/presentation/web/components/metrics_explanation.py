@@ -782,114 +782,162 @@ Output:
 
 def show_answer_relevancy_prompt():
     """Answer Relevancy 평가 프롬프트"""
-    st.markdown("#### 🎯 Answer Relevancy 평가 프롬프트")
+    st.markdown("#### 🎯 Answer Relevancy 평가 프롬프트 (실제 RAGAS 사용)")
     
     st.markdown("""
-    **목적**: 답변이 질문과 얼마나 관련성이 있는지 평가
+    **Answer Relevancy는 질문 생성을 통해 평가됩니다:**
+    - 주어진 **답변**으로부터 **역으로 질문**을 생성
+    - 생성된 질문과 **원래 질문**의 유사성을 측정
+    - 관련성 높은 답변일수록 비슷한 질문이 생성됨
     """)
     
-    answer_relevancy_prompt = """
-Given a question and an answer, evaluate how relevant the answer is to the question.
-The relevance score ranges from 0 to 1, where 1 means the answer is perfectly relevant.
+    answer_relevancy_prompt = """Generate a question for the given answer. The question should be answerable from the given answer.
 
-Consider the following criteria:
-1. Does the answer directly address the question asked?
-2. Does the answer contain information that is not relevant to the question?
-3. Does the answer completely satisfy what the question is asking for?
+Example:
+Context: Albert Einstein was a German-born theoretical physicist who developed the theory of relativity, one of the two pillars of modern physics (alongside quantum mechanics). His work is also known for its influence on the philosophy of science.
+Answer: Albert Einstein was a German-born theoretical physicist who developed the theory of relativity.
 
-Question: {question}
-Answer: {answer}
+Output:
+Question: Who was Albert Einstein and what was his major contribution to physics?
 
-Please provide:
-1. Relevant parts of the answer
-2. Irrelevant parts of the answer (if any)
-3. Missing information that should be in the answer
-4. A relevancy score from 0 to 1
-5. A brief explanation of the score
-"""
+---
+
+Context: The process of photosynthesis occurs in the chloroplasts of plant cells. During this process, carbon dioxide and water are converted into glucose and oxygen using light energy. This process is essential for plant growth and provides oxygen for other living organisms.
+Answer: Photosynthesis occurs in the chloroplasts and converts carbon dioxide and water into glucose and oxygen using light energy.
+
+Output:
+Question: What is photosynthesis and where does it occur?"""
     
     st.code(answer_relevancy_prompt, language="text")
     
     st.markdown("""
-    **핵심 평가 기준**:
-    - 답변이 질문에 직접적으로 대응하는가?
-    - 불필요한 정보가 포함되어 있지 않는가?
-    - 질문이 요구하는 모든 정보를 제공하는가?
+    **실제 Answer Relevancy 계산**:
+    1. 답변을 기반으로 N개의 질문 생성 (보통 3개)
+    2. 각 생성된 질문과 원본 질문의 유사도 계산 (코사인 유사도)
+    3. 평균 유사도를 Answer Relevancy 점수로 사용
+    
+    ```
+    Answer Relevancy = mean(cosine_similarity(original_question, generated_question_i))
+    ```
+    
+    **핵심 평가 원리**:
+    - 좋은 답변 → 원본과 비슷한 질문들 생성 → 높은 유사도
+    - 관련없는 답변 → 다른 질문들 생성 → 낮은 유사도
     """)
 
 
 def show_context_recall_prompt():
     """Context Recall 평가 프롬프트"""
-    st.markdown("#### 🔄 Context Recall 평가 프롬프트")
+    st.markdown("#### 🔄 Context Recall 평가 프롬프트 (실제 RAGAS 사용)")
     
     st.markdown("""
-    **목적**: Ground truth의 정보가 검색된 컨텍스트에서 얼마나 발견되는지 평가
+    **Context Recall은 Ground Truth를 기반으로 평가됩니다:**
+    - Ground Truth의 각 정보가 검색된 컨텍스트에서 발견되는지 판단
+    - 분류형 평가: 각 정보별로 "발견됨" 또는 "발견되지 않음"
     """)
     
-    context_recall_prompt = """
-Given a question, ground truth answer, and retrieved contexts, evaluate how well the contexts cover the information in the ground truth.
-The recall score ranges from 0 to 1, where 1 means all information in ground truth is found in contexts.
+    context_recall_prompt = """Given a context, and a ground truth, analyze each sentence in the ground truth and classify if the sentence can be attributed to the given context or not. Use only "Attributable" or "Not Attributable" along with a brief explanation.
 
-Consider the following criteria:
-1. What information from the ground truth is present in the contexts?
-2. What information from the ground truth is missing in the contexts?
-3. How complete is the retrieved information?
+Example:
+Context: The Eiffel Tower was constructed between 1887 and 1889 as the entrance arch to the 1889 World's Fair. It was designed by Gustave Eiffel's company. It is located in Paris, France.
 
-Question: {question}
-Ground Truth: {ground_truth}
-Contexts: {contexts}
+Ground Truth: The Eiffel Tower, located in Paris, was built in 1889 for the World's Fair by Gustave Eiffel.
 
-Please provide:
-1. Information from ground truth that is found in contexts
-2. Information from ground truth that is missing in contexts
-3. A recall score from 0 to 1
-4. A brief explanation of the score
-"""
+Output:
+{
+  "statements": [
+    {
+      "statement": "The Eiffel Tower is located in Paris",
+      "attributed": "Attributable",
+      "reason": "The context explicitly states 'It is located in Paris, France.'"
+    },
+    {
+      "statement": "The Eiffel Tower was built in 1889",
+      "attributed": "Attributable", 
+      "reason": "The context states it was constructed between 1887 and 1889, so 1889 is within this range."
+    },
+    {
+      "statement": "The Eiffel Tower was built for the World's Fair",
+      "attributed": "Attributable",
+      "reason": "The context mentions it was built as the entrance arch to the 1889 World's Fair."
+    },
+    {
+      "statement": "The Eiffel Tower was built by Gustave Eiffel",
+      "attributed": "Attributable",
+      "reason": "The context states it was designed by Gustave Eiffel's company."
+    }
+  ]
+}"""
     
     st.code(context_recall_prompt, language="text")
     
     st.markdown("""
-    **핵심 평가 기준**:
-    - Ground truth의 핵심 정보가 컨텍스트에 포함되었는가?
-    - 누락된 중요 정보는 무엇인가?
-    - 검색 시스템이 필요한 정보를 충분히 수집했는가?
+    **실제 Context Recall 계산**:
+    1. Ground Truth를 개별 진술(statement)로 분해
+    2. 각 진술이 주어진 컨텍스트에서 "Attributable"한지 분류
+    3. Recall = (Attributable한 진술 수) / (전체 진술 수)
+    
+    ```
+    Context Recall = |Attributable Statements| / |Total Statements|
+    ```
+    
+    **핵심 평가 원리**:
+    - Ground Truth의 각 정보가 검색된 문서에서 뒷받침되는지 확인
+    - 검색 시스템이 필요한 정보를 얼마나 잘 찾았는지 측정
+    - 높은 점수 = 필요한 정보를 모두 검색함
     """)
 
 
 def show_context_precision_prompt():
     """Context Precision 평가 프롬프트"""
-    st.markdown("#### 📍 Context Precision 평가 프롬프트")
+    st.markdown("#### 📍 Context Precision 평가 프롬프트 (실제 RAGAS 사용)")
     
     st.markdown("""
-    **목적**: 검색된 컨텍스트가 질문과 얼마나 정확하게 관련되어 있는지 평가
+    **Context Precision은 검색 순서를 고려한 평가입니다:**
+    - 각 검색된 컨텍스트가 질문에 유용한지 판단
+    - 상위 랭킹된 컨텍스트일수록 더 높은 가중치
+    - 유용한 컨텍스트가 상위에 있을수록 높은 점수
     """)
     
-    context_precision_prompt = """
-Given a question and retrieved contexts, evaluate how precise and relevant the contexts are to the question.
-The precision score ranges from 0 to 1, where 1 means all contexts are highly relevant.
+    context_precision_prompt = """Given question and a context, verify if the context is useful in answering the question. Respond with "Useful" or "Not Useful" along with a brief explanation.
 
-Consider the following criteria:
-1. How relevant is each context to the question?
-2. Are there contexts that are not useful for answering the question?
-3. How much noise or irrelevant information is present?
+Example:
+Question: What is the capital of France?
+Context: Paris is the capital and largest city of France. It is located in the north-central part of the country.
 
-Question: {question}
-Contexts: {contexts}
+Output:
+{
+  "verdict": "Useful",
+  "reason": "The context directly answers the question by stating that Paris is the capital of France."
+}
 
-Please provide:
-1. Relevant contexts with explanation
-2. Irrelevant or noisy contexts (if any)
-3. A precision score from 0 to 1
-4. A brief explanation of the score
-"""
+---
+
+Question: What is the capital of France?
+Context: France is famous for its cuisine, including croissants, cheese, and wine. French cuisine has influenced cooking styles worldwide.
+
+Output:
+{
+  "verdict": "Not Useful",
+  "reason": "While the context is about France, it discusses cuisine rather than providing information about the capital city."
+}"""
     
     st.code(context_precision_prompt, language="text")
     
     st.markdown("""
-    **핵심 평가 기준**:
-    - 각 컨텍스트가 질문과 얼마나 관련성이 있는가?
-    - 질문 답변에 도움이 되지 않는 컨텍스트가 있는가?
-    - 노이즈나 무관한 정보가 얼마나 포함되었는가?
+    **실제 Context Precision 계산**:
+    1. 각 검색된 컨텍스트를 순서대로 "Useful" 또는 "Not Useful"로 분류
+    2. 상위 k개 컨텍스트에서의 precision@k 계산
+    3. 모든 k에 대한 평균 precision 계산 (Mean Average Precision)
+    
+    ```
+    Context Precision = Σ(Precision@k × Relevance@k) / |Relevant Contexts|
+    ```
+    
+    **핵심 평가 원리**:
+    - 유용한 컨텍스트가 상위에 랭킹될수록 높은 점수
+    - 검색 시스템의 랭킹 품질을 평가
+    - 사용자가 빠르게 유용한 정보를 찾을 수 있는지 측정
     """)
     
     st.markdown("---")
