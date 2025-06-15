@@ -443,7 +443,9 @@ def show_performance():
 # 데이터 저장/로드 함수들
 def get_db_path():
     """데이터베이스 경로 반환"""
-    return Path(__file__).parent / "evaluations.db"
+    # 프로젝트 루트에서 data/db/evaluations.db로 경로 수정
+    project_root = Path(__file__).parent.parent.parent.parent
+    return project_root / "data" / "db" / "evaluations.db"
 
 def init_db():
     """데이터베이스 초기화"""

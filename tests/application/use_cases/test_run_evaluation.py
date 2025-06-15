@@ -139,4 +139,14 @@ def test_execute_with_evaluation_error_reraise(mock_ports):
     
     # 원래 EvaluationError가 그대로 재발생되는지 확인 (73번 라인)
     assert exc_info.value is evaluation_error
-    assert str(exc_info.value) == "평가 실행 중 오류" 
+    assert str(exc_info.value) == "평가 실행 중 오류"
+
+
+def test_validate_and_convert_result_empty_dict(mock_ports):
+    """빈 결과 딕셔너리 검증 테스트 (73번 라인 커버)"""
+    # Given
+    use_case = RunEvaluationUseCase(**mock_ports)
+    
+    # When & Then: 빈 딕셔너리로 _validate_and_convert_result 호출 시 예외 발생
+    with pytest.raises(EvaluationError, match="평가 결과가 비어있습니다"):
+        use_case._validate_and_convert_result({}) 
