@@ -23,9 +23,9 @@ def show_metrics_explanation():
     show_quick_summary()
     
     # 탭으로 구분된 상세 설명
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "✅ Faithfulness", "🎯 Answer Relevancy", 
-        "🔄 Context Recall", "📍 Context Precision", "💡 실전 가이드"
+        "🔄 Context Recall", "📍 Context Precision", "💡 실전 가이드", "🔧 RAGAS 프롬프트"
     ])
     
     with tab1:
@@ -42,6 +42,9 @@ def show_metrics_explanation():
     
     with tab5:
         show_practical_guide()
+    
+    with tab6:
+        show_ragas_prompts()
 
 def show_quick_summary():
     """한눈에 보는 요약"""
@@ -681,3 +684,222 @@ def show_practical_guide():
         with st.expander(f"❓ {item['문제']}"):
             st.write(f"**원인**: {item['원인']}")
             st.write(f"**해결책**: {item['해결책']}")
+
+
+def show_ragas_prompts():
+    """RAGAS 평가 프롬프트 표시"""
+    st.markdown("### 🔧 RAGAS 평가 프롬프트")
+    
+    st.markdown("""
+    **RAGAS 라이브러리가 각 메트릭을 평가할 때 사용하는 실제 프롬프트를 확인할 수 있습니다.**
+    
+    이 프롬프트들을 이해하면 왜 특정 점수가 나왔는지, 어떻게 개선할 수 있는지 더 잘 알 수 있습니다.
+    """)
+    
+    # 각 메트릭별 프롬프트
+    prompt_tabs = st.tabs(["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"])
+    
+    with prompt_tabs[0]:
+        show_faithfulness_prompt()
+    
+    with prompt_tabs[1]:
+        show_answer_relevancy_prompt()
+    
+    with prompt_tabs[2]:
+        show_context_recall_prompt()
+    
+    with prompt_tabs[3]:
+        show_context_precision_prompt()
+
+
+def show_faithfulness_prompt():
+    """Faithfulness 평가 프롬프트"""
+    st.markdown("#### ✅ Faithfulness 평가 프롬프트 (실제 RAGAS 사용)")
+    
+    st.markdown("""
+    **Faithfulness는 2단계로 평가됩니다:**
+    1. **Statement Generator**: 답변을 개별 진술로 분해
+    2. **NLI Statement**: 각 진술이 컨텍스트에서 뒷받침되는지 판단
+    """)
+    
+    st.markdown("##### 1단계: Statement Generator")
+    statement_generator_prompt = """Given a question and an answer, analyze the complexity of each sentence in the answer. Break down each sentence into one or more fully understandable statements. Ensure that no pronouns are used in any statement. Format the outputs in JSON.
+
+Example:
+Question: Who was Albert Einstein and what is he best known for?
+Answer: He was a German-born theoretical physicist, widely acknowledged to be one of the greatest and most influential physicists of all time. He was best known for developing the theory of relativity, he also made important contributions to the development of the theory of quantum mechanics.
+
+Output:
+{
+  "statements": [
+    "Albert Einstein was a German-born theoretical physicist.",
+    "Albert Einstein is recognized as one of the greatest and most influential physicists of all time.",
+    "Albert Einstein was best known for developing the theory of relativity.",
+    "Albert Einstein also made important contributions to the development of the theory of quantum mechanics."
+  ]
+}"""
+    
+    st.code(statement_generator_prompt, language="text")
+    
+    st.markdown("##### 2단계: NLI Statement (충실도 판단)")
+    nli_prompt = """Your task is to judge the faithfulness of a series of statements based on a given context. For each statement you must return verdict as 1 if the statement can be directly inferred based on the context or 0 if the statement can not be directly inferred based on the context.
+
+Example:
+Context: John is a student at XYZ University. He is pursuing a degree in Computer Science. He is enrolled in several courses this semester, including Data Structures, Algorithms, and Database Management. John is a diligent student and spends a significant amount of time studying and completing assignments. He often stays late in the library to work on his projects.
+
+Statements: ["John is majoring in Biology.", "John is a dedicated student."]
+
+Output:
+{
+  "statements": [
+    {
+      "statement": "John is majoring in Biology.",
+      "reason": "John's major is explicitly mentioned as Computer Science. There is no information suggesting he is majoring in Biology.",
+      "verdict": 0
+    },
+    {
+      "statement": "John is a dedicated student.",
+      "reason": "The context states that he spends a significant amount of time studying and completing assignments. Additionally, it mentions that he often stays late in the library to work on his projects, which implies dedication.",
+      "verdict": 1
+    }
+  ]
+}"""
+    
+    st.code(nli_prompt, language="text")
+    
+    st.markdown("""
+    **실제 Faithfulness 계산**: 
+    ```
+    Faithfulness = (뒷받침되는 진술 수) / (전체 진술 수)
+    ```
+    
+    **핵심 평가 기준**:
+    - 답변을 명확한 진술들로 분해
+    - 각 진술이 컨텍스트에서 **직접적으로** 추론 가능한지 판단
+    - 대명사 없이 완전한 문장으로 변환하여 평가
+    """)
+
+
+def show_answer_relevancy_prompt():
+    """Answer Relevancy 평가 프롬프트"""
+    st.markdown("#### 🎯 Answer Relevancy 평가 프롬프트")
+    
+    st.markdown("""
+    **목적**: 답변이 질문과 얼마나 관련성이 있는지 평가
+    """)
+    
+    answer_relevancy_prompt = """
+Given a question and an answer, evaluate how relevant the answer is to the question.
+The relevance score ranges from 0 to 1, where 1 means the answer is perfectly relevant.
+
+Consider the following criteria:
+1. Does the answer directly address the question asked?
+2. Does the answer contain information that is not relevant to the question?
+3. Does the answer completely satisfy what the question is asking for?
+
+Question: {question}
+Answer: {answer}
+
+Please provide:
+1. Relevant parts of the answer
+2. Irrelevant parts of the answer (if any)
+3. Missing information that should be in the answer
+4. A relevancy score from 0 to 1
+5. A brief explanation of the score
+"""
+    
+    st.code(answer_relevancy_prompt, language="text")
+    
+    st.markdown("""
+    **핵심 평가 기준**:
+    - 답변이 질문에 직접적으로 대응하는가?
+    - 불필요한 정보가 포함되어 있지 않는가?
+    - 질문이 요구하는 모든 정보를 제공하는가?
+    """)
+
+
+def show_context_recall_prompt():
+    """Context Recall 평가 프롬프트"""
+    st.markdown("#### 🔄 Context Recall 평가 프롬프트")
+    
+    st.markdown("""
+    **목적**: Ground truth의 정보가 검색된 컨텍스트에서 얼마나 발견되는지 평가
+    """)
+    
+    context_recall_prompt = """
+Given a question, ground truth answer, and retrieved contexts, evaluate how well the contexts cover the information in the ground truth.
+The recall score ranges from 0 to 1, where 1 means all information in ground truth is found in contexts.
+
+Consider the following criteria:
+1. What information from the ground truth is present in the contexts?
+2. What information from the ground truth is missing in the contexts?
+3. How complete is the retrieved information?
+
+Question: {question}
+Ground Truth: {ground_truth}
+Contexts: {contexts}
+
+Please provide:
+1. Information from ground truth that is found in contexts
+2. Information from ground truth that is missing in contexts
+3. A recall score from 0 to 1
+4. A brief explanation of the score
+"""
+    
+    st.code(context_recall_prompt, language="text")
+    
+    st.markdown("""
+    **핵심 평가 기준**:
+    - Ground truth의 핵심 정보가 컨텍스트에 포함되었는가?
+    - 누락된 중요 정보는 무엇인가?
+    - 검색 시스템이 필요한 정보를 충분히 수집했는가?
+    """)
+
+
+def show_context_precision_prompt():
+    """Context Precision 평가 프롬프트"""
+    st.markdown("#### 📍 Context Precision 평가 프롬프트")
+    
+    st.markdown("""
+    **목적**: 검색된 컨텍스트가 질문과 얼마나 정확하게 관련되어 있는지 평가
+    """)
+    
+    context_precision_prompt = """
+Given a question and retrieved contexts, evaluate how precise and relevant the contexts are to the question.
+The precision score ranges from 0 to 1, where 1 means all contexts are highly relevant.
+
+Consider the following criteria:
+1. How relevant is each context to the question?
+2. Are there contexts that are not useful for answering the question?
+3. How much noise or irrelevant information is present?
+
+Question: {question}
+Contexts: {contexts}
+
+Please provide:
+1. Relevant contexts with explanation
+2. Irrelevant or noisy contexts (if any)
+3. A precision score from 0 to 1
+4. A brief explanation of the score
+"""
+    
+    st.code(context_precision_prompt, language="text")
+    
+    st.markdown("""
+    **핵심 평가 기준**:
+    - 각 컨텍스트가 질문과 얼마나 관련성이 있는가?
+    - 질문 답변에 도움이 되지 않는 컨텍스트가 있는가?
+    - 노이즈나 무관한 정보가 얼마나 포함되었는가?
+    """)
+    
+    st.markdown("---")
+    st.markdown("""
+    **💡 프롬프트 활용 팁**:
+    
+    1. **프롬프트 커스터마이징**: 도메인 특성에 맞게 평가 기준을 조정할 수 있습니다
+    2. **언어 최적화**: 한국어 평가를 위해 프롬프트를 한국어로 번역하여 사용할 수 있습니다
+    3. **평가 기준 추가**: 특정 업무에 필요한 추가 평가 기준을 프롬프트에 포함할 수 있습니다
+    4. **Few-shot 예시**: 더 정확한 평가를 위해 프롬프트에 예시를 추가할 수 있습니다
+    
+    **주의사항**: 프롬프트를 수정할 때는 평가의 일관성을 유지하기 위해 충분한 테스트가 필요합니다.
+    """)

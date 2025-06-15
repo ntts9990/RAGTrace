@@ -89,6 +89,29 @@ def load_evaluation_by_id(evaluation_id):
         return None, []
 
 
+def load_actual_qa_data_from_dataset(dataset_name, qa_count):
+    """데이터셋 파일에서 실제 QA 데이터 로드"""
+    project_root = Path(__file__).parent.parent.parent.parent
+    
+    possible_paths = [
+        project_root / "data" / dataset_name,
+        project_root / "data" / "evaluation_data.json",
+        project_root / "data" / "evaluation_data_variant1.json"
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    all_qa_data = json.load(f)
+                # qa_count만큼만 반환 (실제 평가된 개수)
+                return all_qa_data[:qa_count]
+            except Exception:
+                continue
+    
+    return None
+
+
 def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     """평가 결과에서 실제 사용된 QA 데이터 추출"""
     if not raw_data:
@@ -114,13 +137,17 @@ def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     else:
         dataset_name = dataset_info
     
+    # 실제 QA 데이터 로드
+    actual_qa_data = load_actual_qa_data_from_dataset(dataset_name, actual_qa_count)
+    
     return {
         'qa_count': actual_qa_count,
         'dataset_size': metadata.get('dataset_size', actual_qa_count),
         'evaluation_id': evaluation_id,
         'timestamp': metadata.get('timestamp', 'unknown'),
         'model': model_info,
-        'dataset': dataset_name
+        'dataset': dataset_name,
+        'qa_data': actual_qa_data
     }
 
 
@@ -213,7 +240,7 @@ def show_detailed_analysis():
     tab1, tab2, tab3 = st.tabs(["📊 QA 개별 분석", "📈 메트릭 분포", "🎯 패턴 분석"])
     
     with tab1:
-        show_qa_analysis_actual(individual_scores, evaluation_id)
+        show_qa_analysis_actual(individual_scores, evaluation_id, qa_info.get('qa_data'))
     
     with tab2:
         show_metric_distribution_actual(individual_scores, selected_evaluation)
@@ -238,7 +265,7 @@ def show_overall_metrics_only(evaluation_data):
             )
 
 
-def show_qa_analysis_actual(individual_scores, evaluation_id):
+def show_qa_analysis_actual(individual_scores, evaluation_id, qa_data=None):
     """실제 평가된 QA 개별 분석"""
     st.subheader("📋 실제 평가된 QA 분석")
     
@@ -249,15 +276,21 @@ def show_qa_analysis_actual(individual_scores, evaluation_id):
         st.warning("분석할 QA 데이터가 없습니다.")
         return
     
-    # QA 선택 옵션 생성 (실제 점수 기반)
+    # QA 선택 옵션 생성 (실제 점수와 질문 내용 기반)
     qa_options = []
     for i, qa_score in enumerate(individual_scores):
-        # 평균 점수 계산하여 미리보기에 포함
+        # 평균 점수 계산
+        avg_score = 0
         if qa_score:
             avg_score = sum(qa_score.values()) / len(qa_score) if qa_score.values() else 0
-            qa_options.append(f"QA #{i+1} (평균: {avg_score:.3f})")
-        else:
-            qa_options.append(f"QA #{i+1} (점수 없음)")
+        
+        # 질문 내용 미리보기 추가
+        question_preview = "질문 정보 없음"
+        if qa_data and i < len(qa_data):
+            question = qa_data[i].get('question', '')
+            question_preview = question[:30] + "..." if len(question) > 30 else question
+        
+        qa_options.append(f"QA #{i+1}: {question_preview} (평균: {avg_score:.3f})")
     
     selected_qa_idx = st.selectbox(
         "분석할 QA 선택", 
@@ -267,16 +300,42 @@ def show_qa_analysis_actual(individual_scores, evaluation_id):
     
     if selected_qa_idx is not None and selected_qa_idx < len(individual_scores):
         qa_scores = individual_scores[selected_qa_idx]
-        show_individual_qa_details_actual(selected_qa_idx + 1, qa_scores, evaluation_id)
+        qa_content = qa_data[selected_qa_idx] if qa_data and selected_qa_idx < len(qa_data) else None
+        show_individual_qa_details_actual(selected_qa_idx + 1, qa_scores, evaluation_id, qa_content)
 
 
-def show_individual_qa_details_actual(qa_number, qa_scores, evaluation_id):
+def show_individual_qa_details_actual(qa_number, qa_scores, evaluation_id, qa_content=None):
     """실제 평가된 개별 QA 상세 정보 표시"""
     st.markdown(f"### 📝 QA {qa_number} 상세 분석 (평가 #{evaluation_id})")
     
     if not qa_scores:
         st.error("❌ 이 QA에 대한 점수 데이터가 없습니다.")
         return
+    
+    # QA 내용 표시 (실제 질문, 답변, 컨텍스트)
+    if qa_content:
+        st.markdown("#### 📋 QA 내용")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**🤔 질문:**")
+            st.info(qa_content.get('question', '질문 정보 없음'))
+            
+            st.markdown("**💡 생성된 답변:**")
+            st.success(qa_content.get('answer', '답변 정보 없음'))
+        
+        with col2:
+            st.markdown("**📚 제공된 컨텍스트:**")
+            contexts = qa_content.get('contexts', [])
+            for i, context in enumerate(contexts, 1):
+                with st.expander(f"컨텍스트 {i}"):
+                    st.text(context)
+            
+            st.markdown("**✅ 정답 (Ground Truth):**")
+            st.info(qa_content.get('ground_truth', '정답 정보 없음'))
+        
+        st.markdown("---")
     
     # 점수 카드 표시
     st.markdown("#### 📊 평가 점수")
@@ -297,7 +356,7 @@ def show_individual_qa_details_actual(qa_number, qa_scores, evaluation_id):
     show_qa_score_chart_actual(qa_scores, qa_number)
     
     # 평가 근거 (점수 기반)
-    show_evaluation_reasoning_actual(qa_number, qa_scores)
+    show_evaluation_reasoning_actual(qa_number, qa_scores, qa_content)
 
 
 def show_qa_score_chart_actual(scores, qa_number):
@@ -356,9 +415,13 @@ def show_qa_score_chart_actual(scores, qa_number):
         st.plotly_chart(fig, use_container_width=True)
 
 
-def show_evaluation_reasoning_actual(qa_number, scores):
+def show_evaluation_reasoning_actual(qa_number, scores, qa_content=None):
     """실제 평가 점수 기반 평가 근거"""
     st.markdown("#### 🧠 평가 근거")
+    
+    # QA 내용 요약 표시 (평가 근거에서 참고용)
+    if qa_content:
+        st.info(f"**참고:** 이 분석은 '{qa_content.get('question', '')[:50]}...' 질문에 대한 평가입니다.")
     
     # 각 메트릭별 분석
     metrics_analysis = {
@@ -387,9 +450,15 @@ def show_evaluation_reasoning_actual(qa_number, scores):
     for metric, info in metrics_analysis.items():
         with st.expander(f"📝 {metric.replace('_', ' ').title()} 분석 (점수: {info['score']:.3f})"):
             st.markdown(f"**설명:** {info['description']}")
-            st.markdown(f"**분석:** {info['analysis']}")
+            
+            # 마크다운 렌더링을 위해 텍스트를 직접 표시
+            analysis_lines = info['analysis'].split('\n')
+            for line in analysis_lines:
+                if line.strip():
+                    st.markdown(line)
             
             # 점수 구간별 해석 가이드
+            st.markdown("---")
             st.markdown("**점수 해석:**")
             if info['score'] >= 0.9:
                 st.success("🌟 우수 (0.9+): 매우 높은 성능")
