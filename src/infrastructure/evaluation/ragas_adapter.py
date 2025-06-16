@@ -7,12 +7,7 @@ from datasets import Dataset
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pydantic import Field
 from ragas import evaluate
-from ragas.metrics import (
-    answer_relevancy,
-    context_precision,
-    context_recall,
-    faithfulness,
-)
+from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
 
 class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):

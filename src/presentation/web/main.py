@@ -13,11 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.container import container
-from src.utils.paths import (
-    DATABASE_PATH,
-    get_available_datasets,
-    get_evaluation_data_path,
-)
+from src.utils.paths import DATABASE_PATH, get_available_datasets, get_evaluation_data_path
 
 
 # 페이지 정의 (간단한 딕셔너리로 대체)
