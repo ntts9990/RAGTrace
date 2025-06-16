@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a RAGAS (Retrieval-Augmented Generation Assessment) evaluation framework implementation in Python. It evaluates RAG pipelines using four metrics: Faithfulness, Answer Relevancy, Context Precision, and Context Recall.
+This is a RAGTrace (RAG Tracing and Evaluation) framework designed to quantitatively assess and analyze the performance of RAG (Retrieval-Augmented Generation) systems.
+It is based on the [Ragas](https://github.com/explodinggradients/ragas) framework by ExplodingGradients.
 
 ## Architecture
 

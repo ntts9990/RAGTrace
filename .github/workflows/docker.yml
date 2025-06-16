@@ -58,8 +58,8 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run --rm --name ragas-test \
-          -e GEMINI_API_KEY=dummy_key \
-          -e DEBUG_MODE=true \
+        docker run --rm --name ragtrace \
+          -e GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+          -v ${{ github.workspace }}/data:/app/data \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
           python -c "import src.presentation.main; print('Docker image works!')"

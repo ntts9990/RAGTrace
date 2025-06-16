@@ -63,8 +63,8 @@ Presentation → Application → Domain ← Infrastructure
 python --version
 
 # 프로젝트 클론 및 환경 설정
-git clone https://github.com/ntts9990/ragas-test.git
-cd ragas-test
+git clone https://github.com/ntts9990/RAGTrace.git
+cd RAGTrace
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
@@ -577,4 +577,4 @@ def get_temperature(self, n: int) -> float:
 
 ---
 
-더 자세한 정보가 필요하면 [GitHub Issues](https://github.com/ntts9990/ragas-test/issues)를 통해 문의해주세요.
+더 자세한 정보가 필요하면 [GitHub Issues](https://github.com/ntts9990/RAGTrace/issues)를 통해 문의해주세요.

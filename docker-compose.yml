@@ -1,9 +1,11 @@
 version: '3.8'
 
 services:
-  ragas-eval:
-    build: .
-    container_name: ragas-evaluation
+  ragtrace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ragtrace-dashboard
     ports:
       - "8501:8501"
     environment:
