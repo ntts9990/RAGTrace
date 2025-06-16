@@ -47,8 +47,8 @@ class GeminiAdapter(LlmPort):
 
     def __init__(
         self,
-        model_name: str = None,
-        requests_per_minute: int = None,
+        model_name: Optional[str] = None,
+        requests_per_minute: Optional[int] = None,
     ):
         self.model_name = model_name or config.GEMINI_MODEL
         self.requests_per_minute = requests_per_minute or config.GEMINI_REQUESTS_PER_MINUTE
