@@ -195,24 +195,6 @@ class PostgresRepositoryAdapter(EvaluationRepositoryPort):
             ]
 ```
 
-#### 의존성 주입 수정
-
-```python
-# src/presentation/web/main.py
-def create_use_case():
-    # 환경 변수에 따라 어댑터 선택
-    if os.getenv("USE_POSTGRES", "false").lower() == "true":
-        repository = PostgresRepositoryAdapter(os.getenv("DATABASE_URL"))
-    else:
-        repository = FileRepositoryAdapter("data/evaluation_data.json")
-    
-    return RunEvaluationUseCase(
-        repository_port=repository,
-        llm_port=GeminiAdapter(),
-        evaluation_runner=RagasEvalAdapter()
-    )
-```
-
 ## 🤖 로컬 LLM 통합
 
 ### Ollama 통합
@@ -232,8 +214,8 @@ class OllamaAdapter(LlmPort):
     def get_llm(self):
         return Ollama(
             model=self.model_name,
-            base_url=self.base_url,
-            temperature=0.1
+            base_url=self.base_url
+            # RAGAS가 내부적으로 temperature를 1e-08로 강제 설정
         )
 ```
 
@@ -247,7 +229,7 @@ LOCAL_LLM_MODEL=qwen2.5:14b
 LOCAL_LLM_BASE_URL=http://localhost:11434
 ```
 
-#### 3. 어댁터 팩토리 패턴
+#### 3. 어댑터 팩토리 패턴
 
 ```python
 # src/infrastructure/llm/llm_factory.py
@@ -286,8 +268,8 @@ class HCXAdapter(LlmPort):
         return HCXLanguageModel(
             model_name=self.model_name,
             endpoint=self.endpoint,
-            api_key=self.api_key,
-            temperature=0.1
+            api_key=self.api_key
+            # RAGAS가 내부적으로 temperature를 1e-08로 강제 설정
         )
 
 class HCXLanguageModel(BaseLLM):
@@ -305,7 +287,6 @@ class HCXLanguageModel(BaseLLM):
         payload = {
             "model": self.model_name,
             "prompt": prompt,
-            "temperature": self.temperature,
             "max_tokens": 4096
         }
         
@@ -490,14 +471,9 @@ DEBUG_MODE=False
 VERBOSE_LOGGING=False
 STREAMLIT_SERVER_PORT=8501
 STREAMLIT_SERVER_ADDRESS=0.0.0.0
-
-# 보안 설정
-SSL_ENABLED=True
-SSL_CERT_PATH=/etc/ssl/certs/ragas.crt
-SSL_KEY_PATH=/etc/ssl/private/ragas.key
 ```
 
-#### CI/CD 파이프라인
+### CI/CD 파이프라인
 
 프로젝트는 완전 자동화된 CI/CD 파이프라인을 제공합니다:
 
@@ -544,18 +520,40 @@ steps:
 - **[RAGAS 메트릭 가이드](./RAGAS_METRICS.md)**: 평가 지표 설명
 - **[테스트 리포트](../reports/)**: 자동 생성된 테스트 분석
 
-### 유용한 스크립트
+### 환경 변수 가이드
+
+현재 지원되는 환경 변수들:
 
 ```bash
-# 데이터 검증
-python scripts/analysis/validate_dataset.py data/your_data.json
+# 필수 설정
+GEMINI_API_KEY=your_api_key                              # Google Gemini API 키
 
-# 성능 모니터링  
-python scripts/monitor_api_usage.py
+# 선택 설정 (기본값 사용 가능)
+GEMINI_MODEL=models/gemini-2.5-flash-preview-05-20      # Gemini 모델명
+GEMINI_EMBEDDING_MODEL=models/gemini-embedding-exp-03-07 # 임베딩 모델명
+GEMINI_REQUESTS_PER_MINUTE=8                             # API 요청 제한
+EMBEDDING_REQUESTS_PER_MINUTE=10                         # 임베딩 요청 제한
+DATABASE_PATH=data/db/evaluations.db                     # 데이터베이스 경로
 
-# 테스트 리포트 생성
-python scripts/generate_test_report.py
+# 로컬 LLM 설정 (미구현)
+USE_LOCAL_LLM=True                                       # 로컬 LLM 사용 여부
+LOCAL_LLM_TYPE=ollama                                    # 로컬 LLM 타입
+LOCAL_LLM_MODEL=qwen2.5:14b                             # 로컬 LLM 모델명
+LOCAL_LLM_BASE_URL=http://localhost:11434               # 로컬 LLM URL
 ```
+
+### RAGAS Temperature 동작 방식
+
+**중요**: RAGAS는 평가 일관성을 위해 내부적으로 temperature를 강제로 `1e-08` (거의 0)로 설정합니다:
+
+```python
+# RAGAS 내부 코드 (ragas/llms/base.py:65)
+def get_temperature(self, n: int) -> float:
+    """Return the temperature to use for completion based on n."""
+    return 0.3 if n > 1 else 1e-8
+```
+
+따라서 사용자가 temperature를 설정해도 RAGAS 평가에서는 무시됩니다.
 
 ### 개발 베스트 프랙티스
 
@@ -575,6 +573,7 @@ python scripts/generate_test_report.py
 - ✅ **Docker 프로덕션** 준비 완료
 - ✅ **Clean Architecture** 완전 구현
 - ✅ **코드 품질** A+ 등급 달성
+- ✅ **환경 변수 관리** 체계화
 
 ---
 

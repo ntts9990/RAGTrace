@@ -167,33 +167,16 @@ nano .env  # 또는 code .env, vim .env
 
 #### 환경 변수 상세 설정
 ```bash
-# ===========================================
 # RAGAS 평가 시스템 환경 설정
-# ===========================================
-
-# 🔑 Google Gemini API 설정 (필수)
+# 필수: Google Gemini API 키를 입력하세요
 GEMINI_API_KEY=your_google_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash-preview-05-20
-GEMINI_TEMPERATURE=0.1
-GEMINI_MAX_TOKENS=8192
 
-# 📊 Rate Limiting 설정 (API 비용 절약)
-GEMINI_REQUESTS_PER_MINUTE=1000
-EMBEDDING_REQUESTS_PER_MINUTE=10
-
-# 🗄️ 데이터베이스 설정
-DATABASE_PATH=data/db/evaluations.db
-
-# 🌐 대시보드 설정
-STREAMLIT_SERVER_PORT=8501
-STREAMLIT_SERVER_ADDRESS=localhost
-
-# 🔧 디버그 모드 (개발시에만 True)
-DEBUG_MODE=False
-VERBOSE_LOGGING=False
-
-# 📊 RAGAS 분석 비활성화 (옵션)
-RAGAS_DO_NOT_TRACK=false
+# 선택사항: 기본값을 변경하고 싶을 때만 주석을 해제하고 수정하세요
+# GEMINI_MODEL=models/gemini-2.5-flash-preview-05-20
+# GEMINI_EMBEDDING_MODEL=models/gemini-embedding-exp-03-07
+# GEMINI_REQUESTS_PER_MINUTE=8
+# EMBEDDING_REQUESTS_PER_MINUTE=10
+# DATABASE_PATH=data/db/evaluations.db
 ```
 
 #### API 키 발급 가이드
@@ -274,13 +257,7 @@ python run_dashboard.py --host 0.0.0.0
 
 ```bash
 # 기본 평가 실행
-python -m src.presentation.main
-
-# 특정 데이터셋으로 평가
-python -c "
-from src.presentation.main import main
-main()
-"
+python src/presentation/main.py
 ```
 
 ## 📊 평가 데이터 준비
@@ -309,68 +286,6 @@ main()
 - [ ] 컨텍스트가 질문과 관련성이 있는가?
 - [ ] 답변이 컨텍스트를 기반으로 생성되었는가?
 - [ ] 정답이 일관성 있게 작성되었는가?
-
-### 📝 데이터셋 예시
-
-#### 간단한 팩트 기반 QA
-```json
-[
-  {
-    "question": "세종대왕이 만든 문자는?",
-    "contexts": [
-      "세종대왕은 1443년 훈민정음을 창제했습니다.",
-      "훈민정음은 현재의 한글의 원래 이름입니다."
-    ],
-    "answer": "세종대왕이 만든 문자는 훈민정음(한글)입니다.",
-    "ground_truth": "훈민정음(한글)"
-  }
-]
-```
-
-#### 복잡한 추론 기반 QA
-```json
-[
-  {
-    "question": "2024년 현재 한국의 최저임금으로 하루 8시간 일했을 때 받을 수 있는 금액은?",
-    "contexts": [
-      "2024년 한국의 최저임금은 시간당 9,860원입니다.",
-      "최저임금은 주휴수당을 포함하지 않은 기본 임금입니다.",
-      "하루 8시간 근무는 표준 근무시간입니다."
-    ],
-    "answer": "2024년 최저임금 9,860원으로 8시간 일하면 78,880원을 받을 수 있습니다.",
-    "ground_truth": "78,880원"
-  }
-]
-```
-
-#### 다중 컨텍스트 통합 QA
-```json
-[
-  {
-    "question": "BTS의 데뷔곡과 데뷔 년도를 알려주세요.",
-    "contexts": [
-      "BTS는 2013년에 데뷔했습니다.",
-      "BTS의 첫 번째 싱글은 'No More Dream'입니다.",
-      "방탄소년단은 빅히트 엔터테인먼트 소속입니다.",
-      "'No More Dream'은 2013년 6월 13일에 발매되었습니다."
-    ],
-    "answer": "BTS는 2013년에 데뷔했으며, 데뷔곡은 'No More Dream'입니다.",
-    "ground_truth": "데뷔곡: No More Dream, 데뷔 년도: 2013년"
-  }
-]
-```
-
-### 🛠️ 데이터 검증 도구
-
-평가 전에 데이터 품질을 확인할 수 있는 유틸리티:
-
-```bash
-# 데이터 검증 스크립트 실행
-python scripts/analysis/validate_dataset.py data/your_dataset.json
-
-# 데이터 통계 확인
-python scripts/analysis/dataset_stats.py data/your_dataset.json
-```
 
 ## 🎨 대시보드 사용법
 
@@ -404,19 +319,7 @@ python scripts/analysis/dataset_stats.py data/your_dataset.json
 - **Context Precision**: 컨텍스트 정확성 분석
 - **Context Recall**: 컨텍스트 완성도 검증
 
-### 🔍 상세 기능 가이드
-
-#### 평가 실행하기
-1. 📁 **데이터셋 선택**: 드롭다운에서 평가할 JSON 파일 선택
-2. ⚙️ **평가 옵션 설정** (고급 사용자):
-   - API 요청 제한 설정
-   - 평가할 메트릭 선택
-   - 결과 저장 여부
-3. 🚀 **평가 시작**: "평가 시작" 버튼 클릭
-4. ⏳ **진행 상황 모니터링**: 실시간 로그와 진행률 확인
-5. ✅ **결과 확인**: 평가 완료 후 자동으로 대시보드 페이지로 이동
-
-#### 결과 해석하기
+### 🔍 결과 해석하기
 ```
 📊 RAGAS 점수 해석 가이드
 
@@ -472,29 +375,6 @@ LOCAL_LLM_MODEL=qwen2.5:14b
 GEMINI_API_KEY=dummy_key  # 로컬 모드에서는 사용되지 않음
 ```
 
-#### 커스텀 LLM 어댑터 생성
-로컬 LLM이 Ollama가 아닌 경우, 커스텀 어댑터를 만들 수 있습니다:
-
-```python
-# src/infrastructure/llm/custom_llm_adapter.py
-from src.application.ports.llm import LlmPort
-from langchain_core.language_models import BaseLLM
-
-class CustomLLMAdapter(LlmPort):
-    def __init__(self, model_url: str, model_name: str):
-        self.model_url = model_url
-        self.model_name = model_name
-    
-    def get_llm(self) -> BaseLLM:
-        # 여기에 커스텀 LLM 연동 로직 구현
-        from your_llm_library import YourLLM
-        return YourLLM(
-            base_url=self.model_url,
-            model=self.model_name,
-            temperature=0.1
-        )
-```
-
 ### 🔧 성능 튜닝
 
 #### API Rate Limiting 최적화
@@ -502,71 +382,6 @@ class CustomLLMAdapter(LlmPort):
 # .env 파일에서 요청 제한 조정
 GEMINI_REQUESTS_PER_MINUTE=500   # 낮추면 비용 절약, 느림
 EMBEDDING_REQUESTS_PER_MINUTE=5  # 임베딩 API는 엄격하게 제한
-
-# 배치 크기 조정 (많은 데이터 처리시)
-EVALUATION_BATCH_SIZE=10         # 한 번에 처리할 QA 쌍 수
-```
-
-#### 메모리 사용량 최적화
-```bash
-# 대용량 데이터셋 처리시
-STREAMING_MODE=True              # 스트리밍 처리로 메모리 절약
-MAX_CONTEXT_LENGTH=4000          # 컨텍스트 길이 제한
-```
-
-### 📊 커스텀 메트릭 추가
-
-새로운 평가 지표를 추가하려면:
-
-1. **도메인 엔티티 확장**:
-```python
-# src/domain/entities/evaluation_result.py
-@dataclass
-class EvaluationResult:
-    # 기존 메트릭들...
-    custom_metric: float = 0.0  # 새 메트릭 추가
-```
-
-2. **RAGAS 어댑터 수정**:
-```python
-# src/infrastructure/evaluation/ragas_adapter.py
-from ragas.metrics import your_custom_metric
-
-class RagasEvalAdapter:
-    def __init__(self):
-        self.metrics = [
-            # 기존 메트릭들...
-            your_custom_metric  # 새 메트릭 추가
-        ]
-```
-
-3. **대시보드 UI 업데이트**:
-```python
-# src/presentation/web/main.py
-st.metric("Custom Metric", f"{result.custom_metric:.3f}")
-```
-
-### 🔒 보안 설정
-
-#### API 키 보안
-```bash
-# 환경별 .env 파일 분리
-.env.development
-.env.production
-.env.local
-
-# Docker Secrets 사용 (프로덕션)
-echo "your_api_key" | docker secret create gemini_api_key -
-```
-
-#### 네트워크 보안
-```bash
-# 방화벽 설정 (Linux)
-sudo ufw allow 8501/tcp  # Streamlit 포트만 허용
-
-# 프록시 설정 (기업 환경)
-export HTTP_PROXY=http://your-proxy:8080
-export HTTPS_PROXY=http://your-proxy:8080
 ```
 
 ## 🐛 문제 해결
@@ -623,24 +438,7 @@ export HTTPS_PROXY=http://your-proxy:8080
 nslookup generativelanguage.googleapis.com
 ```
 
-#### 4. 💾 메모리 부족 오류
-```
-Error: Out of memory during evaluation
-```
-**해결방법:**
-```bash
-# 배치 크기 줄이기
-export EVALUATION_BATCH_SIZE=5
-
-# 스트리밍 모드 활성화
-export STREAMING_MODE=True
-
-# 시스템 메모리 확인
-free -h  # Linux
-vm_stat  # macOS
-```
-
-#### 5. 🐌 평가 속도 너무 느림
+#### 4. 🐌 평가 속도 너무 느림
 **원인 분석:**
 - API Rate Limiting 때문에 대기 시간 발생
 - 대용량 데이터셋 처리
@@ -655,39 +453,6 @@ EMBEDDING_REQUESTS_PER_MINUTE=20
 # 로컬 LLM 사용 (빠르고 무제한)
 USE_LOCAL_LLM=True
 LOCAL_LLM_MODEL=qwen2.5:7b  # 작은 모델로 속도 향상
-
-# 데이터셋 분할 처리
-python scripts/split_dataset.py data/large_dataset.json --size 100
-```
-
-### 🔧 디버깅 도구
-
-#### 로그 레벨 조정
-```bash
-# 상세 로그 활성화
-export DEBUG_MODE=True
-export VERBOSE_LOGGING=True
-
-# 로그 파일로 저장
-python run_dashboard.py 2>&1 | tee evaluation.log
-```
-
-#### 평가 과정 모니터링
-```bash
-# 실시간 API 호출 모니터링
-python scripts/monitor_api_usage.py
-
-# 메모리 사용량 모니터링
-python scripts/monitor_memory.py
-```
-
-#### 데이터 유효성 검사
-```bash
-# 평가 데이터 검증
-python scripts/validate_data.py data/your_dataset.json
-
-# 결과 검증
-python scripts/validate_results.py reports/latest_results.json
 ```
 
 ## 👨‍💻 개발자 가이드
@@ -758,26 +523,11 @@ pytest tests/presentation/
 - 프로덕션 배포 (태그 기반)
 - 배포 상태 알림
 
-```bash
-# 로컬에서 CI/CD 검증
-pytest --cov=src --cov-fail-under=80
-black --check src/
-isort --check-only src/
-docker build -t ragas-eval .
-```
-
 ### 📚 개발 문서
 
 - 📖 **[개발 매뉴얼](./docs/development_manual.md)**: 상세한 개발 가이드
 - 🏗️ **[아키텍처 가이드](./docs/clean_architecture_summary.md)**: Clean Architecture 설명
 - 📊 **[메트릭 가이드](./docs/RAGAS_METRICS.md)**: RAGAS 메트릭 상세 설명
-
-### 🤝 기여하기
-
-1. **이슈 생성**: 버그 리포트나 기능 요청
-2. **포크 & 브랜치**: `feature/your-feature-name`
-3. **테스트 작성**: 99% 커버리지 유지
-4. **Pull Request**: 코드 리뷰 후 병합
 
 ### 📊 프로젝트 상태
 
@@ -828,9 +578,7 @@ RAGAS를 연구나 프로젝트에서 사용하신다면:
 ## 📞 지원 및 문의
 
 - 📧 **이메일**: ntts9990@gmail.com
-<!-- - 💬 **이슈 트래커**: [GitHub Issues](https://github.com/your-org/ragas-test/issues) -->
 - 📖 **문서**: [개발 매뉴얼](./docs/development_manual.md)
-<!-- - 🌐 **웹사이트**: https://your-org.com/ragas-test -->
 
 ---
 

@@ -62,6 +62,6 @@ class GeminiAdapter(LlmPort):
         return RateLimitedGeminiLLM(
             model=self.model_name,
             google_api_key=config.GEMINI_API_KEY,
-            temperature=config.GEMINI_TEMPERATURE,  # 평가의 일관성과 변동성의 균형을 위해 config에서 설정
+            # temperature는 RAGAS에서 내부적으로 1e-08로 강제 설정됨 (평가 일관성을 위해)
             requests_per_minute=self.requests_per_minute,
         )

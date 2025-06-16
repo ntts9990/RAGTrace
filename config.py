@@ -8,7 +8,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Gemini 모델 설정
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash-preview-05-20")
-GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.1"))
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL",
                                    "models/gemini-embedding-exp-03-07")
 
