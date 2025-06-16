@@ -4,7 +4,6 @@ from typing import Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import Field
 
-import config
 from src.application.ports.llm import LlmPort
 
 
@@ -47,13 +46,15 @@ class GeminiAdapter(LlmPort):
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        requests_per_minute: Optional[int] = None,
+        api_key: str,
+        model_name: str,
+        requests_per_minute: int,
     ):
-        self.model_name = model_name or config.GEMINI_MODEL
-        self.requests_per_minute = requests_per_minute or config.GEMINI_REQUESTS_PER_MINUTE
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다. config.py 또는 .env 파일을 확인하세요.")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
+        self.api_key = api_key
+        self.model_name = model_name
+        self.requests_per_minute = requests_per_minute
 
     def get_llm(self) -> RateLimitedGeminiLLM:
         """
@@ -61,7 +62,7 @@ class GeminiAdapter(LlmPort):
         """
         return RateLimitedGeminiLLM(
             model=self.model_name,
-            google_api_key=config.GEMINI_API_KEY,
+            google_api_key=self.api_key,
             # temperature는 RAGAS에서 내부적으로 1e-08로 강제 설정됨 (평가 일관성을 위해)
             requests_per_minute=self.requests_per_minute,
         )

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragtrace"
@@ -8,6 +8,17 @@ version = "0.1.0"
 description = "RAG tracing and evaluation dashboard using Streamlit and Ragas"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "ntts9990", email = "ntts.9990@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
 dependencies = [
     "streamlit>=1.28.0",
     "ragas>=0.1.0",
@@ -16,11 +27,9 @@ dependencies = [
     "pandas>=2.0.0",
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
     "plotly>=5.15.0",
     "numpy>=1.24.0",
-]
-authors = [
-    {name = "ntts9990", email = "ntts.9990@gmail.com"},
 ]
 
 [project.optional-dependencies]
@@ -28,62 +37,34 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
-    "flake8>=6.0.0",
     "black>=23.0.0",
-    "isort>=5.12.0",
+    "ruff>=0.5.0",
     "mypy>=1.0.0",
 ]
 
-[tool.hatch.build.targets.wheel]
+[project.urls]
+Homepage = "https://github.com/ntts9990/RAGTrace"
+Issues = "https://github.com/ntts9990/RAGTrace/issues"
+
+[tool.setuptools]
 packages = ["src"]
+package-dir = {"" = "."}
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = "."
-asyncio_mode = "auto"
-
-[tool.coverage.run]
-source = ["src"]
-omit = [
-    "tests/*",
-    "src/presentation/web/components/*",
-    "src/presentation/web/main.py"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-]
+[tool.black]
+line-length = 88
 
 [tool.isort]
 profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 127
-skip_glob = ["src/presentation/web/components/*"]
+line_length = 88
 
-[tool.black]
-line-length = 127
-extend-exclude = '''
-/(
-    src/presentation/web/components/
-)/
-'''
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I", "C90", "N", "UP", "B", "A", "S"]
+ignore = ["E501", "B008", "S101"]
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
 ignore_missing_imports = true
-exclude = [
-    "src/presentation/web/components/",
-]
 

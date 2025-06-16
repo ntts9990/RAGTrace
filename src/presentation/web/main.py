@@ -5,6 +5,7 @@ RAGAS 평가 결과 대시보드
 
 import json
 import sqlite3
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -12,6 +13,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from src.utils.paths import get_available_datasets, DATABASE_PATH, get_evaluation_data_path
+from src.container import container
+
 # 페이지 정의 (간단한 딕셔너리로 대체)
 def load_pages():
     """사용 가능한 페이지 목록 반환"""
@@ -22,15 +25,6 @@ def load_pages():
         "📖 Metrics Explanation": "메트릭 설명",
         "⚡ Performance": "성능 모니터링"
     }
-from src.application.use_cases import RunEvaluationUseCase
-from src.infrastructure.evaluation import RagasEvalAdapter
-from src.infrastructure.llm.gemini_adapter import GeminiAdapter
-from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
-
-# 대시보드 컴포넌트
-from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
-from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
-from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -288,39 +282,16 @@ def run_new_evaluation():
     """새로운 평가 실행"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
-            # 사용자가 선택할 수 있는 데이터셋 옵션
-            import os
-            import random
-
-            # 중앙 경로 관리 모듈에서 사용 가능한 데이터셋 가져오기
             existing_datasets = get_available_datasets()
-
             if not existing_datasets:
                 st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
                 return
 
-            # 랜덤하게 데이터셋 선택 (다양성을 위해)
             selected_dataset = random.choice(existing_datasets)
-            st.info(f"📊 선택된 데이터셋: {selected_dataset.split('/')[-1]}")
+            st.info(f"📊 선택된 데이터셋: {selected_dataset}")
 
-            # 기존 평가 서비스 활용
-            llm_adapter = GeminiAdapter(model_name="gemini-2.5-flash-preview-05-20", requests_per_minute=1000)
-
-            # 중앙 경로 관리 모듈을 사용하여 안정적인 경로 획득
-            dataset_path = get_evaluation_data_path(selected_dataset)
-            if not dataset_path:
-                st.error(f"데이터셋 '{selected_dataset}'을 찾을 수 없습니다.")
-                return
-            
-            repository_adapter = FileRepositoryAdapter(file_path=str(dataset_path))
-
-            ragas_eval_adapter = RagasEvalAdapter()
-
-            evaluation_use_case = RunEvaluationUseCase(
-                llm_port=llm_adapter,
-                repository_port=repository_adapter,
-                evaluation_runner=ragas_eval_adapter,
-            )
+            # 컨테이너를 통해 유스케이스 인스턴스 획득
+            evaluation_use_case = container.get_run_evaluation_use_case(selected_dataset)
 
             # 평가 실행
             evaluation_result = evaluation_use_case.execute()
@@ -328,16 +299,16 @@ def run_new_evaluation():
             # 결과 저장 (데이터셋 정보 포함)
             result_dict = evaluation_result.to_dict()
             result_dict["metadata"]["dataset"] = selected_dataset
-
-            # QA 데이터도 함께 저장
-            try:
-                with open(dataset_path, "r", encoding="utf-8") as f:
-                    qa_data = json.load(f)
-                    # 실제 평가된 개수만큼만 저장
-                    qa_count = len(result_dict.get("individual_scores", []))
-                    result_dict["qa_data"] = qa_data[:qa_count]
-            except Exception as e:
-                st.warning(f"QA 데이터 로드 실패: {e}")
+            
+            dataset_path = get_evaluation_data_path(selected_dataset)
+            if dataset_path:
+                try:
+                    with open(dataset_path, "r", encoding="utf-8") as f:
+                        qa_data = json.load(f)
+                        qa_count = len(result_dict.get("individual_scores", []))
+                        result_dict["qa_data"] = qa_data[:qa_count]
+                except Exception as e:
+                    st.warning(f"QA 데이터 로드 실패: {e}")
 
             save_evaluation_result(result_dict)
 

@@ -9,8 +9,6 @@ from pydantic import Field
 from ragas import evaluate
 from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
-import config
-
 
 class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):
     """Rate limiting이 적용된 임베딩 래퍼"""
@@ -48,7 +46,16 @@ class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):
 class RagasEvalAdapter:
     """Ragas 라이브러리를 사용한 평가 실행을 담당하는 어댑터"""
 
-    def __init__(self):
+    def __init__(
+        self,
+        embedding_model_name: str,
+        api_key: str,
+        embedding_requests_per_minute: int,
+    ):
+        self.embedding_model_name = embedding_model_name
+        self.api_key = api_key
+        self.embedding_requests_per_minute = embedding_requests_per_minute
+
         # 기본 메트릭 사용 (현재로서는 기본 프롬프트가 다국어를 지원하므로)
         # 추후 필요시 한국어 커스터마이징 추가 가능
         self.metrics = [
@@ -77,9 +84,9 @@ class RagasEvalAdapter:
         try:
             # Rate limiting이 적용된 임베딩 모델 설정
             embeddings = RateLimitedEmbeddings(
-                model=config.GEMINI_EMBEDDING_MODEL,  # config에서 임베딩 모델 설정
-                google_api_key=config.GEMINI_API_KEY,
-                requests_per_minute=config.EMBEDDING_REQUESTS_PER_MINUTE,  # config에서 RPM 설정
+                model=self.embedding_model_name,
+                google_api_key=self.api_key,
+                requests_per_minute=self.embedding_requests_per_minute,
             )
 
             print("\n=== 한국어 콘텐트 RAGAS 평가 시작 ===")

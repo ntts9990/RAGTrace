@@ -122,3 +122,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# 테스트 실행 중 잘못 생성되는 임시 파일
+<MagicMock name='DATABASE_PATH'*
