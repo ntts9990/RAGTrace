@@ -170,7 +170,11 @@ class TestEndToEndEvaluationWorkflow:
         )
         
         file_adapter = FileRepositoryAdapter(file_path=str(temp_evaluation_file))
-        ragas_adapter = RagasEvalAdapter()
+        ragas_adapter = RagasEvalAdapter(
+            embedding_model_name="fake-embedding-model",
+            api_key="fake-api-key",
+            embedding_requests_per_minute=100
+        )
         
         use_case = RunEvaluationUseCase(
             llm_port=llm_adapter,
@@ -324,7 +328,11 @@ class TestPerformanceIntegration:
         )
         
         file_adapter = FileRepositoryAdapter(file_path=str(temp_evaluation_file))
-        ragas_adapter = RagasEvalAdapter()
+        ragas_adapter = RagasEvalAdapter(
+            embedding_model_name="fake-embedding-model",
+            api_key="fake-api-key",
+            embedding_requests_per_minute=100
+        )
         
         use_case = RunEvaluationUseCase(
             llm_port=llm_adapter,
@@ -409,7 +417,11 @@ class TestRealWorldScenarios:
             model_name="gemini-2.5-flash",
             requests_per_minute=100
         )
-        ragas_adapter = RagasEvalAdapter()
+        ragas_adapter = RagasEvalAdapter(
+            embedding_model_name="fake-embedding-model",
+            api_key="fake-api-key",
+            embedding_requests_per_minute=100
+        )
         
         use_case = RunEvaluationUseCase(
             llm_port=llm_adapter,
