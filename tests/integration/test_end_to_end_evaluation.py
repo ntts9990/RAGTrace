@@ -102,12 +102,17 @@ class TestEndToEndEvaluationWorkflow:
         
         # 2. 실제 컴포넌트 생성 (Mock 사용)
         llm_adapter = GeminiAdapter(
+            api_key="fake-key",
             model_name="gemini-2.5-flash",
             requests_per_minute=100
         )
         
         file_adapter = FileRepositoryAdapter(file_path=str(temp_evaluation_file))
-        ragas_adapter = RagasEvalAdapter()
+        ragas_adapter = RagasEvalAdapter(
+            embedding_model_name="test-embedding-model",
+            api_key="fake-key",
+            embedding_requests_per_minute=100
+        )
         
         # 3. Use Case 실행
         use_case = RunEvaluationUseCase(
@@ -159,6 +164,7 @@ class TestEndToEndEvaluationWorkflow:
         mock_chat_genai.side_effect = Exception("API 연결 오류")
         
         llm_adapter = GeminiAdapter(
+            api_key="fake-api-key",
             model_name="gemini-2.5-flash",
             requests_per_minute=100
         )
@@ -312,6 +318,7 @@ class TestPerformanceIntegration:
         
         # 낮은 rate limit 설정
         llm_adapter = GeminiAdapter(
+            api_key="fake-api-key",
             model_name="gemini-2.5-flash",
             requests_per_minute=1  # 매우 낮은 제한
         )
@@ -397,7 +404,11 @@ class TestRealWorldScenarios:
         assert len(data_list) > 0
         
         # 2. LLM 설정 및 평가 실행
-        llm_adapter = GeminiAdapter(model_name="gemini-2.5-flash")
+        llm_adapter = GeminiAdapter(
+            api_key="fake-api-key",
+            model_name="gemini-2.5-flash",
+            requests_per_minute=100
+        )
         ragas_adapter = RagasEvalAdapter()
         
         use_case = RunEvaluationUseCase(
