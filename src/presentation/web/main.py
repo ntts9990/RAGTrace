@@ -448,16 +448,22 @@ def show_comparison_chart(eval1, eval2):
 
 def show_detailed_analysis():
     """상세 분석 페이지"""
+    from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
+
     show_detailed_component()
 
 
 def show_metrics_guide():
     """메트릭 가이드 페이지"""
+    from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
+
     show_metrics_component()
 
 
 def show_performance():
     """성능 모니터링 페이지"""
+    from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
+
     show_performance_component()
 
 
