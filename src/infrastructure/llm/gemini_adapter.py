@@ -47,11 +47,11 @@ class GeminiAdapter(LlmPort):
 
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-preview-05-20",
-        requests_per_minute: int = 10,
+        model_name: str = None,
+        requests_per_minute: int = None,
     ):
-        self.model_name = model_name
-        self.requests_per_minute = requests_per_minute
+        self.model_name = model_name or config.GEMINI_MODEL
+        self.requests_per_minute = requests_per_minute or config.GEMINI_REQUESTS_PER_MINUTE
         if not config.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다. config.py 또는 .env 파일을 확인하세요.")
 
@@ -62,6 +62,6 @@ class GeminiAdapter(LlmPort):
         return RateLimitedGeminiLLM(
             model=self.model_name,
             google_api_key=config.GEMINI_API_KEY,
-            temperature=0.1,  # 평가의 일관성과 변동성의 균형을 위해 0.1로 설정
+            temperature=config.GEMINI_TEMPERATURE,  # 평가의 일관성과 변동성의 균형을 위해 config에서 설정
             requests_per_minute=self.requests_per_minute,
         )

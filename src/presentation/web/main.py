@@ -17,6 +17,7 @@ import streamlit as st
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.append(str(project_root))
 
+import config
 from src.application.use_cases import RunEvaluationUseCase
 from src.infrastructure.evaluation import RagasEvalAdapter
 from src.infrastructure.llm.gemini_adapter import GeminiAdapter
@@ -482,9 +483,13 @@ def show_performance():
 # 데이터 저장/로드 함수들
 def get_db_path():
     """데이터베이스 경로 반환"""
-    # 프로젝트 루트에서 data/db/evaluations.db로 경로 수정
-    project_root = Path(__file__).parent.parent.parent.parent
-    return project_root / "data" / "db" / "evaluations.db"
+    # config에서 데이터베이스 경로 가져오기
+    db_path = Path(config.DATABASE_PATH)
+    if not db_path.is_absolute():
+        # 상대 경로인 경우 프로젝트 루트 기준으로 처리
+        project_root = Path(__file__).parent.parent.parent.parent
+        db_path = project_root / db_path
+    return db_path
 
 
 def init_db():

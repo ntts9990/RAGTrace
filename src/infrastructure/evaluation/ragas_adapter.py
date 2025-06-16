@@ -77,9 +77,9 @@ class RagasEvalAdapter:
         try:
             # Rate limiting이 적용된 임베딩 모델 설정
             embeddings = RateLimitedEmbeddings(
-                model="models/gemini-embedding-exp-03-07",  # 더 안정적인 임베딩 모델 사용
+                model=config.GEMINI_EMBEDDING_MODEL,  # config에서 임베딩 모델 설정
                 google_api_key=config.GEMINI_API_KEY,
-                requests_per_minute=10,  # Tier 1: 10 RPM for embeddings
+                requests_per_minute=config.EMBEDDING_REQUESTS_PER_MINUTE,  # config에서 RPM 설정
             )
 
             print("\n=== 한국어 콘텐트 RAGAS 평가 시작 ===")
@@ -99,12 +99,12 @@ class RagasEvalAdapter:
 
             current_time = datetime.datetime.now()
             evaluation_id = str(uuid.uuid4())[:8]
-            print(f"\\n🔍 평가 ID: {evaluation_id}")
+            print(f"🔍 평가 ID: {evaluation_id}")
             print(f"📅 평가 시작 시간: {current_time}")
             print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
             print(f"🤖 LLM 모델: {llm.model}")
             print(f"🌡️  Temperature: {getattr(llm, 'temperature', 'N/A')}")
-            print("\\n평가 진행 중...")
+            print("평가 진행 중...")
 
             result = evaluate(
                 dataset=dataset,
