@@ -27,8 +27,17 @@ except ImportError:
     HAS_SRC = False
 
 # 프로젝트 루트 경로 추가
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
+# 프로젝트 루트를 동적으로 찾아 경로 추가
+def add_project_root_to_path():
+    current_path = Path(__file__).resolve()
+    while current_path != current_path.parent:
+        if (current_path / 'pyproject.toml').exists():
+            sys.path.insert(0, str(current_path))
+            return current_path
+        current_path = current_path.parent
+    raise FileNotFoundError("프로젝트 루트를 찾을 수 없습니다.")
+
+add_project_root_to_path()
 
 # 다시 시도해서 임포트
 if not HAS_SRC:

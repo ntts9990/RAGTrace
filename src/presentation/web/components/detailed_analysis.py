@@ -13,22 +13,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.utils.paths import DATABASE_PATH, get_evaluation_data_path, get_available_datasets
 
-def get_db_path():
-    """데이터베이스 경로 반환"""
-    # 프로젝트 루트에서 data/db/evaluations.db로 경로 수정
-    project_root = Path(__file__).parent.parent.parent.parent.parent
-    return project_root / "data" / "db" / "evaluations.db"
+
 
 
 def load_all_evaluations():
     """모든 평가 결과 로드 (Historical 페이지 연동용)"""
     try:
-        db_path = get_db_path()
-        if not db_path.exists():
+        # Use DATABASE_PATH from paths module
+        if not DATABASE_PATH.exists():
             return []
 
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(DATABASE_PATH))
 
         query = """
             SELECT id, timestamp, faithfulness, answer_relevancy, 
@@ -65,11 +62,11 @@ def load_all_evaluations():
 def load_evaluation_by_id(evaluation_id):
     """특정 평가 ID로 평가 결과 로드"""
     try:
-        db_path = get_db_path()
-        if not db_path.exists():
+        # Use DATABASE_PATH from paths module
+        if not DATABASE_PATH.exists():
             return None, []
 
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(DATABASE_PATH))
 
         query = """
             SELECT raw_data 
@@ -97,11 +94,15 @@ def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
     try:
         # 하드코딩된 절대 경로 사용
         if "variant1" in dataset_name:
-            path = "/Users/isle/PycharmProjects/ragas-test/data/evaluation_data_variant1.json"
+            file_path = get_evaluation_data_path("evaluation_data_variant1.json")
         else:
-            path = "/Users/isle/PycharmProjects/ragas-test/data/evaluation_data.json"
+            file_path = get_evaluation_data_path("evaluation_data.json")
 
-        with open(path, "r", encoding="utf-8") as f:
+        if not file_path:
+            st.error(f"데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
+            return None
+        
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data[:qa_count]
     except Exception as e:
@@ -110,111 +111,38 @@ def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
 
 
 def load_actual_qa_data_from_dataset(dataset_name, qa_count):
-    """데이터셋 파일에서 실제 QA 데이터 로드"""
-    import os
+    """데이터셋 파일에서 실제 QA 데이터 로드 (개선된 버전)"""
+    try:
+        # 중앙 경로 관리 모듈 사용
+        file_path = get_evaluation_data_path(dataset_name)
+        
+        if not file_path:
+            st.error(f"데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
+            # 사용 가능한 데이터셋 목록 표시
+            available_datasets = get_available_datasets()
+            if available_datasets:
+                st.info(f"사용 가능한 데이터셋: {', '.join(available_datasets)}")
+            return None
 
-    # 디버그: 현재 파일 위치 확인
-    current_file = Path(__file__).resolve()
-    print(f"[DEBUG] Current file: {current_file}")
+        # 파일 로드 및 파싱
+        with open(file_path, "r", encoding="utf-8") as f:
+            all_qa_data = json.load(f)
 
-    # 다양한 방법으로 project root 찾기
-    # 방법 1: 현재 파일에서 상대 경로
-    project_root = current_file.parent.parent.parent.parent
+        if not isinstance(all_qa_data, list) or len(all_qa_data) == 0:
+            st.error(f"데이터셋 '{dataset_name}'의 형식이 올바르지 않거나 비어있습니다.")
+            return None
 
-    # 방법 2: cwd에서 찾기
-    cwd = Path.cwd()
-    if "ragas-test" in cwd.parts:
-        # cwd가 ragas-test 내부에 있으면
-        idx = cwd.parts.index("ragas-test")
-        project_root_alt = Path(*cwd.parts[: idx + 1])
-    else:
-        project_root_alt = cwd
+        # 요청된 개수만큼 반환
+        result = all_qa_data[:qa_count]
+        st.success(f"데이터셋 '{file_path.name}'에서 {len(result)}개의 QA 데이터를 로드했습니다.")
+        return result
 
-    # 방법 3: 절대 경로 사용 (하드코딩)
-    absolute_data_paths = [
-        Path("/Users/isle/PycharmProjects/ragas-test/data") / dataset_name,
-        Path("/Users/isle/PycharmProjects/ragas-test/data/evaluation_data.json"),
-        Path(
-            "/Users/isle/PycharmProjects/ragas-test/data/evaluation_data_variant1.json"
-        ),
-    ]
-
-    print(f"[DEBUG] Project root (method 1): {project_root}")
-    print(f"[DEBUG] Project root (method 2): {project_root_alt}")
-    print(f"[DEBUG] Current working directory: {cwd}")
-
-    # 모든 가능한 경로 조합
-    all_possible_paths = []
-
-    # 각 project root 방법에 대해
-    for root in [project_root, project_root_alt]:
-        all_possible_paths.extend(
-            [
-                root / "data" / dataset_name,
-                root / "data" / "evaluation_data.json",
-                root / "data" / "evaluation_data_variant1.json",
-            ]
-        )
-
-    # 절대 경로 추가
-    all_possible_paths.extend(absolute_data_paths)
-
-    # 중복 제거
-    unique_paths = list(dict.fromkeys(all_possible_paths))
-
-    print(f"[DEBUG] Looking for dataset: {dataset_name}")
-    print(f"[DEBUG] QA count requested: {qa_count}")
-    print(f"[DEBUG] Checking {len(unique_paths)} unique paths")
-
-    # 모든 경로 시도
-    for i, path in enumerate(unique_paths):
-        print(f"[DEBUG] Checking path {i+1}: {path}")
-
-        try:
-            if path.exists() and path.is_file():
-                print(f"[DEBUG] Found file at: {path}")
-                with open(path, "r", encoding="utf-8") as f:
-                    all_qa_data = json.load(f)
-
-                print(f"[DEBUG] Successfully loaded JSON from {path}")
-                print(
-                    f"[DEBUG] Total QA items in file: {len(all_qa_data) if isinstance(all_qa_data, list) else 'Not a list'}"
-                )
-
-                if isinstance(all_qa_data, list) and len(all_qa_data) > 0:
-                    # qa_count만큼만 반환 (실제 평가된 개수)
-                    result = all_qa_data[:qa_count]
-                    print(f"[DEBUG] Returning {len(result)} QA items")
-                    print(
-                        f"[DEBUG] First QA item preview: {result[0].get('question', 'No question')[:50] if result else 'No data'}"
-                    )
-                    return result
-                else:
-                    print(f"[DEBUG] File loaded but invalid format or empty")
-
-        except json.JSONDecodeError as e:
-            print(f"[DEBUG] JSON decode error for {path}: {e}")
-        except Exception as e:
-            print(f"[DEBUG] Error with {path}: {type(e).__name__}: {e}")
-
-    # 모든 경로에서 찾지 못한 경우
-    print("[DEBUG] Failed to load QA data from any path")
-    print(f"[DEBUG] Final attempt: listing files in likely directories...")
-
-    # 마지막 시도: 가능한 data 디렉토리 내용 표시
-    for root in [
-        project_root,
-        project_root_alt,
-        Path("/Users/isle/PycharmProjects/ragas-test"),
-    ]:
-        data_dir = root / "data"
-        if data_dir.exists():
-            print(f"[DEBUG] Found data dir at: {data_dir}")
-            print(f"[DEBUG] Contents: {list(data_dir.iterdir())}")
-
-    return None
-
-
+    except json.JSONDecodeError as e:
+        st.error(f"JSON 파싱 오류: {e}")
+        return None
+    except Exception as e:
+        st.error(f"데이터 로드 중 오류 발생: {e}")
+        return None
 def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     """평가 결과에서 실제 사용된 QA 데이터 추출"""
     if not raw_data:
@@ -397,14 +325,14 @@ def show_qa_analysis_actual(individual_scores, evaluation_id, qa_data=None):
             st.markdown(
                 """
             **가능한 원인:**
-            1. 평가 데이터 파일이 `/Users/isle/PycharmProjects/ragas-test/data/` 경로에 없음
+            1. 평가 데이터 파일이 프로젝트의 `data/` 디렉토리에 없음
             2. 파일 이름이 `evaluation_data.json` 또는 `evaluation_data_variant1.json`이 아님
             3. 파일 권한 문제
             
             **해결 방법:**
-            - 터미널에서 `ls -la /Users/isle/PycharmProjects/ragas-test/data/` 명령으로 파일 확인
-            - 필요한 경우 파일 권한 수정: `chmod 644 /Users/isle/PycharmProjects/ragas-test/data/*.json`
-            - 터미널에서 [DEBUG] 로그를 확인하여 정확한 오류 위치 파악
+            - 프로젝트 루트의 `data/` 디렉토리에서 파일 확인
+            - 필요한 경우 파일 권한 수정
+            - 로그를 확인하여 정확한 오류 위치 파악
             """
             )
     elif len(qa_data) == 0:

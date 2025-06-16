@@ -5,57 +5,50 @@ RAGAS 평가 결과 대시보드
 
 import json
 import sqlite3
-import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-
-# 프로젝트 루트를 Python 경로에 추가
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.append(str(project_root))
-
-import config
+from src.utils.paths import get_available_datasets, DATABASE_PATH, get_evaluation_data_path
+# 페이지 정의 (간단한 딕셔너리로 대체)
+def load_pages():
+    """사용 가능한 페이지 목록 반환"""
+    return {
+        "🎯 Overview": "메인 대시보드",
+        "📊 New Evaluation": "새 평가 실행",
+        "📈 Historical": "과거 평가 결과",
+        "📚 Detailed Analysis": "상세 분석",
+        "📖 Metrics Explanation": "메트릭 설명",
+        "⚡ Performance": "성능 모니터링"
+    }
 from src.application.use_cases import RunEvaluationUseCase
 from src.infrastructure.evaluation import RagasEvalAdapter
 from src.infrastructure.llm.gemini_adapter import GeminiAdapter
 from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
 
 # 대시보드 컴포넌트
-try:
-    from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
-    from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
-    from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
-except ImportError:
-    # 개발 환경에서 직접 실행할 때 대비
-    sys.path.append(str(project_root / "src/presentation/web"))
-    from components.detailed_analysis import show_detailed_analysis as show_detailed_component
-    from components.metrics_explanation import show_metrics_explanation as show_metrics_component
-    from components.performance_monitor import show_performance_monitor as show_performance_component
+from src.presentation.web.components.detailed_analysis import show_detailed_analysis as show_detailed_component
+from src.presentation.web.components.metrics_explanation import show_metrics_explanation as show_metrics_component
+from src.presentation.web.components.performance_monitor import show_performance_monitor as show_performance_component
 
-# 페이지 설정
+# --- 페이지 설정 ---
 st.set_page_config(
-    page_title="RAGAS 평가 대시보드",
-    page_icon="📊",
+    page_title="RAGTrace 대시보드",
+    page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# 사이드바 네비게이션
-st.sidebar.title("📊 RAGAS 대시보드")
+# --- 사이드바 ---
+st.sidebar.title("🔍 RAGTrace 대시보드")
+
+# --- 페이지 로드 및 라우팅 ---
+pages = load_pages()
+page_keys = list(pages.keys())
 
 # 페이지 네비게이션 상태 관리
-pages = [
-    "🎯 Overview",
-    "📈 Historical",
-    "🔍 Detailed Analysis",
-    "📚 Metrics Guide",
-    "⚡ Performance",
-]
-
-# 초기 페이지 설정
 if "selected_page" not in st.session_state:
     st.session_state.selected_page = "🎯 Overview"
 
@@ -73,30 +66,24 @@ def on_page_change():
 # 사이드바에서 페이지 선택
 st.sidebar.selectbox(
     "페이지 선택",
-    pages,
-    index=pages.index(st.session_state.selected_page),
+    page_keys,
+    index=page_keys.index(st.session_state.selected_page),
     key="page_selector",
     on_change=on_page_change,
 )
 
 page = st.session_state.selected_page
 
-# 메인 타이틀
-st.title("🎯 RAGAS 평가 결과 대시보드")
-st.markdown("---")
+# --- 메인 페이지 ---
+def main_page():
+    st.title("🔍 RAGTrace - RAG 성능 추적 대시보드")
+    st.markdown("---")
 
-
-def main():
-    if page == "🎯 Overview":
+    if ('evaluation_results' in st.session_state and
+            st.session_state.evaluation_results):
         show_overview()
-    elif page == "📈 Historical":
-        show_historical()
-    elif page == "🔍 Detailed Analysis":
-        show_detailed_analysis()
-    elif page == "📚 Metrics Guide":
-        show_metrics_guide()
-    elif page == "⚡ Performance":
-        show_performance()
+    else:
+        show_overview()
 
 
 def show_overview():
@@ -302,14 +289,8 @@ def run_new_evaluation():
             import os
             import random
 
-            # 사용 가능한 데이터셋 파일들
-            available_datasets = [
-                "data/evaluation_data.json",
-                "data/evaluation_data_variant1.json",
-            ]
-
-            # 존재하는 데이터셋만 필터링
-            existing_datasets = [ds for ds in available_datasets if os.path.exists(project_root / ds)]
+            # 중앙 경로 관리 모듈에서 사용 가능한 데이터셋 가져오기
+            existing_datasets = get_available_datasets()
 
             if not existing_datasets:
                 st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
@@ -322,7 +303,13 @@ def run_new_evaluation():
             # 기존 평가 서비스 활용
             llm_adapter = GeminiAdapter(model_name="gemini-2.5-flash-preview-05-20", requests_per_minute=1000)
 
-            repository_adapter = FileRepositoryAdapter(file_path=str(project_root / selected_dataset))
+            # 중앙 경로 관리 모듈을 사용하여 안정적인 경로 획득
+            dataset_path = get_evaluation_data_path(selected_dataset)
+            if not dataset_path:
+                st.error(f"데이터셋 '{selected_dataset}'을 찾을 수 없습니다.")
+                return
+            
+            repository_adapter = FileRepositoryAdapter(file_path=str(dataset_path))
 
             ragas_eval_adapter = RagasEvalAdapter()
 
@@ -341,7 +328,7 @@ def run_new_evaluation():
 
             # QA 데이터도 함께 저장
             try:
-                with open(project_root / selected_dataset, "r", encoding="utf-8") as f:
+                with open(dataset_path, "r", encoding="utf-8") as f:
                     qa_data = json.load(f)
                     # 실제 평가된 개수만큼만 저장
                     qa_count = len(result_dict.get("individual_scores", []))
@@ -481,20 +468,11 @@ def show_performance():
 
 
 # 데이터 저장/로드 함수들
-def get_db_path():
-    """데이터베이스 경로 반환"""
-    # config에서 데이터베이스 경로 가져오기
-    db_path = Path(config.DATABASE_PATH)
-    if not db_path.is_absolute():
-        # 상대 경로인 경우 프로젝트 루트 기준으로 처리
-        project_root = Path(__file__).parent.parent.parent.parent
-        db_path = project_root / db_path
-    return db_path
 
 
 def init_db():
     """데이터베이스 초기화"""
-    db_path = get_db_path()
+    db_path = DATABASE_PATH
     db_path.parent.mkdir(exist_ok=True)
 
     conn = sqlite3.connect(str(db_path))
@@ -523,7 +501,7 @@ def save_evaluation_result(result):
     """평가 결과 저장"""
     init_db()
 
-    conn = sqlite3.connect(str(get_db_path()))
+    conn = sqlite3.connect(str(DATABASE_PATH))
     cursor = conn.cursor()
 
     cursor.execute(
@@ -558,7 +536,7 @@ def load_evaluation_history(limit=None):
     """평가 이력 로드"""
     init_db()
 
-    conn = sqlite3.connect(str(get_db_path()))
+    conn = sqlite3.connect(str(DATABASE_PATH))
 
     query = """
         SELECT timestamp, faithfulness, answer_relevancy, 
@@ -583,4 +561,4 @@ def get_previous_result():
 
 
 if __name__ == "__main__":
-    main()
+    main_page()
