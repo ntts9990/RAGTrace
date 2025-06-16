@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 88
+select = E9,F63,F7,F82
+exclude = 
+    tests/,
+    scripts/,
+    __pycache__,
+    .git,
+    .tox,
+    .eggs,
+    *.egg,
+    build/,
+    dist/,
+    .venv/,
+    venv/
+ignore = 
+    E203,
+    W503,
+    E501
+per-file-ignores =
+    __init__.py:F401
