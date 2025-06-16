@@ -3,25 +3,26 @@
 API 사용량, 실행 시간 등 성능 모니터링 기능 테스트
 """
 
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 import streamlit as st
-from unittest.mock import Mock, patch, MagicMock
-import pandas as pd
-import time
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
+
 
 # 프로젝트 루트 경로 추가
 # 프로젝트 루트를 동적으로 찾아 경로 추가
 def add_project_root_to_path():
     current_path = Path(__file__).resolve()
     while current_path != current_path.parent:
-        if (current_path / 'pyproject.toml').exists():
+        if (current_path / "pyproject.toml").exists():
             sys.path.insert(0, str(current_path))
             return current_path
         current_path = current_path.parent
     raise FileNotFoundError("프로젝트 루트를 찾을 수 없습니다.")
+
 
 add_project_root_to_path()
 
@@ -31,361 +32,306 @@ def sample_performance_data():
     """테스트용 성능 데이터"""
     return {
         "api_calls": [
-            {"timestamp": "2024-01-01T10:00:00", "endpoint": "gemini", "duration": 1.5, "status": "success"},
-            {"timestamp": "2024-01-01T10:01:00", "endpoint": "gemini", "duration": 2.1, "status": "success"},
-            {"timestamp": "2024-01-01T10:02:00", "endpoint": "gemini", "duration": 0.8, "status": "failed"},
+            {
+                "timestamp": "2024-01-01T10:00:00",
+                "endpoint": "gemini",
+                "duration": 1.5,
+                "status": "success",
+            },
+            {
+                "timestamp": "2024-01-01T10:01:00",
+                "endpoint": "gemini",
+                "duration": 2.1,
+                "status": "success",
+            },
+            {
+                "timestamp": "2024-01-01T10:02:00",
+                "endpoint": "gemini",
+                "duration": 0.8,
+                "status": "error",
+            },
         ],
-        "evaluation_sessions": [
-            {"start_time": "2024-01-01T10:00:00", "end_time": "2024-01-01T10:05:00", "qa_count": 10, "success": True},
-            {"start_time": "2024-01-01T11:00:00", "end_time": "2024-01-01T11:08:00", "qa_count": 15, "success": True},
-        ],
-        "system_metrics": {
-            "cpu_usage": 45.2,
-            "memory_usage": 67.8,
-            "disk_usage": 23.1
-        }
+        "evaluation_history": [
+            {
+                "id": 1,
+                "timestamp": "2024-01-01T10:00:00",
+                "duration": 45.2,
+                "qa_count": 10,
+                "ragas_score": 0.85,
+            },
+            {
+                "id": 2,
+                "timestamp": "2024-01-01T11:00:00", 
+                "duration": 52.1,
+                "qa_count": 15,
+                "ragas_score": 0.82,
+            },
+        ]
     }
 
 
 class TestPerformanceMonitor:
-    """성능 모니터 기능 테스트"""
-    
-    def test_performance_monitor_module_import(self):
+    """성능 모니터 테스트"""
+
+    def test_performance_monitor_import(self):
         """성능 모니터 모듈 임포트 테스트"""
         try:
-            from src.presentation.web.components.performance_monitor import show_performance_monitor
-            assert callable(show_performance_monitor)
-        except ImportError:
-            # 모듈이 없어도 테스트는 통과 (개발 중일 수 있음)
-            pytest.skip("성능 모니터 모듈이 아직 구현되지 않음")
-    
-    def test_api_usage_tracking(self, sample_performance_data):
-        """API 사용량 추적 테스트"""
-        def track_api_usage(api_calls):
-            """API 사용량 통계 계산"""
-            total_calls = len(api_calls)
-            successful_calls = sum(1 for call in api_calls if call["status"] == "success")
-            failed_calls = total_calls - successful_calls
+            from src.presentation.web.components.performance_monitor import (
+                show_performance_monitor,
+                load_evaluation_history_for_performance,
+            )
             
-            if successful_calls > 0:
-                avg_duration = sum(call["duration"] for call in api_calls 
-                                 if call["status"] == "success") / successful_calls
-            else:
-                avg_duration = 0
+            assert callable(show_performance_monitor)
+            assert callable(load_evaluation_history_for_performance)
+        except ImportError:
+            pytest.skip("성능 모니터 모듈이 구현되지 않음")
+
+    def test_api_performance_analysis(self, sample_performance_data):
+        """API 성능 분석 테스트"""
+        api_calls = sample_performance_data["api_calls"]
+        
+        def analyze_api_performance(calls):
+            """API 성능 분석"""
+            total_calls = len(calls)
+            success_calls = len([c for c in calls if c["status"] == "success"])
+            error_calls = total_calls - success_calls
+            
+            durations = [c["duration"] for c in calls if c["status"] == "success"]
+            avg_duration = sum(durations) / len(durations) if durations else 0
             
             return {
                 "total_calls": total_calls,
-                "successful_calls": successful_calls,
-                "failed_calls": failed_calls,
-                "success_rate": successful_calls / total_calls if total_calls > 0 else 0,
-                "avg_duration": avg_duration
+                "success_rate": success_calls / total_calls if total_calls > 0 else 0,
+                "error_rate": error_calls / total_calls if total_calls > 0 else 0,
+                "avg_duration": avg_duration,
             }
         
-        usage_stats = track_api_usage(sample_performance_data["api_calls"])
+        analysis = analyze_api_performance(api_calls)
         
-        assert usage_stats["total_calls"] == 3
-        assert usage_stats["successful_calls"] == 2
-        assert usage_stats["failed_calls"] == 1
-        assert 0 <= usage_stats["success_rate"] <= 1
-        assert usage_stats["avg_duration"] > 0
-    
-    def test_evaluation_session_tracking(self, sample_performance_data):
-        """평가 세션 추적 테스트"""
-        def track_evaluation_sessions(sessions):
-            """평가 세션 통계 계산"""
-            total_sessions = len(sessions)
-            successful_sessions = sum(1 for session in sessions if session["success"])
-            
-            total_qa_processed = sum(session["qa_count"] for session in sessions)
-            
-            # 평균 처리 시간 계산
-            total_duration = 0
-            for session in sessions:
-                start = datetime.fromisoformat(session["start_time"])
-                end = datetime.fromisoformat(session["end_time"])
-                duration = (end - start).total_seconds()
-                total_duration += duration
-            
-            avg_duration = total_duration / total_sessions if total_sessions > 0 else 0
+        assert analysis["total_calls"] == 3
+        assert analysis["success_rate"] == 2/3
+        assert analysis["error_rate"] == 1/3
+        assert analysis["avg_duration"] == (1.5 + 2.1) / 2
+
+    def test_evaluation_performance_tracking(self, sample_performance_data):
+        """평가 성능 추적 테스트"""
+        evaluations = sample_performance_data["evaluation_history"]
+        
+        def track_evaluation_performance(evaluations):
+            """평가 성능 추적"""
+            if not evaluations:
+                return {}
+                
+            total_duration = sum(e["duration"] for e in evaluations)
+            total_qa = sum(e["qa_count"] for e in evaluations)
+            avg_score = sum(e["ragas_score"] for e in evaluations) / len(evaluations)
             
             return {
-                "total_sessions": total_sessions,
-                "successful_sessions": successful_sessions,
-                "total_qa_processed": total_qa_processed,
-                "avg_duration_seconds": avg_duration,
-                "avg_qa_per_session": total_qa_processed / total_sessions if total_sessions > 0 else 0
+                "total_evaluations": len(evaluations),
+                "total_duration": total_duration,
+                "avg_duration_per_evaluation": total_duration / len(evaluations),
+                "total_qa_processed": total_qa,
+                "avg_qa_per_evaluation": total_qa / len(evaluations),
+                "avg_ragas_score": avg_score,
             }
         
-        session_stats = track_evaluation_sessions(sample_performance_data["evaluation_sessions"])
+        performance = track_evaluation_performance(evaluations)
         
-        assert session_stats["total_sessions"] == 2
-        assert session_stats["successful_sessions"] == 2
-        assert session_stats["total_qa_processed"] == 25
-        assert session_stats["avg_duration_seconds"] > 0
-        assert session_stats["avg_qa_per_session"] == 12.5
+        assert performance["total_evaluations"] == 2
+        assert performance["total_duration"] == 45.2 + 52.1
+        assert performance["total_qa_processed"] == 25
+        assert abs(performance["avg_ragas_score"] - 0.835) < 0.001
 
+    @patch('sqlite3.connect')
+    def test_load_evaluation_history_for_performance_success(self, mock_connect):
+        """평가 이력 로드 성공 테스트"""
+        from unittest.mock import MagicMock
+        
+        # Mock database connection
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_cursor
+        mock_cursor.fetchall.return_value = [
+            (1, '2024-01-01 10:00:00', 0.95, 0.90, 0.85, 0.88, 0.895, '{"test": "data"}')
+        ]
+        
+        from src.presentation.web.components.performance_monitor import load_evaluation_history_for_performance
+        
+        with patch('pathlib.Path.exists', return_value=True):
+            result = load_evaluation_history_for_performance()
+        
+        assert len(result) == 1
 
-class TestSystemMetrics:
-    """시스템 메트릭 테스트"""
-    
-    def test_system_resource_monitoring(self, sample_performance_data):
-        """시스템 리소스 모니터링 테스트"""
-        def monitor_system_resources():
-            """시스템 리소스 사용량 모니터링 (가상)"""
-            # 실제로는 psutil 등을 사용할 것
-            return {
-                "cpu_percent": 45.2,
-                "memory_percent": 67.8,
-                "disk_percent": 23.1,
-                "network_io": {"bytes_sent": 1024000, "bytes_recv": 2048000}
-            }
+    @patch('sqlite3.connect')
+    def test_load_evaluation_history_for_performance_empty(self, mock_connect):
+        """빈 평가 이력 로드 테스트"""
+        from unittest.mock import MagicMock
         
-        metrics = monitor_system_resources()
+        # Mock empty database
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_cursor
+        mock_cursor.fetchall.return_value = []
         
-        assert "cpu_percent" in metrics
-        assert "memory_percent" in metrics
-        assert "disk_percent" in metrics
-        assert 0 <= metrics["cpu_percent"] <= 100
-        assert 0 <= metrics["memory_percent"] <= 100
-        assert 0 <= metrics["disk_percent"] <= 100
-    
-    def test_resource_threshold_alerts(self):
-        """리소스 임계값 알림 테스트"""
-        def check_resource_thresholds(metrics, thresholds=None):
-            """리소스 사용량이 임계값을 초과하는지 확인"""
-            if thresholds is None:
-                thresholds = {"cpu": 80, "memory": 85, "disk": 90}
+        from src.presentation.web.components.performance_monitor import load_evaluation_history_for_performance
+        
+        with patch('pathlib.Path.exists', return_value=True):
+            result = load_evaluation_history_for_performance()
+        
+        assert result == []
+
+    def test_performance_metrics_calculation(self):
+        """성능 메트릭 계산 테스트"""
+        
+        def calculate_throughput(qa_count, duration_seconds):
+            """처리량 계산 (QA/초)"""
+            if duration_seconds <= 0:
+                return 0
+            return qa_count / duration_seconds
+        
+        def calculate_efficiency_score(ragas_score, duration_seconds):
+            """효율성 점수 계산 (품질/시간)"""
+            if duration_seconds <= 0:
+                return 0
+            return ragas_score / (duration_seconds / 60)  # 품질점수 per minute
+        
+        # Test throughput calculation
+        throughput = calculate_throughput(10, 60)  # 10 QA in 60 seconds
+        assert abs(throughput - 10/60) < 0.001
+        
+        # Test efficiency calculation
+        efficiency = calculate_efficiency_score(0.9, 120)  # 0.9 score in 2 minutes
+        assert abs(efficiency - 0.45) < 0.001
+
+    def test_resource_usage_monitoring(self):
+        """리소스 사용량 모니터링 테스트"""
+        
+        def monitor_resource_usage(evaluations):
+            """리소스 사용량 모니터링"""
+            if not evaluations:
+                return {}
             
+            # API 호출 횟수 추정 (QA 당 평균 4회 호출 가정)
+            total_qa = sum(e.get("qa_count", 0) for e in evaluations)
+            estimated_api_calls = total_qa * 4
+            
+            # 평균 처리 시간
+            durations = [e.get("duration", 0) for e in evaluations]
+            avg_duration = sum(durations) / len(durations) if durations else 0
+            
+            return {
+                "total_evaluations": len(evaluations),
+                "total_qa_processed": total_qa,
+                "estimated_api_calls": estimated_api_calls,
+                "avg_processing_time": avg_duration,
+                "qa_per_minute": total_qa / (sum(durations) / 60) if sum(durations) > 0 else 0,
+            }
+        
+        test_evaluations = [
+            {"qa_count": 10, "duration": 60},
+            {"qa_count": 15, "duration": 90},
+        ]
+        
+        usage = monitor_resource_usage(test_evaluations)
+        
+        assert usage["total_evaluations"] == 2
+        assert usage["total_qa_processed"] == 25
+        assert usage["estimated_api_calls"] == 100  # 25 * 4
+        assert usage["avg_processing_time"] == 75  # (60 + 90) / 2
+
+    def test_performance_trend_analysis(self):
+        """성능 트렌드 분석 테스트"""
+        
+        def analyze_performance_trends(evaluations):
+            """성능 트렌드 분석"""
+            if len(evaluations) < 2:
+                return {"trend": "insufficient_data"}
+            
+            # 시간순 정렬
+            sorted_evals = sorted(evaluations, key=lambda x: x["timestamp"])
+            
+            # 최근 vs 이전 성능 비교
+            mid_point = len(sorted_evals) // 2
+            recent_scores = [e["ragas_score"] for e in sorted_evals[mid_point:]]
+            earlier_scores = [e["ragas_score"] for e in sorted_evals[:mid_point]]
+            
+            recent_avg = sum(recent_scores) / len(recent_scores)
+            earlier_avg = sum(earlier_scores) / len(earlier_scores)
+            
+            trend = "improving" if recent_avg > earlier_avg else "declining" if recent_avg < earlier_avg else "stable"
+            
+            return {
+                "trend": trend,
+                "recent_avg_score": recent_avg,
+                "earlier_avg_score": earlier_avg,
+                "improvement": recent_avg - earlier_avg,
+            }
+        
+        test_evaluations = [
+            {"timestamp": "2024-01-01T10:00:00", "ragas_score": 0.8},
+            {"timestamp": "2024-01-01T11:00:00", "ragas_score": 0.82},
+            {"timestamp": "2024-01-01T12:00:00", "ragas_score": 0.85},
+            {"timestamp": "2024-01-01T13:00:00", "ragas_score": 0.87},
+        ]
+        
+        trends = analyze_performance_trends(test_evaluations)
+        
+        assert trends["trend"] == "improving"
+        assert trends["recent_avg_score"] > trends["earlier_avg_score"]
+        assert trends["improvement"] > 0
+
+    def test_alert_system(self):
+        """알림 시스템 테스트"""
+        
+        def check_performance_alerts(current_metrics):
+            """성능 알림 체크"""
             alerts = []
             
-            if metrics.get("cpu_percent", 0) > thresholds["cpu"]:
-                alerts.append(f"CPU 사용률이 {metrics['cpu_percent']:.1f}%로 높습니다")
+            # 성공률 낮음 알림
+            if current_metrics.get("success_rate", 1.0) < 0.9:
+                alerts.append({
+                    "type": "warning",
+                    "message": f"API 성공률이 {current_metrics['success_rate']:.1%}로 낮습니다",
+                    "severity": "medium"
+                })
             
-            if metrics.get("memory_percent", 0) > thresholds["memory"]:
-                alerts.append(f"메모리 사용률이 {metrics['memory_percent']:.1f}%로 높습니다")
+            # 평균 응답시간 높음 알림
+            if current_metrics.get("avg_duration", 0) > 3.0:
+                alerts.append({
+                    "type": "warning", 
+                    "message": f"평균 응답시간이 {current_metrics['avg_duration']:.1f}초로 높습니다",
+                    "severity": "high"
+                })
             
-            if metrics.get("disk_percent", 0) > thresholds["disk"]:
-                alerts.append(f"디스크 사용률이 {metrics['disk_percent']:.1f}%로 높습니다")
+            # RAGAS 점수 낮음 알림
+            if current_metrics.get("avg_ragas_score", 1.0) < 0.7:
+                alerts.append({
+                    "type": "error",
+                    "message": f"평균 RAGAS 점수가 {current_metrics['avg_ragas_score']:.2f}로 낮습니다",
+                    "severity": "high"
+                })
             
             return alerts
         
-        # 정상 범위 테스트
-        normal_metrics = {"cpu_percent": 45, "memory_percent": 60, "disk_percent": 70}
-        alerts_normal = check_resource_thresholds(normal_metrics)
-        assert len(alerts_normal) == 0
+        # Test case: Normal performance
+        normal_metrics = {
+            "success_rate": 0.95,
+            "avg_duration": 1.5,
+            "avg_ragas_score": 0.85
+        }
         
-        # 임계값 초과 테스트
-        high_metrics = {"cpu_percent": 85, "memory_percent": 90, "disk_percent": 95}
-        alerts_high = check_resource_thresholds(high_metrics)
-        assert len(alerts_high) == 3
-
-
-class TestPerformanceVisualization:
-    """성능 시각화 테스트"""
-    
-    def test_create_performance_timeline(self, sample_performance_data):
-        """성능 타임라인 차트 생성 테스트"""
-        def create_performance_timeline(api_calls):
-            """API 호출 성능 타임라인 생성"""
-            timeline_data = []
-            
-            for call in api_calls:
-                timeline_data.append({
-                    "timestamp": call["timestamp"],
-                    "duration": call["duration"],
-                    "status": call["status"],
-                    "endpoint": call["endpoint"]
-                })
-            
-            # 시간순 정렬
-            timeline_data.sort(key=lambda x: x["timestamp"])
-            
-            return timeline_data
+        alerts = check_performance_alerts(normal_metrics)
+        assert len(alerts) == 0
         
-        timeline = create_performance_timeline(sample_performance_data["api_calls"])
+        # Test case: Poor performance
+        poor_metrics = {
+            "success_rate": 0.8,
+            "avg_duration": 4.0,
+            "avg_ragas_score": 0.6
+        }
         
-        assert len(timeline) == 3
-        assert all("timestamp" in item for item in timeline)
-        assert all("duration" in item for item in timeline)
-    
-    def test_create_metrics_dashboard(self, sample_performance_data):
-        """메트릭 대시보드 데이터 생성 테스트"""
-        def create_metrics_dashboard_data(performance_data):
-            """대시보드용 메트릭 데이터 생성"""
-            dashboard_data = {
-                "summary": {
-                    "total_api_calls": len(performance_data["api_calls"]),
-                    "total_evaluations": len(performance_data["evaluation_sessions"]),
-                    "system_health": "정상"  # 간단한 헬스 체크
-                },
-                "charts": {
-                    "api_response_times": [call["duration"] for call in performance_data["api_calls"]],
-                    "success_rates": [],
-                    "resource_usage": performance_data["system_metrics"]
-                }
-            }
-            
-            return dashboard_data
-        
-        dashboard = create_metrics_dashboard_data(sample_performance_data)
-        
-        assert "summary" in dashboard
-        assert "charts" in dashboard
-        assert dashboard["summary"]["total_api_calls"] == 3
-        assert len(dashboard["charts"]["api_response_times"]) == 3
-
-
-class TestRateLimitingMonitoring:
-    """레이트 리미팅 모니터링 테스트"""
-    
-    def test_rate_limit_tracking(self):
-        """레이트 리미트 추적 테스트"""
-        def track_rate_limits(api_calls, window_minutes=1):
-            """지정된 시간 윈도우 내 API 호출 수 추적"""
-            current_time = datetime.now()
-            window_start = current_time - timedelta(minutes=window_minutes)
-            
-            recent_calls = []
-            for call in api_calls:
-                call_time = datetime.fromisoformat(call["timestamp"])
-                if call_time >= window_start:
-                    recent_calls.append(call)
-            
-            return {
-                "calls_in_window": len(recent_calls),
-                "window_minutes": window_minutes,
-                "rate_per_minute": len(recent_calls) / window_minutes
-            }
-        
-        # 가상의 최근 API 호출 데이터
-        recent_calls = [
-            {"timestamp": datetime.now().isoformat(), "status": "success"},
-            {"timestamp": (datetime.now() - timedelta(seconds=30)).isoformat(), "status": "success"}
-        ]
-        
-        rate_info = track_rate_limits(recent_calls)
-        
-        assert "calls_in_window" in rate_info
-        assert "rate_per_minute" in rate_info
-        assert rate_info["calls_in_window"] >= 0
-    
-    def test_rate_limit_warnings(self):
-        """레이트 리미트 경고 테스트"""
-        def check_rate_limit_warnings(current_rate, limit_per_minute):
-            """현재 호출 속도가 제한에 근접했는지 확인"""
-            warnings = []
-            
-            if current_rate >= limit_per_minute:
-                warnings.append("API 호출 제한에 도달했습니다")
-            elif current_rate >= limit_per_minute * 0.8:
-                warnings.append("API 호출 제한의 80%에 근접했습니다")
-            elif current_rate >= limit_per_minute * 0.5:
-                warnings.append("API 호출 제한의 50%에 도달했습니다")
-            
-            return warnings
-        
-        # 다양한 시나리오 테스트
-        no_warnings = check_rate_limit_warnings(10, 100)
-        assert len(no_warnings) == 0
-        
-        medium_warnings = check_rate_limit_warnings(60, 100)
-        assert len(medium_warnings) == 1
-        
-        high_warnings = check_rate_limit_warnings(85, 100)
-        assert len(high_warnings) == 1
-        
-        limit_warnings = check_rate_limit_warnings(100, 100)
-        assert len(limit_warnings) == 1
-
-
-class TestPerformanceOptimization:
-    """성능 최적화 제안 테스트"""
-    
-    def test_optimization_suggestions(self, sample_performance_data):
-        """성능 최적화 제안 생성 테스트"""
-        def generate_optimization_suggestions(performance_data):
-            """성능 데이터를 기반으로 최적화 제안 생성"""
-            suggestions = []
-            
-            # API 응답 시간 분석
-            api_durations = [call["duration"] for call in performance_data["api_calls"]]
-            avg_duration = sum(api_durations) / len(api_durations)
-            
-            if avg_duration > 2.0:
-                suggestions.append("API 응답 시간이 느립니다. 캐싱 또는 배치 처리를 고려하세요.")
-            
-            # 실패율 분석
-            total_calls = len(performance_data["api_calls"])
-            failed_calls = sum(1 for call in performance_data["api_calls"] if call["status"] == "failed")
-            failure_rate = failed_calls / total_calls if total_calls > 0 else 0
-            
-            if failure_rate > 0.1:  # 10% 이상 실패
-                suggestions.append("API 호출 실패율이 높습니다. 재시도 로직을 개선하세요.")
-            
-            # 시스템 리소스 분석
-            if performance_data["system_metrics"]["memory_usage"] > 80:
-                suggestions.append("메모리 사용률이 높습니다. 메모리 최적화를 고려하세요.")
-            
-            return suggestions
-        
-        suggestions = generate_optimization_suggestions(sample_performance_data)
-        
-        assert isinstance(suggestions, list)
-        # 샘플 데이터에 따라 제안이 있을 수도 없을 수도 있음
-        assert len(suggestions) >= 0
-    
-    def test_performance_benchmarking(self):
-        """성능 벤치마킹 테스트"""
-        def benchmark_evaluation_speed(qa_count, duration_seconds):
-            """평가 속도 벤치마킹"""
-            qa_per_second = qa_count / duration_seconds if duration_seconds > 0 else 0
-            
-            # 성능 등급 분류
-            if qa_per_second >= 2.0:
-                grade = "빠름"
-            elif qa_per_second >= 1.0:
-                grade = "보통"
-            else:
-                grade = "느림"
-            
-            return {
-                "qa_per_second": qa_per_second,
-                "performance_grade": grade,
-                "estimated_time_for_100qa": 100 / qa_per_second if qa_per_second > 0 else float('inf')
-            }
-        
-        # 다양한 성능 시나리오 테스트
-        fast_benchmark = benchmark_evaluation_speed(20, 10)  # 2 QA/sec
-        assert fast_benchmark["performance_grade"] == "빠름"
-        
-        slow_benchmark = benchmark_evaluation_speed(5, 10)   # 0.5 QA/sec
-        assert slow_benchmark["performance_grade"] == "느림"
-
-
-@patch('streamlit.metric')
-def test_performance_metrics_display(mock_metric, sample_performance_data):
-    """성능 메트릭 표시 테스트"""
-    def display_performance_metrics(performance_data):
-        """성능 메트릭을 Streamlit으로 표시"""
-        api_calls = performance_data["api_calls"]
-        total_calls = len(api_calls)
-        success_rate = sum(1 for call in api_calls if call["status"] == "success") / total_calls
-        
-        st.metric("총 API 호출", total_calls)
-        st.metric("성공률", f"{success_rate:.1%}")
-        st.metric("평균 응답시간", f"{sum(call['duration'] for call in api_calls) / total_calls:.2f}초")
-    
-    display_performance_metrics(sample_performance_data)
-    
-    # 메트릭이 3번 호출되었는지 확인
-    assert mock_metric.call_count == 3
-
-
-def test_component_integration():
-    """컴포넌트 통합 테스트"""
-    try:
-        from src.presentation.web.components import performance_monitor
-        assert hasattr(performance_monitor, 'show_performance_monitor')
-    except ImportError:
-        # 모듈이 없어도 테스트는 통과 (개발 중일 수 있음)
-        pytest.skip("성능 모니터 모듈이 아직 구현되지 않음")
+        alerts = check_performance_alerts(poor_metrics)
+        assert len(alerts) == 3
+        assert any(alert["severity"] == "high" for alert in alerts)

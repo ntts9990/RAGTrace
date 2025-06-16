@@ -5,7 +5,6 @@
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 def get_project_root() -> Path:
@@ -75,7 +74,7 @@ EVALUATION_DATA_FILES = {
 }
 
 
-def get_evaluation_data_path(dataset_name: str) -> Optional[Path]:
+def get_evaluation_data_path(dataset_name: str) -> Path | None:
     """평가 데이터 파일의 경로를 반환합니다.
 
     Args:

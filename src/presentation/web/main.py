@@ -4,16 +4,21 @@ RAGAS 평가 결과 대시보드
 """
 
 import json
-import sqlite3
 import random
+import sqlite3
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from src.utils.paths import get_available_datasets, DATABASE_PATH, get_evaluation_data_path
+
 from src.container import container
+from src.utils.paths import (
+    DATABASE_PATH,
+    get_available_datasets,
+    get_evaluation_data_path,
+)
+
 
 # 페이지 정의 (간단한 딕셔너리로 대체)
 def load_pages():
@@ -23,15 +28,16 @@ def load_pages():
         "📈 Historical": "과거 평가 결과",
         "📚 Detailed Analysis": "상세 분석",
         "📖 Metrics Explanation": "메트릭 설명",
-        "⚡ Performance": "성능 모니터링"
+        "⚡ Performance": "성능 모니터링",
     }
+
 
 # --- 페이지 설정 ---
 st.set_page_config(
     page_title="RAGTrace 대시보드",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # --- 사이드바 ---
@@ -67,13 +73,13 @@ st.sidebar.selectbox(
 
 page = st.session_state.selected_page
 
+
 # --- 메인 페이지 ---
 def main_page():
     st.title("🔍 RAGTrace - RAG 성능 추적 대시보드")
     st.markdown("---")
 
-    if ('evaluation_results' in st.session_state and
-            st.session_state.evaluation_results):
+    if "evaluation_results" in st.session_state and st.session_state.evaluation_results:
         show_overview()
     else:
         show_overview()
@@ -87,7 +93,9 @@ def show_overview():
     col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
 
     with col1:
-        if st.button("🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다"):
+        if st.button(
+            "🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다"
+        ):
             run_new_evaluation()
 
     with col2:
@@ -112,10 +120,14 @@ def show_overview():
         show_metric_charts(latest_result)
         show_recent_trends()
     else:
-        st.info("📝 아직 평가 결과가 없습니다. '새 평가 실행' 버튼을 클릭하여 첫 평가를 시작하세요!")
+        st.info(
+            "📝 아직 평가 결과가 없습니다. '새 평가 실행' 버튼을 클릭하여 첫 평가를 시작하세요!"
+        )
         st.markdown("---")
         st.markdown("### 🤔 RAGAS 메트릭이 궁금하신가요?")
-        st.markdown("📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!")
+        st.markdown(
+            "📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!"
+        )
 
 
 def show_metric_cards(result):
@@ -253,7 +265,7 @@ def show_recent_trends():
         ]
         colors = ["blue", "green", "orange", "red", "purple"]
 
-        for metric, color in zip(metrics, colors):
+        for metric, color in zip(metrics, colors, strict=False):
             if metric in df.columns:
                 fig.add_trace(
                     go.Scatter(
@@ -291,7 +303,9 @@ def run_new_evaluation():
             st.info(f"📊 선택된 데이터셋: {selected_dataset}")
 
             # 컨테이너를 통해 유스케이스 인스턴스 획득
-            evaluation_use_case = container.get_run_evaluation_use_case(selected_dataset)
+            evaluation_use_case = container.get_run_evaluation_use_case(
+                selected_dataset
+            )
 
             # 평가 실행
             evaluation_result = evaluation_use_case.execute()
@@ -299,11 +313,11 @@ def run_new_evaluation():
             # 결과 저장 (데이터셋 정보 포함)
             result_dict = evaluation_result.to_dict()
             result_dict["metadata"]["dataset"] = selected_dataset
-            
+
             dataset_path = get_evaluation_data_path(selected_dataset)
             if dataset_path:
                 try:
-                    with open(dataset_path, "r", encoding="utf-8") as f:
+                    with open(dataset_path, encoding="utf-8") as f:
                         qa_data = json.load(f)
                         qa_count = len(result_dict.get("individual_scores", []))
                         result_dict["qa_data"] = qa_data[:qa_count]
@@ -324,7 +338,9 @@ def show_historical():
     st.header("📈 평가 이력")
 
     # 상세 분석으로 이동하는 안내
-    st.info("💡 특정 평가의 상세 분석을 보려면 '상세 분석' 페이지에서 평가를 선택하세요.")
+    st.info(
+        "💡 특정 평가의 상세 분석을 보려면 '상세 분석' 페이지에서 평가를 선택하세요."
+    )
 
     history = load_evaluation_history()
 
@@ -337,7 +353,9 @@ def show_historical():
 
         # 각 평가에 대한 상세 정보와 상세 분석 버튼
         for i, row in df.iterrows():
-            with st.expander(f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"):
+            with st.expander(
+                f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"
+            ):
                 col1, col2, col3 = st.columns([2, 2, 1])
 
                 with col1:
@@ -345,14 +363,18 @@ def show_historical():
                     st.metric("Faithfulness", f"{row.get('faithfulness', 0):.3f}")
 
                 with col2:
-                    st.metric("Answer Relevancy", f"{row.get('answer_relevancy', 0):.3f}")
+                    st.metric(
+                        "Answer Relevancy", f"{row.get('answer_relevancy', 0):.3f}"
+                    )
                     st.metric("Context Recall", f"{row.get('context_recall', 0):.3f}")
 
                 with col3:
-                    st.metric("Context Precision", f"{row.get('context_precision', 0):.3f}")
+                    st.metric(
+                        "Context Precision", f"{row.get('context_precision', 0):.3f}"
+                    )
 
                     # 상세 분석 페이지로 이동 버튼
-                    if st.button(f"🔍 상세 분석", key=f"detail_btn_{i}"):
+                    if st.button("🔍 상세 분석", key=f"detail_btn_{i}"):
                         # 선택된 평가 인덱스를 세션 상태에 저장
                         st.session_state.selected_evaluation_index = i
                         st.session_state.navigate_to = "📚 Detailed Analysis"
@@ -421,7 +443,9 @@ def show_comparison_chart(eval1, eval2):
         )
     )
 
-    fig.update_layout(title="📊 평가 결과 비교", barmode="group", yaxis=dict(range=[0, 1]), height=400)
+    fig.update_layout(
+        title="📊 평가 결과 비교", barmode="group", yaxis=dict(range=[0, 1]), height=400
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 

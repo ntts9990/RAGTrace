@@ -6,16 +6,16 @@
 import json
 import sqlite3
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.utils.paths import DATABASE_PATH, get_evaluation_data_path, get_available_datasets
-
-
+from src.utils.paths import (
+    DATABASE_PATH,
+    get_available_datasets,
+    get_evaluation_data_path,
+)
 
 
 def load_all_evaluations():
@@ -101,8 +101,8 @@ def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
         if not file_path:
             st.error(f"데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
             return None
-        
-        with open(file_path, "r", encoding="utf-8") as f:
+
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
             return data[:qa_count]
     except Exception as e:
@@ -115,7 +115,7 @@ def load_actual_qa_data_from_dataset(dataset_name, qa_count):
     try:
         # 중앙 경로 관리 모듈 사용
         file_path = get_evaluation_data_path(dataset_name)
-        
+
         if not file_path:
             st.error(f"데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
             # 사용 가능한 데이터셋 목록 표시
@@ -125,16 +125,20 @@ def load_actual_qa_data_from_dataset(dataset_name, qa_count):
             return None
 
         # 파일 로드 및 파싱
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             all_qa_data = json.load(f)
 
         if not isinstance(all_qa_data, list) or len(all_qa_data) == 0:
-            st.error(f"데이터셋 '{dataset_name}'의 형식이 올바르지 않거나 비어있습니다.")
+            st.error(
+                f"데이터셋 '{dataset_name}'의 형식이 올바르지 않거나 비어있습니다."
+            )
             return None
 
         # 요청된 개수만큼 반환
         result = all_qa_data[:qa_count]
-        st.success(f"데이터셋 '{file_path.name}'에서 {len(result)}개의 QA 데이터를 로드했습니다.")
+        st.success(
+            f"데이터셋 '{file_path.name}'에서 {len(result)}개의 QA 데이터를 로드했습니다."
+        )
         return result
 
     except json.JSONDecodeError as e:
@@ -143,6 +147,8 @@ def load_actual_qa_data_from_dataset(dataset_name, qa_count):
     except Exception as e:
         st.error(f"데이터 로드 중 오류 발생: {e}")
         return None
+
+
 def get_actual_qa_data_from_evaluation(raw_data, evaluation_db_id):
     """평가 결과에서 실제 사용된 QA 데이터 추출"""
     if not raw_data:

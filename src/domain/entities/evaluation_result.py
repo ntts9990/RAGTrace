@@ -1,7 +1,7 @@
 """Evaluation result entity"""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -13,8 +13,8 @@ class EvaluationResult:
     context_recall: float
     context_precision: float
     ragas_score: float
-    individual_scores: Optional[List[Dict[str, float]]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    individual_scores: list[dict[str, float]] | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """평가 결과 유효성 검증"""
@@ -26,9 +26,11 @@ class EvaluationResult:
             ("ragas_score", self.ragas_score),
         ]:
             if not 0.0 <= score <= 1.0:
-                raise ValueError(f"{metric_name} must be between 0.0 and 1.0, got {score}")
+                raise ValueError(
+                    f"{metric_name} must be between 0.0 and 1.0, got {score}"
+                )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """딕셔너리로 변환"""
         result = {
             "faithfulness": self.faithfulness,

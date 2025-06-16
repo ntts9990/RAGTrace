@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import Field
@@ -10,9 +9,9 @@ from src.application.ports.llm import LlmPort
 class RateLimitedGeminiLLM(ChatGoogleGenerativeAI):
     """Rate limiting이 적용된 Gemini LLM 래퍼"""
 
-    requests_per_minute: Optional[int] = Field(default=10, exclude=True)
-    min_request_interval: Optional[float] = Field(default=6.0, exclude=True)
-    last_request_time: Optional[float] = Field(default=0.0, exclude=True)
+    requests_per_minute: int | None = Field(default=10, exclude=True)
+    min_request_interval: float | None = Field(default=6.0, exclude=True)
+    last_request_time: float | None = Field(default=0.0, exclude=True)
 
     def __init__(self, *args, requests_per_minute: int = 10, **kwargs):
         super().__init__(*args, **kwargs)

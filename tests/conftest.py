@@ -1,14 +1,13 @@
-import pytest
 import os
-from typing import Dict, Any, List
-from unittest.mock import Mock, MagicMock
-from dataclasses import dataclass
+from unittest.mock import Mock
 
+import pytest
+
+from src.application.ports.evaluation import EvaluationRunnerPort
+from src.application.ports.llm import LlmPort
+from src.application.ports.repository import EvaluationRepositoryPort
 from src.domain.entities import EvaluationData, EvaluationResult
 from src.domain.value_objects.metrics import MetricScore, MetricThresholds
-from src.application.ports.llm import LlmPort
-from src.application.ports.evaluation import EvaluationRunnerPort
-from src.application.ports.repository import EvaluationRepositoryPort
 
 
 @pytest.fixture
@@ -19,10 +18,10 @@ def sample_evaluation_data():
         contexts=[
             "리스트는 가변(mutable) 데이터 타입으로 생성 후 요소를 변경할 수 있습니다.",
             "튜플은 불변(immutable) 데이터 타입으로 생성 후 요소를 변경할 수 없습니다.",
-            "리스트는 대괄호 []로 표현하고, 튜플은 소괄호 ()로 표현합니다."
+            "리스트는 대괄호 []로 표현하고, 튜플은 소괄호 ()로 표현합니다.",
         ],
         answer="리스트는 가변 데이터 타입으로 요소를 변경할 수 있지만, 튜플은 불변 데이터 타입으로 요소를 변경할 수 없습니다.",
-        ground_truth="리스트(list)는 가변(mutable) 객체로 생성 후 요소의 추가, 삭제, 수정이 가능합니다. 반면 튜플(tuple)은 불변(immutable) 객체로 생성 후 요소를 변경할 수 없습니다."
+        ground_truth="리스트(list)는 가변(mutable) 객체로 생성 후 요소의 추가, 삭제, 수정이 가능합니다. 반면 튜플(tuple)은 불변(immutable) 객체로 생성 후 요소를 변경할 수 없습니다.",
     )
 
 
@@ -36,11 +35,11 @@ def sample_evaluation_data_list(sample_evaluation_data):
             contexts=[
                 "클래스는 객체를 생성하기 위한 템플릿 또는 설계도입니다.",
                 "객체는 클래스를 기반으로 생성된 실제 인스턴스입니다.",
-                "클래스는 속성과 메서드를 정의하고, 객체는 이를 구현합니다."
+                "클래스는 속성과 메서드를 정의하고, 객체는 이를 구현합니다.",
             ],
             answer="클래스는 객체를 만들기 위한 템플릿이고, 객체는 클래스로부터 생성된 실제 인스턴스입니다.",
-            ground_truth="클래스(class)는 객체를 생성하기 위한 템플릿으로 속성과 메서드를 정의합니다. 객체(object)는 클래스를 기반으로 생성된 실제 인스턴스로 클래스에서 정의한 속성과 메서드를 가집니다."
-        )
+            ground_truth="클래스(class)는 객체를 생성하기 위한 템플릿으로 속성과 메서드를 정의합니다. 객체(object)는 클래스를 기반으로 생성된 실제 인스턴스로 클래스에서 정의한 속성과 메서드를 가집니다.",
+        ),
     ]
 
 
@@ -51,7 +50,7 @@ def sample_metric_scores():
         "answer_relevancy": MetricScore(0.85),
         "faithfulness": MetricScore(0.92),
         "context_precision": MetricScore(0.78),
-        "context_recall": MetricScore(0.88)
+        "context_recall": MetricScore(0.88),
     }
 
 
@@ -65,9 +64,7 @@ def sample_evaluation_result(sample_metric_scores):
 def sample_metric_thresholds():
     """Sample metric thresholds for testing."""
     return MetricThresholds(
-        excellent_threshold=0.9,
-        good_threshold=0.8,
-        fair_threshold=0.6
+        excellent_threshold=0.9, good_threshold=0.8, fair_threshold=0.6
     )
 
 
@@ -111,10 +108,10 @@ def sample_json_data():
                 "question": "Python에서 리스트와 튜플의 차이점은 무엇인가요?",
                 "contexts": [
                     "리스트는 가변(mutable) 데이터 타입으로 생성 후 요소를 변경할 수 있습니다.",
-                    "튜플은 불변(immutable) 데이터 타입으로 생성 후 요소를 변경할 수 없습니다."
+                    "튜플은 불변(immutable) 데이터 타입으로 생성 후 요소를 변경할 수 없습니다.",
                 ],
                 "answer": "리스트는 가변 데이터 타입으로 요소를 변경할 수 있지만, 튜플은 불변 데이터 타입으로 요소를 변경할 수 없습니다.",
-                "ground_truth": "리스트(list)는 가변(mutable) 객체로 생성 후 요소의 추가, 삭제, 수정이 가능합니다. 반면 튜플(tuple)은 불변(immutable) 객체로 생성 후 요소를 변경할 수 없습니다."
+                "ground_truth": "리스트(list)는 가변(mutable) 객체로 생성 후 요소의 추가, 삭제, 수정이 가능합니다. 반면 튜플(tuple)은 불변(immutable) 객체로 생성 후 요소를 변경할 수 없습니다.",
             }
         ]
     }
@@ -128,5 +125,8 @@ def setup_test_environment():
     yield
     if "TESTING" in os.environ:
         del os.environ["TESTING"]
-    if "GEMINI_API_KEY" in os.environ and os.environ["GEMINI_API_KEY"] == "test_api_key_for_testing":
+    if (
+        "GEMINI_API_KEY" in os.environ
+        and os.environ["GEMINI_API_KEY"] == "test_api_key_for_testing"
+    ):
         del os.environ["GEMINI_API_KEY"]

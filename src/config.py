@@ -5,6 +5,7 @@
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from src.utils.paths import ENV_FILE_PATH
 
 
@@ -13,9 +14,7 @@ class Settings(BaseSettings):
 
     # .env 파일을 읽도록 설정
     model_config = SettingsConfigDict(
-        env_file=ENV_FILE_PATH,
-        env_file_encoding='utf-8',
-        extra='ignore'
+        env_file=ENV_FILE_PATH, env_file_encoding="utf-8", extra="ignore"
     )
 
     # LLM 관련 설정
@@ -32,4 +31,4 @@ class Settings(BaseSettings):
 
 
 # 설정 객체 인스턴스를 생성하여 다른 모듈에서 import하여 사용
-settings = Settings() 
+settings = Settings()

@@ -6,7 +6,6 @@ RAGAS 평가 지표에 대한 직관적이고 쉬운 설명 제공
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 
 def show_metrics_explanation():

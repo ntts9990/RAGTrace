@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 from src.application.ports.repository import EvaluationRepositoryPort
 from src.domain import EvaluationData
@@ -11,12 +10,12 @@ class FileRepositoryAdapter(EvaluationRepositoryPort):
     def __init__(self, file_path: str):
         self.file_path = file_path
 
-    def load_data(self) -> List[EvaluationData]:
+    def load_data(self) -> list[EvaluationData]:
         """
         지정된 경로의 JSON 파일을 읽어 EvaluationData 객체 리스트로 변환합니다.
         """
         try:
-            with open(self.file_path, "r", encoding="utf-8") as f:
+            with open(self.file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             return [EvaluationData(**item) for item in data]

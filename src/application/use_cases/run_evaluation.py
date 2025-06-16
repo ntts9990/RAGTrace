@@ -1,10 +1,14 @@
 """Run evaluation use case"""
 
-from typing import Any, Dict
+from typing import Any
 
 from datasets import Dataset
 
-from src.application.ports import EvaluationRepositoryPort, EvaluationRunnerPort, LlmPort
+from src.application.ports import (
+    EvaluationRepositoryPort,
+    EvaluationRunnerPort,
+    LlmPort,
+)
 from src.domain import EvaluationData, EvaluationError, EvaluationResult
 
 
@@ -56,7 +60,9 @@ class RunEvaluationUseCase:
                 raise
             raise EvaluationError(f"평가 실행 중 오류 발생: {str(e)}") from e
 
-    def _convert_to_dataset(self, evaluation_data_list: list[EvaluationData]) -> Dataset:
+    def _convert_to_dataset(
+        self, evaluation_data_list: list[EvaluationData]
+    ) -> Dataset:
         """평가 데이터를 Ragas Dataset 형식으로 변환"""
         data_dict = {
             "question": [d.question for d in evaluation_data_list],
@@ -66,7 +72,9 @@ class RunEvaluationUseCase:
         }
         return Dataset.from_dict(data_dict)
 
-    def _validate_and_convert_result(self, result_dict: Dict[str, Any]) -> EvaluationResult:
+    def _validate_and_convert_result(
+        self, result_dict: dict[str, Any]
+    ) -> EvaluationResult:
         """결과 딕셔너리를 검증하고 EvaluationResult로 변환"""
         if not result_dict:
             raise EvaluationError("평가 결과가 비어있습니다.")

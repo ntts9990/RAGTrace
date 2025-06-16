@@ -24,7 +24,9 @@ def main():
         )
 
         # Repository 어댑터: 중앙 경로 관리 사용
-        repository_adapter = FileRepositoryAdapter(file_path=str(DEFAULT_EVALUATION_DATA))
+        repository_adapter = FileRepositoryAdapter(
+            file_path=str(DEFAULT_EVALUATION_DATA)
+        )
 
         ragas_eval_adapter = RagasEvalAdapter()
 

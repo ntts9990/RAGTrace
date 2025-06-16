@@ -3,16 +3,12 @@
 RAGAS 평가 시스템의 성능 및 리소스 사용량 모니터링
 """
 
-import json
 import sqlite3
-from datetime import datetime, timedelta
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 
 def show_performance_monitor():
@@ -128,7 +124,7 @@ def show_evaluation_history_analysis(evaluation_history):
     ]
     colors = ["blue", "green", "orange", "red", "purple"]
 
-    for metric, color in zip(metrics, colors):
+    for metric, color in zip(metrics, colors, strict=False):
         if metric in df.columns:
             fig.add_trace(
                 go.Scatter(

@@ -1,5 +1,5 @@
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from datasets import Dataset
 
@@ -7,15 +7,20 @@ from datasets import Dataset
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pydantic import Field
 from ragas import evaluate
-from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    faithfulness,
+)
 
 
 class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):
     """Rate limiting이 적용된 임베딩 래퍼"""
 
-    requests_per_minute: Optional[int] = Field(default=10, exclude=True)
-    min_request_interval: Optional[float] = Field(default=6.0, exclude=True)
-    last_request_time: Optional[float] = Field(default=0.0, exclude=True)
+    requests_per_minute: int | None = Field(default=10, exclude=True)
+    min_request_interval: float | None = Field(default=6.0, exclude=True)
+    last_request_time: float | None = Field(default=0.0, exclude=True)
 
     def __init__(self, *args, requests_per_minute: int = 10, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,7 +78,7 @@ class RagasEvalAdapter:
         print("- Context Recall: 관련 정보 검색 완성도")
         print("- Context Precision: 검색된 문맥의 정확성")
 
-    def evaluate(self, dataset: Dataset, llm: Any) -> Dict[str, float]:
+    def evaluate(self, dataset: Dataset, llm: Any) -> dict[str, float]:
         """
         주어진 데이터셋과 LLM을 사용하여 Ragas 평가를 수행하고 결과를 반환합니다.
 
@@ -144,7 +149,9 @@ class RagasEvalAdapter:
                             if isinstance(scores, list) and i < len(scores):
                                 qa_scores[metric_name] = float(scores[i])
                             else:
-                                qa_scores[metric_name] = float(scores) if scores else 0.0
+                                qa_scores[metric_name] = (
+                                    float(scores) if scores else 0.0
+                                )
                         else:
                             qa_scores[metric_name] = 0.0
                     individual_scores.append(qa_scores)
@@ -191,7 +198,9 @@ class RagasEvalAdapter:
                     metric_name = metric.name
                     if hasattr(result, metric_name):
                         value = getattr(result, metric_name)
-                        result_dict[metric_name] = float(value) if value is not None else 0.0
+                        result_dict[metric_name] = (
+                            float(value) if value is not None else 0.0
+                        )
                     else:
                         print(f"경고: {metric_name} 결과를 찾을 수 없습니다.")
                         result_dict[metric_name] = 0.0
@@ -207,7 +216,9 @@ class RagasEvalAdapter:
             # ragas_score 계산
             if result_dict:
                 values = [v for v in result_dict.values() if v > 0]
-                result_dict["ragas_score"] = sum(values) / len(values) if values else 0.0
+                result_dict["ragas_score"] = (
+                    sum(values) / len(values) if values else 0.0
+                )
             else:
                 result_dict["ragas_score"] = 0.0
 

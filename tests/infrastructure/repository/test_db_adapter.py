@@ -3,8 +3,6 @@ DB Adapter 테스트 모듈
 현재는 주석 처리된 스텁 코드이므로 기본 테스트 작성
 """
 
-import pytest
-from unittest.mock import Mock, patch
 from src.infrastructure.repository.db_adapter import *
 
 
@@ -18,13 +16,14 @@ def test_db_adapter_future_implementation():
     """향후 DB 어댑터 구현을 위한 플래시홀더 테스트"""
     # 이 테스트는 실제 DB 어댑터가 구현되면 업데이트해야 함
     # 현재는 주석 처리된 스텁 코드만 있음
-    
+
     # 예상되는 인터페이스 테스트
     # adapter = DatabaseRepositoryAdapter("connection_string")
     # assert hasattr(adapter, 'load_data')
-    
+
     # 현재는 모듈이 로드되는지만 확인
     import src.infrastructure.repository.db_adapter
+
     assert src.infrastructure.repository.db_adapter is not None
 
 
