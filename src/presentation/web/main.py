@@ -104,7 +104,7 @@ def show_overview():
     with col3:
         st.markdown("**📚 도움말**")
         if st.button("📚 메트릭 가이드", help="점수 의미 이해하기"):
-            st.session_state.navigate_to = "📚 Metrics Guide"
+            st.session_state.navigate_to = "📖 Metrics Explanation"
             st.rerun()
 
     # 최신 평가 결과 로드
@@ -381,7 +381,7 @@ def show_historical():
                     if st.button(f"🔍 상세 분석", key=f"detail_btn_{i}"):
                         # 선택된 평가 인덱스를 세션 상태에 저장
                         st.session_state.selected_evaluation_index = i
-                        st.session_state.navigate_to = "🔍 Detailed Analysis"
+                        st.session_state.navigate_to = "📚 Detailed Analysis"
                         st.rerun()
 
         # 전체 테이블도 표시
@@ -560,5 +560,19 @@ def get_previous_result():
     return history[1] if len(history) > 1 else None
 
 
-if __name__ == "__main__":
+# --- 페이지 라우팅 ---
+if page == "🎯 Overview":
+    main_page()
+elif page == "📊 New Evaluation":
+    st.title("📊 새로운 평가")
+    run_new_evaluation()
+elif page == "📈 Historical":
+    show_historical()
+elif page == "📚 Detailed Analysis":
+    show_detailed_analysis()
+elif page == "📖 Metrics Explanation":
+    show_metrics_guide()
+elif page == "⚡ Performance":
+    show_performance()
+else:
     main_page()
