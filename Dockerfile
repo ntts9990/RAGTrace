@@ -9,20 +9,18 @@ RUN apt-get update && apt-get install -y \
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# pyproject.toml 먼저 복사하여 의존성 정보 확인
+# pyproject.toml과 소스 코드 복사
 COPY pyproject.toml .
+COPY src/ ./src/
+COPY data/ ./data/
+COPY run_dashboard.py .
+COPY README.md .
 
 # uv 설치 (더 빠른 패키지 관리)
 RUN pip install uv
 
 # 의존성 설치
 RUN uv pip install --system -e .
-
-# 소스 코드 복사
-COPY src/ ./src/
-COPY data/ ./data/
-COPY run_dashboard.py .
-COPY README.md .
 
 # 포트 노출
 EXPOSE 8501
