@@ -17,7 +17,6 @@ def load_pages():
     """사용 가능한 페이지 목록 반환"""
     return {
         "🎯 Overview": "메인 대시보드",
-        "📊 New Evaluation": "새 평가 실행",
         "📈 Historical": "과거 평가 결과",
         "📚 Detailed Analysis": "상세 분석",
         "📖 Metrics Explanation": "메트릭 설명",
@@ -90,20 +89,24 @@ def show_overview():
     """메인 오버뷰 대시보드"""
     st.header("📊 평가 결과 개요")
 
-    # 새 평가 실행 버튼
-    col1, col2, col3 = st.columns([1, 1, 2])
+    # 액션 버튼들
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
 
     with col1:
-        if st.button("🚀 새 평가 실행", type="primary"):
+        if st.button("🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다"):
             run_new_evaluation()
 
     with col2:
-        if st.button("🔄 결과 새로고침"):
+        if st.button("🔄 새로고침", help="최신 결과를 다시 로드합니다"):
             st.rerun()
 
     with col3:
-        st.markdown("**📚 도움말**")
-        if st.button("📚 메트릭 가이드", help="점수 의미 이해하기"):
+        if st.button("📈 이력보기", help="과거 평가 결과를 확인합니다"):
+            st.session_state.navigate_to = "📈 Historical"
+            st.rerun()
+
+    with col4:
+        if st.button("📚 메트릭 가이드", help="RAGAS 점수의 의미를 알아보세요"):
             st.session_state.navigate_to = "📖 Metrics Explanation"
             st.rerun()
 
@@ -563,9 +566,6 @@ def get_previous_result():
 # --- 페이지 라우팅 ---
 if page == "🎯 Overview":
     main_page()
-elif page == "📊 New Evaluation":
-    st.title("📊 새로운 평가")
-    run_new_evaluation()
 elif page == "📈 Historical":
     show_historical()
 elif page == "📚 Detailed Analysis":
