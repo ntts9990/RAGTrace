@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.container import container, create_container_with_prompts
+from src.container import container
 from src.domain.prompts import PromptType
 from src.presentation.web.components.prompt_selector import show_prompt_selector
 from src.utils.paths import (
@@ -380,19 +380,14 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str):
             st.info(f"📊 선택된 데이터셋: {dataset_name}")
             st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
-            # 선택된 프롬프트 타입으로 컨테이너 생성
-            if prompt_type == PromptType.DEFAULT:
-                evaluation_container = container
-            else:
-                evaluation_container = create_container_with_prompts(prompt_type)
-
-            # 컨테이너를 통해 유스케이스 인스턴스 획득
-            evaluation_use_case = evaluation_container.get_run_evaluation_use_case(
-                dataset_name
-            )
+            # 컨테이너에서 유스케이스 가져오기
+            evaluation_use_case = container.run_evaluation_use_case
 
             # 평가 실행
-            evaluation_result = evaluation_use_case.execute()
+            evaluation_result = evaluation_use_case.execute(
+                dataset_name=dataset_name,
+                prompt_type=prompt_type
+            )
 
             # 결과 저장 (데이터셋 정보 포함)
             result_dict = evaluation_result.to_dict()

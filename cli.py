@@ -10,8 +10,8 @@ import argparse
 import sys
 from typing import Optional
 
-from src.config import settings, PROMPT_TYPE_HELP, set_prompt_type_for_session
-from src.container import create_container_with_prompts, container
+from src.config import settings, PROMPT_TYPE_HELP
+from src.container import container
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets
 
@@ -113,15 +113,14 @@ def evaluate_dataset(dataset_name: str, prompt_type: Optional[str] = None,
     if prompt_type:
         try:
             selected_prompt_type = PromptType(prompt_type)
-            set_prompt_type_for_session(selected_prompt_type)
         except ValueError:
             print(f"❌ 잘못된 프롬프트 타입: {prompt_type}")
             print(f"   사용 가능한 타입: {[pt.value for pt in PromptType]}")
             return False
     else:
-        selected_prompt_type = settings.get_prompt_type()
+        selected_prompt_type = None  # 기본 프롬프트 사용
     
-    print(f"🎯 프롬프트 타입: {selected_prompt_type.value}")
+    print(f"🎯 프롬프트 타입: {selected_prompt_type.value if selected_prompt_type else 'DEFAULT'}")
     print(f"📊 데이터셋: {dataset_name}")
     
     # 데이터셋 확인
@@ -134,20 +133,19 @@ def evaluate_dataset(dataset_name: str, prompt_type: Optional[str] = None,
         return False
     
     try:
-        # 컨테이너 생성
-        if selected_prompt_type == PromptType.DEFAULT:
-            eval_container = container
-        else:
-            eval_container = create_container_with_prompts(selected_prompt_type)
+        # 컨테이너에서 유스케이스 가져오기
+        evaluation_use_case = container.run_evaluation_use_case
         
         # 평가 실행
         print("\n🚀 평가를 시작합니다...")
-        evaluation_use_case = eval_container.get_run_evaluation_use_case(dataset_name)
         
         if verbose:
             print("📝 상세 로그가 활성화되었습니다.")
         
-        result = evaluation_use_case.execute()
+        result = evaluation_use_case.execute(
+            dataset_name=dataset_name,
+            prompt_type=selected_prompt_type
+        )
         
         # 결과 출력
         print("\n✅ 평가가 완료되었습니다!")
