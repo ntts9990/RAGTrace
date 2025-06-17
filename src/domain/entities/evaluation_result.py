@@ -6,7 +6,7 @@ from typing import Any
 
 @dataclass
 class EvaluationResult:
-    """RAGAs 평가 결과를 나타내는 엔티티"""
+    """RAGAS 평가 결과를 나타내는 엔티티"""
 
     faithfulness: float
     answer_relevancy: float

@@ -10,7 +10,7 @@
     "ground_truth": "클린 아키텍처의 핵심 원칙은 의존성 규칙으로, 모든 소스 코드 의존성은 외부에서 내부로, 저수준 정책에서 고수준 정책으로 향해야 합니다."
   },
   {
-    "question": "RAGAs의 Faithfulness 지표는 무엇을 측정하나요?",
+    "question": "RAGAS의 Faithfulness 지표는 무엇을 측정하나요?",
     "contexts": [
       "Faithfulness는 생성된 답변이 제공된 컨텍스트에 얼마나 충실한지를 평가합니다.",
       "이 지표는 LLM의 환각(Hallucination) 현상을 측정하는 데 사용됩니다.",

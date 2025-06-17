@@ -12,7 +12,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.container import container
+from src.container import container, create_container_with_prompts
+from src.domain.prompts import PromptType
+from src.presentation.web.components.prompt_selector import show_prompt_selector
 from src.utils.paths import (
     DATABASE_PATH,
     get_available_datasets,
@@ -25,6 +27,7 @@ def load_pages():
     """사용 가능한 페이지 목록 반환"""
     return {
         "🎯 Overview": "메인 대시보드",
+        "🚀 New Evaluation": "새 평가 실행",
         "📈 Historical": "과거 평가 결과",
         "📚 Detailed Analysis": "상세 분석",
         "📖 Metrics Explanation": "메트릭 설명",
@@ -96,7 +99,8 @@ def show_overview():
         if st.button(
             "🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다"
         ):
-            run_new_evaluation()
+            st.session_state.navigate_to = "🚀 New Evaluation"
+            st.rerun()
 
     with col2:
         if st.button("🔄 새로고침", help="최신 결과를 다시 로드합니다"):
@@ -290,21 +294,101 @@ def show_recent_trends():
         st.info("📊 트렌드 표시를 위해 더 많은 평가 데이터가 필요합니다.")
 
 
-def run_new_evaluation():
-    """새로운 평가 실행"""
+def show_new_evaluation_page():
+    """새 평가 실행 페이지"""
+    st.title("🚀 새 평가 실행")
+    st.markdown("---")
+    
+    # 프롬프트 선택 UI 표시
+    selected_prompt_type = show_prompt_selector()
+    
+    st.markdown("---")
+    
+    # 데이터셋 선택
+    st.markdown("### 📊 데이터셋 선택")
+    existing_datasets = get_available_datasets()
+    if not existing_datasets:
+        st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
+        st.info("data/ 디렉토리에 JSON 형식의 평가 데이터를 추가하세요.")
+        return
+    
+    # session_state에 선택된 데이터셋 저장
+    if "selected_dataset" not in st.session_state:
+        st.session_state.selected_dataset = existing_datasets[0]
+    
+    # 현재 선택된 데이터셋의 인덱스 찾기
+    try:
+        current_index = existing_datasets.index(st.session_state.selected_dataset)
+    except ValueError:
+        current_index = 0
+        st.session_state.selected_dataset = existing_datasets[0]
+    
+    # 데이터셋 선택 UI
+    selected_dataset = st.selectbox(
+        "평가할 데이터셋을 선택하세요:",
+        existing_datasets,
+        index=current_index,
+        key="dataset_selector_box",
+        help="평가에 사용할 QA 데이터셋을 선택합니다."
+    )
+    
+    # 선택이 변경되면 session_state 업데이트
+    st.session_state.selected_dataset = selected_dataset
+    
+    # 데이터셋 정보 표시
+    dataset_path = get_evaluation_data_path(selected_dataset)
+    if dataset_path:
+        try:
+            with open(dataset_path, encoding="utf-8") as f:
+                qa_data = json.load(f)
+                st.info(f"📋 선택된 데이터셋: **{selected_dataset}** ({len(qa_data)}개 QA 쌍)")
+        except Exception as e:
+            st.warning(f"데이터셋 정보 로드 실패: {e}")
+    
+    st.markdown("---")
+    
+    # 평가 설정 요약
+    st.markdown("### 📋 평가 설정 요약")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
+    with col2:
+        st.write(f"**📊 데이터셋:** {selected_dataset}")
+    
+    st.markdown("---")
+    
+    # 평가 실행 버튼들
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        if st.button("← 뒤로가기"):
+            st.session_state.navigate_to = "🎯 Overview"
+            st.rerun()
+    
+    with col2:
+        if st.button("🚀 평가 시작", type="primary", use_container_width=True):
+            execute_evaluation(selected_prompt_type, selected_dataset)
+    
+    with col3:
+        st.write("")  # 빈 공간
+
+
+def execute_evaluation(prompt_type: PromptType, dataset_name: str):
+    """평가 실행 로직"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
-            existing_datasets = get_available_datasets()
-            if not existing_datasets:
-                st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
-                return
+            st.info(f"📊 선택된 데이터셋: {dataset_name}")
+            st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
-            selected_dataset = random.choice(existing_datasets)
-            st.info(f"📊 선택된 데이터셋: {selected_dataset}")
+            # 선택된 프롬프트 타입으로 컨테이너 생성
+            if prompt_type == PromptType.DEFAULT:
+                evaluation_container = container
+            else:
+                evaluation_container = create_container_with_prompts(prompt_type)
 
             # 컨테이너를 통해 유스케이스 인스턴스 획득
-            evaluation_use_case = container.get_run_evaluation_use_case(
-                selected_dataset
+            evaluation_use_case = evaluation_container.get_run_evaluation_use_case(
+                dataset_name
             )
 
             # 평가 실행
@@ -312,9 +396,10 @@ def run_new_evaluation():
 
             # 결과 저장 (데이터셋 정보 포함)
             result_dict = evaluation_result.to_dict()
-            result_dict["metadata"]["dataset"] = selected_dataset
+            result_dict["metadata"]["dataset"] = dataset_name
+            result_dict["metadata"]["prompt_type"] = prompt_type.value
 
-            dataset_path = get_evaluation_data_path(selected_dataset)
+            dataset_path = get_evaluation_data_path(dataset_name)
             if dataset_path:
                 try:
                     with open(dataset_path, encoding="utf-8") as f:
@@ -327,10 +412,16 @@ def run_new_evaluation():
             save_evaluation_result(result_dict)
 
             st.success("✅ 평가가 완료되었습니다!")
-            st.rerun()
+            st.balloons()  # 성공 시 풍선 효과
+            
+            # 결과 페이지로 이동
+            if st.button("📊 결과 보기", type="primary"):
+                st.session_state.navigate_to = "🎯 Overview"
+                st.rerun()
 
         except Exception as e:
             st.error(f"❌ 평가 중 오류 발생: {str(e)}")
+            st.exception(e)  # 상세 오류 정보 표시
 
 
 def show_historical():
@@ -573,6 +664,8 @@ def get_previous_result():
 # --- 페이지 라우팅 ---
 if page == "🎯 Overview":
     main_page()
+elif page == "🚀 New Evaluation":
+    show_new_evaluation_page()
 elif page == "📈 Historical":
     show_historical()
 elif page == "📚 Detailed Analysis":

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class EvaluationData:
-    """RAGAs 평가를 위한 데이터셋의 단일 항목을 나타내는 엔티티"""
+    """RAGAS 평가를 위한 데이터셋의 단일 항목을 나타내는 엔티티"""
 
     question: str
     contexts: list[str]

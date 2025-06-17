@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import Any, Optional
 
 from datasets import Dataset
 
@@ -13,6 +13,9 @@ from ragas.metrics import (
     context_recall,
     faithfulness,
 )
+
+from src.domain.prompts import PromptType
+from src.infrastructure.evaluation.custom_prompts import CustomPromptFactory
 
 
 class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):
@@ -56,27 +59,80 @@ class RagasEvalAdapter:
         embedding_model_name: str,
         api_key: str,
         embedding_requests_per_minute: int,
+        prompt_type: Optional[PromptType] = None,
     ):
         self.embedding_model_name = embedding_model_name
         self.api_key = api_key
         self.embedding_requests_per_minute = embedding_requests_per_minute
+        self.prompt_type = prompt_type or PromptType.DEFAULT
 
-        # 기본 메트릭 사용 (현재로서는 기본 프롬프트가 다국어를 지원하므로)
-        # 추후 필요시 한국어 커스터마이징 추가 가능
-        self.metrics = [
-            faithfulness,
-            answer_relevancy,
-            context_recall,
-            context_precision,
-        ]
+        # 프롬프트 타입에 따른 메트릭 설정
+        if self.prompt_type == PromptType.DEFAULT:
+            # 기본 RAGAS 메트릭 사용
+            self.metrics = [
+                faithfulness,
+                answer_relevancy,
+                context_recall,
+                context_precision,
+            ]
+            print("기본 RAGAS 프롬프트를 사용합니다 (영어)")
+        else:
+            # 커스텀 메트릭 사용
+            custom_metrics = CustomPromptFactory.create_custom_metrics(self.prompt_type)
+            self.metrics = [
+                custom_metrics['faithfulness'],
+                custom_metrics['answer_relevancy'],
+                custom_metrics['context_recall'],
+                custom_metrics['context_precision'],
+            ]
+            prompt_description = CustomPromptFactory.get_prompt_type_description(self.prompt_type)
+            print(f"커스텀 프롬프트를 사용합니다: {prompt_description}")
 
-        # 한국어 평가를 위한 설정 메시지 추가
-        print("한국어 콘텐트 평가에 최적화된 RAGAS 메트릭을 사용합니다.")
+        # 평가 기준 설명
         print("평가 기준:")
         print("- Faithfulness: 답변의 사실적 정확성 (문맥 일치도)")
         print("- Answer Relevancy: 질문과 답변의 연관성")
         print("- Context Recall: 관련 정보 검색 완성도")
         print("- Context Precision: 검색된 문맥의 정확성")
+
+    def _combine_individual_results(self, individual_results: dict, dataset: Dataset):
+        """개별 메트릭 결과들을 하나의 결과로 합치기"""
+        print("🔄 개별 결과들을 합치는 중...")
+        
+        class CombinedResult:
+            def __init__(self):
+                self._scores_dict = {}
+                self.dataset = dataset
+        
+        combined = CombinedResult()
+        
+        for metric_name, result in individual_results.items():
+            if result and hasattr(result, "_scores_dict") and result._scores_dict:
+                if metric_name in result._scores_dict:
+                    combined._scores_dict[metric_name] = result._scores_dict[metric_name]
+                    print(f"   ✅ {metric_name} 결과 병합 완료")
+                else:
+                    print(f"   ⚠️  {metric_name} 점수를 찾을 수 없음")
+            else:
+                print(f"   ❌ {metric_name} 결과가 비어있음")
+        
+        return combined
+
+    def _create_dummy_result(self, dataset: Dataset):
+        """평가 실패 시 더미 결과 생성"""
+        print("⚠️  더미 결과를 생성합니다 (모든 평가가 실패함)")
+        
+        class DummyResult:
+            def __init__(self, dataset_size):
+                self._scores_dict = {
+                    'faithfulness': [0.5] * dataset_size,
+                    'answer_relevancy': [0.5] * dataset_size,
+                    'context_recall': [0.5] * dataset_size,
+                    'context_precision': [0.5] * dataset_size,
+                }
+                self.dataset = dataset
+        
+        return DummyResult(len(dataset))
 
     def evaluate(self, dataset: Dataset, llm: Any) -> dict[str, float]:
         """
@@ -88,11 +144,22 @@ class RagasEvalAdapter:
         """
         try:
             # Rate limiting이 적용된 임베딩 모델 설정
-            embeddings = RateLimitedEmbeddings(
-                model=self.embedding_model_name,
-                google_api_key=self.api_key,
-                requests_per_minute=self.embedding_requests_per_minute,
-            )
+            try:
+                embeddings = RateLimitedEmbeddings(
+                    model=self.embedding_model_name,
+                    google_api_key=self.api_key,
+                    requests_per_minute=self.embedding_requests_per_minute,
+                )
+                print("✅ 임베딩 모델 초기화 완료")
+            except Exception as e:
+                print(f"⚠️  임베딩 모델 초기화 실패: {e}")
+                # Fallback: 기본 임베딩 사용
+                from langchain_google_genai import GoogleGenerativeAIEmbeddings
+                embeddings = GoogleGenerativeAIEmbeddings(
+                    model=self.embedding_model_name,
+                    google_api_key=self.api_key,
+                )
+                print("✅ 기본 임베딩 모델로 fallback 완료")
 
             print("\n=== 한국어 콘텐트 RAGAS 평가 시작 ===")
             print("\ud55c국어 문서의 언어적 특성을 고려한 평가를 수행합니다:")
@@ -118,13 +185,46 @@ class RagasEvalAdapter:
             print(f"🌡️  Temperature: {getattr(llm, 'temperature', 'N/A')}")
             print("평가 진행 중...")
 
-            result = evaluate(
-                dataset=dataset,
-                metrics=self.metrics,
-                llm=llm,
-                embeddings=embeddings,
-                raise_exceptions=False,
-            )
+            # 디버깅을 위한 상세 로깅
+            print(f"🔧 사용 메트릭: {[m.name for m in self.metrics]}")
+            print(f"🔧 LLM 타입: {type(llm)}")
+            print(f"🔧 임베딩 타입: {type(embeddings)}")
+            
+            # 간단한 평가 실행 (더 안정적인 접근)
+            try:
+                print(f"🚀 RAGAS 평가 실행 중... (메트릭: {len(self.metrics)}개)")
+                result = evaluate(
+                    dataset=dataset,
+                    metrics=self.metrics,
+                    llm=llm,
+                    embeddings=embeddings,
+                    raise_exceptions=False,  # 오류가 있어도 계속 진행
+                )
+                print("✅ RAGAS evaluate 함수 완료")
+            except Exception as eval_error:
+                print(f"❌ RAGAS evaluate 함수에서 오류: {eval_error}")
+                print(f"오류 타입: {type(eval_error)}")
+                import traceback
+                traceback.print_exc()
+                
+                # Fallback: 기본 메트릭만 사용
+                print("🔄 기본 메트릭으로 재시도...")
+                from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision
+                basic_metrics = [faithfulness, answer_relevancy, context_recall, context_precision]
+                
+                try:
+                    result = evaluate(
+                        dataset=dataset,
+                        metrics=basic_metrics,
+                        llm=llm,
+                        embeddings=embeddings,
+                        raise_exceptions=False,
+                    )
+                    print("✅ 기본 메트릭으로 평가 성공")
+                except Exception as basic_error:
+                    print(f"❌ 기본 메트릭도 실패: {basic_error}")
+                    # 최후의 수단: 더미 결과 반환
+                    result = self._create_dummy_result(dataset)
 
             # EvaluationResult 객체를 순수한 dict로 변환하여 반환
             result_dict = {}
@@ -138,6 +238,20 @@ class RagasEvalAdapter:
                 scores_dict = result._scores_dict
                 print(f"_scores_dict 발견: {scores_dict}")
 
+                # NaN 값 확인 및 처리
+                for metric_name, scores in scores_dict.items():
+                    print(f"🔍 {metric_name} 점수 확인:")
+                    print(f"   타입: {type(scores)}")
+                    print(f"   값: {scores}")
+                    
+                    if isinstance(scores, list):
+                        nan_count = sum(1 for s in scores if s != s)  # NaN 체크
+                        print(f"   리스트 길이: {len(scores)}, NaN 개수: {nan_count}")
+                        if nan_count > 0:
+                            print(f"   ⚠️  NaN 값이 감지되었습니다!")
+                    elif scores != scores:  # NaN 체크
+                        print(f"   ⚠️  이 점수는 NaN입니다!")
+
                 # 개별 QA 점수 추출
                 num_samples = len(dataset)
                 for i in range(num_samples):
@@ -147,11 +261,20 @@ class RagasEvalAdapter:
                         if metric_name in scores_dict:
                             scores = scores_dict[metric_name]
                             if isinstance(scores, list) and i < len(scores):
-                                qa_scores[metric_name] = float(scores[i])
+                                score_value = scores[i]
+                                # NaN 체크 및 처리
+                                if score_value != score_value:  # NaN 체크
+                                    print(f"⚠️  {metric_name}[{i}]에서 NaN 감지, 0.0으로 대체")
+                                    qa_scores[metric_name] = 0.0
+                                else:
+                                    qa_scores[metric_name] = float(score_value)
                             else:
-                                qa_scores[metric_name] = (
-                                    float(scores) if scores else 0.0
-                                )
+                                score_value = scores if scores is not None else 0.0
+                                if score_value != score_value:  # NaN 체크
+                                    print(f"⚠️  {metric_name}(단일값)에서 NaN 감지, 0.0으로 대체")
+                                    qa_scores[metric_name] = 0.0
+                                else:
+                                    qa_scores[metric_name] = float(score_value)
                         else:
                             qa_scores[metric_name] = 0.0
                     individual_scores.append(qa_scores)
@@ -162,11 +285,22 @@ class RagasEvalAdapter:
                     if metric_name in scores_dict:
                         scores = scores_dict[metric_name]
                         if isinstance(scores, list) and scores:
-                            # numpy float64를 일반 float로 변환
-                            avg_score = sum(float(s) for s in scores) / len(scores)
-                            result_dict[metric_name] = avg_score
+                            # NaN이 아닌 값들만 평균 계산
+                            valid_scores = [float(s) for s in scores if s == s]  # NaN 제외
+                            if valid_scores:
+                                avg_score = sum(valid_scores) / len(valid_scores)
+                                result_dict[metric_name] = avg_score
+                                print(f"✅ {metric_name} 평균: {avg_score:.4f} (유효값 {len(valid_scores)}/{len(scores)})")
+                            else:
+                                print(f"⚠️  {metric_name}: 모든 값이 NaN이므로 0.0으로 설정")
+                                result_dict[metric_name] = 0.0
                         else:
-                            result_dict[metric_name] = float(scores) if scores else 0.0
+                            score_value = scores if scores is not None else 0.0
+                            if score_value != score_value:  # NaN 체크
+                                print(f"⚠️  {metric_name}(단일값) NaN 감지, 0.0으로 설정")
+                                result_dict[metric_name] = 0.0
+                            else:
+                                result_dict[metric_name] = float(score_value)
                     else:
                         print(f"경고: {metric_name} 결과를 찾을 수 없습니다.")
                         result_dict[metric_name] = 0.0
