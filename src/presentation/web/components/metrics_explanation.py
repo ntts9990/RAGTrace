@@ -7,6 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.utils.ragas_prompts import get_cached_ragas_prompt
+
 
 def show_metrics_explanation():
     """메트릭 설명 메인 화면"""
