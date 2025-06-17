@@ -7,7 +7,8 @@
 from src.application.ports import LlmPort
 from src.application.use_cases import RunEvaluationUseCase
 from src.config import settings
-from src.factories import FileRepositoryFactory, RagasEvalAdapterFactory
+from src.infrastructure.evaluation import RagasEvalAdapterFactory
+from src.infrastructure.repository import FileRepositoryFactory
 from src.infrastructure.llm.gemini_adapter import GeminiAdapter
 
 

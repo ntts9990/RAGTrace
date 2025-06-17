@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, List
 
 
-class LlmPort(ABC):
-    """LLM 연동을 위한 추상 인터페이스 (Port)"""
+class AnswerGeneratorPort(ABC):
+    """답변 생성을 위한 인터페이스"""
 
     @abstractmethod
     def generate_answer(self, question: str, contexts: List[str]) -> str:
@@ -19,12 +19,27 @@ class LlmPort(ABC):
         """
         pass
 
+
+class RagasLlmProviderPort(ABC):
+    """Ragas 평가를 위한 LLM 제공 인터페이스"""
+
     @abstractmethod
     def get_llm(self) -> Any:
         """
         Ragas 평가에 사용할 LLM 객체를 반환합니다.
         
-        Note: 이 메서드는 하위 호환성을 위해 유지되지만, 
-        향후 generate_answer 메서드 사용을 권장합니다.
+        Returns:
+            Any: Ragas 평가에 사용할 LLM 객체
         """
         pass
+
+
+# 하위 호환성을 위한 통합 인터페이스
+class LlmPort(AnswerGeneratorPort, RagasLlmProviderPort):
+    """
+    LLM 연동을 위한 통합 인터페이스
+    
+    AnswerGeneratorPort와 RagasLlmProviderPort를 모두 구현합니다.
+    기존 코드와의 호환성을 유지하면서도 ISP 원칙을 준수합니다.
+    """
+    pass

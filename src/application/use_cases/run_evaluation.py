@@ -10,12 +10,15 @@ from src.application.ports import (
     LlmPort,
 )
 from src.application.services.data_validator import DataContentValidator
+from src.application.services.generation_service import GenerationService
+from src.application.services.result_conversion_service import ResultConversionService
 from src.domain import EvaluationData, EvaluationError, EvaluationResult
 from src.domain.exceptions import DataValidationError
 from src.domain.prompts import PromptType
 
 if TYPE_CHECKING:
-    from src.factories import FileRepositoryFactory, RagasEvalAdapterFactory
+    from src.infrastructure.evaluation import RagasEvalAdapterFactory
+    from src.infrastructure.repository import FileRepositoryFactory
 
 
 class RunEvaluationUseCase:
@@ -31,6 +34,8 @@ class RunEvaluationUseCase:
         self.evaluation_runner_factory = evaluation_runner_factory
         self.repository_factory = repository_factory
         self.data_validator = DataContentValidator()
+        self.generation_service = GenerationService(answer_generator=llm_port)
+        self.result_conversion_service = ResultConversionService()
 
     def execute(
         self, 
@@ -80,36 +85,7 @@ class RunEvaluationUseCase:
 
             # 4. 답변 생성 (Generation 단계)
             print("답변을 생성하는 중...")
-            generation_failures = 0
-            generation_successes = 0
-            api_failure_details = []
-            
-            for i, data in enumerate(evaluation_data_list):
-                if not data.answer:  # 답변이 없는 경우에만 생성
-                    try:
-                        generated_answer = self.llm_port.generate_answer(
-                            question=data.question,
-                            contexts=data.contexts
-                        )
-                        data.answer = generated_answer
-                        generation_successes += 1
-                        print(f"답변 생성 완료 ({i+1}/{len(evaluation_data_list)})")
-                    except Exception as e:
-                        generation_failures += 1
-                        # 상세한 실패 정보 수집
-                        failure_detail = {
-                            "item_index": i + 1,
-                            "question": data.question[:100] + "..." if len(data.question) > 100 else data.question,
-                            "error_type": type(e).__name__,
-                            "error_message": str(e)
-                        }
-                        api_failure_details.append(failure_detail)
-                        
-                        print(f"답변 생성 실패 ({i+1}/{len(evaluation_data_list)}): {e}")
-                        # 실패한 경우 빈 답변으로 설정
-                        data.answer = ""
-                else:
-                    generation_successes += 1
+            generation_result = self.generation_service.generate_missing_answers(evaluation_data_list)
 
             # 5. Ragas 데이터셋 형식으로 변환 (답변이 포함된 상태)
             dataset = self._convert_to_dataset(evaluation_data_list)
@@ -122,11 +98,11 @@ class RunEvaluationUseCase:
             result_dict = evaluation_runner.evaluate(dataset=dataset, llm=llm)
 
             # 8. 결과 검증 및 변환
-            return self._validate_and_convert_result(
+            return self.result_conversion_service.validate_and_convert_result(
                 result_dict, 
-                generation_failures, 
-                generation_successes, 
-                api_failure_details
+                generation_result.failures, 
+                generation_result.successes, 
+                generation_result.failure_details
             )
 
         except Exception as e:
@@ -146,58 +122,3 @@ class RunEvaluationUseCase:
         }
         return Dataset.from_dict(data_dict)
 
-    def _validate_and_convert_result(
-        self, 
-        result_dict: dict[str, Any],
-        generation_failures: int = 0,
-        generation_successes: int = 0,
-        api_failure_details: list[dict] = None
-    ) -> EvaluationResult:
-        """결과 딕셔너리를 검증하고 EvaluationResult로 변환"""
-        if not result_dict:
-            raise EvaluationError("평가 결과가 비어있습니다.")
-
-        # 필수 메트릭 확인
-        required_metrics = [
-            "faithfulness",
-            "answer_relevancy",
-            "context_recall",
-            "context_precision",
-        ]
-        for metric in required_metrics:
-            if metric not in result_dict:
-                raise EvaluationError(f"필수 메트릭이 누락되었습니다: {metric}")
-
-        # 결과가 모두 0인지 확인 및 생성 실패와 연관성 체크
-        metric_values = [result_dict.get(metric, 0.0) for metric in required_metrics]
-        if all(v == 0.0 for v in metric_values):
-            warning_message = "\n경고: 모든 평가 점수가 0입니다."
-            if generation_failures > 0:
-                warning_message += f"\n답변 생성 실패가 {generation_failures}건 발생했습니다."
-            warning_message += "\n다음을 확인해주세요:"
-            warning_message += "\n1. API 키가 올바르게 설정되었는지 확인"
-            warning_message += "\n2. Gemini API 할당량이 남아있는지 확인"
-            warning_message += "\n3. 네트워크 연결이 정상인지 확인"
-            warning_message += "\n4. 평가 데이터 형식이 올바른지 확인"
-            print(warning_message)
-
-        # 생성 실패에 대한 경고
-        if generation_failures > 0:
-            total_attempts = generation_failures + generation_successes
-            failure_rate = generation_failures / total_attempts * 100
-            print(f"\n⚠️  답변 생성 실패: {generation_failures}/{total_attempts}건 ({failure_rate:.1f}%)")
-            print("   이는 평가 결과의 신뢰도에 영향을 줄 수 있습니다.")
-
-        # EvaluationResult 생성
-        return EvaluationResult(
-            faithfulness=result_dict["faithfulness"],
-            answer_relevancy=result_dict["answer_relevancy"],
-            context_recall=result_dict["context_recall"],
-            context_precision=result_dict["context_precision"],
-            ragas_score=result_dict.get("ragas_score", 0.0),
-            individual_scores=result_dict.get("individual_scores"),
-            metadata=result_dict.get("metadata", {}),
-            generation_failures=generation_failures,
-            generation_successes=generation_successes,
-            api_failure_details=api_failure_details or [],
-        )
