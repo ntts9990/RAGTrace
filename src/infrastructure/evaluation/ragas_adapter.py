@@ -1,12 +1,8 @@
-import time
 from typing import Any, Optional
 
 import pandas as pd
 from datasets import Dataset
-
-# Remove problematic import, use simpler approach
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from pydantic import Field
 from ragas import evaluate
 from ragas.metrics import (
     answer_relevancy,
@@ -17,39 +13,8 @@ from ragas.metrics import (
 
 from src.domain.prompts import PromptType
 from src.infrastructure.evaluation.custom_prompts import CustomPromptFactory
-
-
-class RateLimitedEmbeddings(GoogleGenerativeAIEmbeddings):
-    """Rate limiting이 적용된 임베딩 래퍼"""
-
-    requests_per_minute: int | None = Field(default=10, exclude=True)
-    min_request_interval: float | None = Field(default=6.0, exclude=True)
-    last_request_time: float | None = Field(default=0.0, exclude=True)
-
-    def __init__(self, *args, requests_per_minute: int = 10, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.requests_per_minute = requests_per_minute
-        self.min_request_interval = 60.0 / requests_per_minute
-        self.last_request_time = 0
-
-    def _rate_limit(self):
-        """요청 간 최소 시간 간격을 보장"""
-        current_time = time.time()
-        time_since_last_request = current_time - self.last_request_time
-        if time_since_last_request < self.min_request_interval:
-            sleep_time = self.min_request_interval - time_since_last_request
-            time.sleep(sleep_time)
-        self.last_request_time = time.time()
-
-    def embed_documents(self, texts):
-        """문서 임베딩 시 rate limiting 적용"""
-        self._rate_limit()
-        return super().embed_documents(texts)
-
-    def embed_query(self, text):
-        """쿼리 임베딩 시 rate limiting 적용"""
-        self._rate_limit()
-        return super().embed_query(text)
+from src.infrastructure.evaluation.parsing_strategies import ResultParser
+from src.infrastructure.llm.rate_limiter import RateLimitedGeminiEmbeddings
 
 
 class RagasEvalAdapter:
@@ -66,6 +31,9 @@ class RagasEvalAdapter:
         self.api_key = api_key
         self.embedding_requests_per_minute = embedding_requests_per_minute
         self.prompt_type = prompt_type or PromptType.DEFAULT
+        
+        # 결과 파서 초기화
+        self.result_parser = ResultParser()
 
         # 프롬프트 타입에 따른 메트릭 설정
         if self.prompt_type == PromptType.DEFAULT:
@@ -163,7 +131,7 @@ class RagasEvalAdapter:
     def _initialize_embeddings(self):
         """임베딩 모델 초기화"""
         try:
-            embeddings = RateLimitedEmbeddings(
+            embeddings = RateLimitedGeminiEmbeddings(
                 model=self.embedding_model_name,
                 google_api_key=self.api_key,
                 requests_per_minute=self.embedding_requests_per_minute,
@@ -172,7 +140,6 @@ class RagasEvalAdapter:
             return embeddings
         except Exception as e:
             print(f"⚠️  임베딩 모델 초기화 실패: {e}")
-            from langchain_google_genai import GoogleGenerativeAIEmbeddings
             embeddings = GoogleGenerativeAIEmbeddings(
                 model=self.embedding_model_name,
                 google_api_key=self.api_key,
@@ -231,103 +198,18 @@ class RagasEvalAdapter:
             return self._create_dummy_result(dataset)
 
     def _parse_result(self, result, dataset: Dataset) -> dict:
-        """결과 파싱 - DataFrame 변환을 통한 안정적인 파싱"""
+        """결과 파싱 - 전략 패턴을 통한 안정적인 파싱"""
         try:
-            # ragas 결과를 DataFrame으로 변환 (안정적인 방법)
-            if hasattr(result, 'to_pandas'):
-                df = result.to_pandas()
-                result_dict = {}
-                individual_scores = []
-                
-                # DataFrame에서 메트릭 값 추출
-                for metric in self.metrics:
-                    metric_name = metric.name
-                    if metric_name in df.columns:
-                        metric_values = df[metric_name].fillna(0.0)  # NaN을 0.0으로 대체
-                        result_dict[metric_name] = float(metric_values.mean())
-                        print(f"✅ {metric_name} 평균: {result_dict[metric_name]:.4f}")
-                    else:
-                        result_dict[metric_name] = 0.0
-                        print(f"⚠️  {metric_name} 결과를 찾을 수 없습니다.")
-                
-                # 개별 점수 추출
-                for idx in range(len(dataset)):
-                    qa_scores = {}
-                    for metric in self.metrics:
-                        metric_name = metric.name
-                        if metric_name in df.columns and idx < len(df):
-                            score_value = df.iloc[idx][metric_name]
-                            qa_scores[metric_name] = float(score_value) if pd.notna(score_value) else 0.0
-                        else:
-                            qa_scores[metric_name] = 0.0
-                    individual_scores.append(qa_scores)
-                
-                result_dict["individual_scores"] = individual_scores
-                return result_dict
-                
-            else:
-                # Fallback: 기존 방식 사용
-                return self._parse_result_legacy(result, dataset)
-                
+            return self.result_parser.parse_result(result, dataset, self.metrics)
         except Exception as e:
-            print(f"DataFrame 파싱 실패: {e}, 기존 방식으로 fallback")
-            return self._parse_result_legacy(result, dataset)
-
-    def _parse_result_legacy(self, result, dataset: Dataset) -> dict:
-        """기존 결과 파싱 방식 (legacy)"""
-        result_dict = {}
-        individual_scores = []
-
-        # _scores_dict에서 결과 추출
-        if hasattr(result, "_scores_dict") and result._scores_dict:
-            scores_dict = result._scores_dict
-            
-            # 개별 QA 점수 추출
-            num_samples = len(dataset)
-            for i in range(num_samples):
-                qa_scores = {}
-                for metric in self.metrics:
-                    metric_name = metric.name
-                    if metric_name in scores_dict:
-                        scores = scores_dict[metric_name]
-                        if isinstance(scores, list) and i < len(scores):
-                            score_value = scores[i]
-                            qa_scores[metric_name] = float(score_value) if score_value == score_value else 0.0
-                        else:
-                            qa_scores[metric_name] = float(scores) if scores == scores else 0.0
-                    else:
-                        qa_scores[metric_name] = 0.0
-                individual_scores.append(qa_scores)
-
-            # 각 메트릭별로 평균값 계산
-            for metric in self.metrics:
-                metric_name = metric.name
-                if metric_name in scores_dict:
-                    scores = scores_dict[metric_name]
-                    if isinstance(scores, list) and scores:
-                        valid_scores = [float(s) for s in scores if s == s]  # NaN 제외
-                        result_dict[metric_name] = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
-                    else:
-                        result_dict[metric_name] = float(scores) if scores == scores else 0.0
-                else:
-                    result_dict[metric_name] = 0.0
-        else:
-            # 다른 방법으로 추출
-            for metric in self.metrics:
-                metric_name = metric.name
-                if hasattr(result, metric_name):
-                    value = getattr(result, metric_name)
-                    result_dict[metric_name] = float(value) if value is not None else 0.0
-                else:
-                    result_dict[metric_name] = 0.0
-            
-            # 개별 점수는 전체 평균으로 대체
-            for i in range(len(dataset)):
-                qa_scores = {metric.name: result_dict.get(metric.name, 0.0) for metric in self.metrics}
-                individual_scores.append(qa_scores)
-
-        result_dict["individual_scores"] = individual_scores
-        return result_dict
+            print(f"❌ 모든 파싱 전략 실패: {e}")
+            # 최후의 수단: 빈 결과 반환
+            result_dict = {metric.name: 0.0 for metric in self.metrics}
+            result_dict["individual_scores"] = [
+                {metric.name: 0.0 for metric in self.metrics} 
+                for _ in range(len(dataset))
+            ]
+            return result_dict
 
     def _create_final_report(self, result_dict: dict, dataset: Dataset, llm: Any) -> dict:
         """최종 리포트 생성"""
