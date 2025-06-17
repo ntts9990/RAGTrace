@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     # Gemini API 설정
     GEMINI_API_KEY: str = Field(..., description="Google Gemini API 키")
     GEMINI_MODEL_NAME: str = Field(
-        default="gemini-1.5-flash-latest", description="사용할 Gemini 모델명"
+        default="models/gemini-2.5-flash-preview-05-20", description="사용할 Gemini 모델명"
     )
     GEMINI_EMBEDDING_MODEL_NAME: str = Field(
-        default="models/embedding-001", description="임베딩용 Gemini 모델명"
+        default="models/gemini-embedding-exp-03-07", description="임베딩용 Gemini 모델명"
     )
 
     # API 요청 제한 설정

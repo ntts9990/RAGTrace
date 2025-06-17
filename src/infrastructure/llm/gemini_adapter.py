@@ -1,7 +1,8 @@
 from typing import List
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 from src.application.ports.llm import LlmPort
-from src.infrastructure.llm.rate_limiter import RateLimitedGeminiLLM
 
 
 class GeminiAdapter(LlmPort):
@@ -51,16 +52,15 @@ class GeminiAdapter(LlmPort):
         except Exception as e:
             raise RuntimeError(f"답변 생성 중 오류 발생: {str(e)}") from e
 
-    def get_llm(self) -> RateLimitedGeminiLLM:
+    def get_llm(self) -> ChatGoogleGenerativeAI:
         """
-        Rate limiting이 적용된 Gemini LLM 객체를 반환합니다.
+        Gemini LLM 객체를 반환합니다.
         
         Note: 이 메서드는 하위 호환성을 위해 유지되지만,
         향후 generate_answer 메서드 사용을 권장합니다.
         """
-        return RateLimitedGeminiLLM(
+        return ChatGoogleGenerativeAI(
             model=self.model_name,
             google_api_key=self.api_key,
-            # temperature는 RAGAS에서 내부적으로 1e-08로 강제 설정됨 (평가 일관성을 위해)
-            requests_per_minute=self.requests_per_minute,
+            temperature=0.1
         )
