@@ -108,8 +108,7 @@ def get_database_path() -> str:
 # 프롬프트 타입별 설명 (CLI 도움말용)
 PROMPT_TYPE_HELP = {
     PromptType.DEFAULT: "기본 RAGAS 프롬프트 (영어, 범용)",
-    PromptType.KOREAN_TECH: "한국어 기술 문서 특화 프롬프트",
-    PromptType.MULTILINGUAL_TECH: "한영 혼용 기술 문서 프롬프트",
+    PromptType.NUCLEAR_HYDRO_TECH: "원자력/수력 기술 문서 특화 프롬프트 (한영 혼용, 수식 포함)",
     PromptType.KOREAN_FORMAL: "한국어 공식 문서 프롬프트"
 }
 

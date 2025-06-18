@@ -71,64 +71,38 @@ def show_prompt_type_details(prompt_type: PromptType):
         - 안정적이고 검증된 프롬프트
         """)
         
-    elif prompt_type == PromptType.KOREAN_TECH:
+    elif prompt_type == PromptType.NUCLEAR_HYDRO_TECH:
         st.success("""
-        **🇰🇷 한국어 기술 문서 특화 프롬프트**
+        **⚛️ 원자력/수력 기술 문서 특화 프롬프트**
         
         **특징:**
-        - 한국어 기술 문서 평가에 최적화
-        - 코드, 명령어, 설정 방법 등 기술적 내용 중점
-        - 한국어 언어적 특성 고려 (존댓말, 간접 표현)
-        - 기술 용어의 정확성 평가 강화
+        - 원자력/수력 발전 기술 문서 평가에 최적화
+        - 안전 관련 절차와 규정의 정확성 평가
+        - 물리적/화학적 수식과 단위의 정밀성 검증
+        - 한영 혼용 전문 용어의 일관성 확인
+        - 시스템 구성요소와 운영 매개변수 평가
         
         **적용 영역:**
-        - 소프트웨어 개발 문서
-        - API 문서
-        - 기술 가이드
-        - 튜토리얼
+        - 원자력 발전소 운영 문서
+        - 수력 발전 시스템 문서
+        - 안전 분석 보고서 (SAR/FSAR)
+        - 기술 사양서 및 절차서
+        - 규제 요구사항 문서
         """)
         
         # 예시 표시
         with st.expander("📖 프롬프트 예시 보기"):
             st.code("""
-            예시 질문: "Docker 컨테이너를 생성하는 방법은?"
-            답변: "docker run -d --name myapp nginx:latest 명령으로 nginx 컨테이너를 백그라운드에서 실행할 수 있습니다."
+            예시 질문: "원자로 냉각재 온도 측정 시 주의사항은?"
+            답변: "RTD (Resistance Temperature Detector) 센서를 사용하여 측정하며, 허용 오차는 ±0.5°C 이내여야 합니다. Safety Class 1E 등급이 요구됩니다."
             
             평가 기준:
-            - docker run 명령어의 정확성
-            - -d 플래그의 의미 (백그라운드 실행)
-            - --name 옵션의 기능
-            - nginx:latest 이미지 사용법
+            - RTD 센서 사용의 정확성
+            - 허용 오차 ±0.5°C의 정밀성
+            - Safety Class 1E 등급 요구사항
+            - 온도 측정 절차의 완전성
             """, language="text")
     
-    elif prompt_type == PromptType.MULTILINGUAL_TECH:
-        st.warning("""
-        **🌏 한영 혼용 기술 문서 프롬프트**
-        
-        **특징:**
-        - 한국어와 영어가 혼용된 기술 문서 평가
-        - 코드 내 영어와 설명의 한국어 조화
-        - 기술 용어의 일관성 평가
-        - 다국어 환경에서의 정확성 검증
-        
-        **적용 영역:**
-        - 글로벌 소프트웨어 문서
-        - 오픈소스 프로젝트 문서
-        - 국제 표준 문서
-        - 다국어 API 문서
-        """)
-        
-        with st.expander("📖 프롬프트 예시 보기"):
-            st.code("""
-            예시 질문: "How to install Python packages using pip?"
-            답변: "pip install package_name을 사용하여 패키지를 설치할 수 있습니다. Python 3.4 이상에서는 pip가 기본 포함됩니다."
-            
-            평가 기준:
-            - 영어 질문과 한국어 답변의 연관성
-            - 기술 용어의 정확한 사용 (pip, package_name)
-            - 버전 정보의 정확성 (Python 3.4+)
-            - 언어 간 전환의 자연스러움
-            """, language="text")
     
     # 성능 비교 정보
     show_prompt_performance_info(prompt_type)
@@ -167,8 +141,7 @@ def get_accuracy_rating(prompt_type: PromptType) -> str:
     """프롬프트 타입별 정확도 등급"""
     ratings = {
         PromptType.DEFAULT: "보통",
-        PromptType.KOREAN_TECH: "높음",
-        PromptType.MULTILINGUAL_TECH: "높음",
+        PromptType.NUCLEAR_HYDRO_TECH: "매우 높음",
         PromptType.KOREAN_FORMAL: "높음"
     }
     return ratings.get(prompt_type, "알 수 없음")
@@ -178,8 +151,7 @@ def get_speed_rating(prompt_type: PromptType) -> str:
     """프롬프트 타입별 속도 등급"""
     ratings = {
         PromptType.DEFAULT: "빠름",
-        PromptType.KOREAN_TECH: "보통",
-        PromptType.MULTILINGUAL_TECH: "보통", 
+        PromptType.NUCLEAR_HYDRO_TECH: "보통", 
         PromptType.KOREAN_FORMAL: "보통"
     }
     return ratings.get(prompt_type, "알 수 없음")
@@ -189,8 +161,7 @@ def get_specialization_rating(prompt_type: PromptType) -> str:
     """프롬프트 타입별 특화도 등급"""
     ratings = {
         PromptType.DEFAULT: "범용",
-        PromptType.KOREAN_TECH: "기술문서",
-        PromptType.MULTILINGUAL_TECH: "다국어",
+        PromptType.NUCLEAR_HYDRO_TECH: "원자력/수력",
         PromptType.KOREAN_FORMAL: "공식문서"
     }
     return ratings.get(prompt_type, "알 수 없음")
@@ -221,8 +192,7 @@ def get_recommended_usage(prompt_type: PromptType) -> str:
     """프롬프트 타입별 권장 사용처"""
     usages = {
         PromptType.DEFAULT: "일반적인 RAG 시스템",
-        PromptType.KOREAN_TECH: "한국어 기술 문서, 개발 가이드",
-        PromptType.MULTILINGUAL_TECH: "한영 혼용 기술 문서",
+        PromptType.NUCLEAR_HYDRO_TECH: "원자력/수력 기술 문서, 안전 분석 보고서",
         PromptType.KOREAN_FORMAL: "공식 문서, 정책 문서"
     }
     return usages.get(prompt_type, "기타")
@@ -241,15 +211,13 @@ def show_prompt_customization_tips():
     - 빠른 성능이 필요한 경우
     - 검증된 안정성이 중요한 경우
     
-    **🇰🇷 한국어 기술 문서 프롬프트 (KOREAN_TECH)**
-    - 소프트웨어 개발 문서, API 가이드
-    - 코드 예시가 포함된 기술 문서
-    - 한국어 개발자를 위한 튜토리얼
-    
-    **🌏 다국어 기술 문서 프롬프트 (MULTILINGUAL_TECH)**
-    - 글로벌 서비스 문서
-    - 오픈소스 프로젝트 문서
-    - 영어와 한국어가 혼용된 문서
+    **⚛️ 원자력/수력 기술 문서 프롬프트 (NUCLEAR_HYDRO_TECH)**
+    - 원자력 발전소 운영 문서
+    - 수력 발전 시스템 기술 문서
+    - 안전 분석 보고서 (SAR/FSAR)
+    - 규제 요구사항 및 절차서
+    - 한영 혼용 전문 용어가 포함된 기술 문서
+    - 수식과 물리량이 포함된 정밀 문서
     """)
     
     st.info("""
