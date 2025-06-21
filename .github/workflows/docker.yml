@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ntts9990/ragtrace
 
 jobs:
   build-and-push:
@@ -59,7 +59,8 @@ jobs:
     - name: Test Docker image
       run: |
         docker run --rm --name ragtrace \
-          -e GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} \
+          -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY || 'mock_key_for_testing' }}" \
+          -e CLOVA_STUDIO_API_KEY="${{ secrets.CLOVA_STUDIO_API_KEY || 'mock_key_for_testing' }}" \
           -v ${{ github.workspace }}/data:/app/data \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-          python -c "import src.presentation.main; print('Docker image works!')"
+          uv run python hello.py

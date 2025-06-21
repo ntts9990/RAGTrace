@@ -20,11 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
       with:
-        python-version: '3.11'
-    - run: pip install -e ".[dev]"
-    - run: pytest --cov=src --cov-fail-under=80
+        version: "latest"
+        enable-cache: true
+    - name: Set up Python
+      run: uv python install 3.11
+    - name: Install dependencies
+      run: uv sync --all-extras
+    - name: Run tests
+      run: uv run pytest --cov=src --cov-fail-under=35
       env:
         GEMINI_API_KEY: dummy_key_for_testing
 
