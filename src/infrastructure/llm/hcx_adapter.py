@@ -13,14 +13,12 @@ class HcxAdapter(LlmPort):
         self,
         api_key: str,
         model_name: str,
-        requests_per_minute: int,
     ):
         if not api_key:
             raise ValueError("CLOVA_STUDIO_API_KEY가 설정되지 않았습니다.")
         self.api_key = api_key
         self.model_name = model_name
         self.model = model_name  # RagasEvalAdapter 호환성을 위해 추가
-        self.requests_per_minute = requests_per_minute
         self.api_url = f"https://clovastudio.stream.ntruss.com/testapp/v3/chat-completions/{self.model_name}"
 
     def generate_answer(self, question: str, contexts: List[str]) -> str:

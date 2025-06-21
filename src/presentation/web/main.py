@@ -390,12 +390,11 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
             # 선택된 LLM으로 유스케이스 가져오기
-            evaluation_use_case = get_evaluation_use_case_with_llm(llm_type)
+            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type)
 
             # 평가 실행
             evaluation_result = evaluation_use_case.execute(
-                dataset_name=dataset_name,
-                prompt_type=prompt_type
+                dataset_name=dataset_name
             )
 
             # 결과 저장 (메타데이터에 LLM 정보 포함)

@@ -30,13 +30,11 @@ class Container(containers.DeclarativeContainer):
             GeminiAdapter,
             api_key=config.GEMINI_API_KEY,
             model_name=config.GEMINI_MODEL_NAME,
-            requests_per_minute=config.GEMINI_REQUESTS_PER_MINUTE,
         ),
         hcx=providers.Singleton(
             HcxAdapter,
             api_key=config.CLOVA_STUDIO_API_KEY,
             model_name=config.HCX_MODEL_NAME,
-            requests_per_minute=config.HCX_REQUESTS_PER_MINUTE,
         ),
     )
 
@@ -49,7 +47,6 @@ class Container(containers.DeclarativeContainer):
         hcx=providers.Singleton(
             HcxEmbeddingAdapter,
             api_key=config.CLOVA_STUDIO_API_KEY,
-            requests_per_minute=config.HCX_EMBEDDING_REQUESTS_PER_MINUTE,
         ),
     )
     
