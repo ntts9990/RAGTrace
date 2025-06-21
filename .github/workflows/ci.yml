@@ -121,22 +121,22 @@ jobs:
 
     - name: Test Docker Compose build
       run: |
-        docker-compose build ragtrace
+        docker compose build ragtrace
 
     - name: Test CLI service
       run: |
-        docker-compose run --rm ragtrace-cli uv run python hello.py
+        docker compose run --rm ragtrace-cli uv run python hello.py
 
     - name: Test health check
       run: |
         # Start the dashboard service in background
-        docker-compose up -d ragtrace
+        docker compose up -d ragtrace
         
         # Wait for health check to pass
-        timeout 60 bash -c 'until docker-compose ps ragtrace | grep -q "healthy"; do sleep 5; done'
+        timeout 60 bash -c 'until docker compose ps ragtrace | grep -q "healthy"; do sleep 5; done'
         
         # Stop services
-        docker-compose down
+        docker compose down
 
   security-scan:
     name: Security Scan
