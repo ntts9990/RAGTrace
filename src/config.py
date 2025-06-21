@@ -31,8 +31,13 @@ class Settings(BaseSettings):
     CLOVA_STUDIO_API_KEY: Optional[str] = Field(default=None, description="Naver Cloud CLOVA Studio API 키")
     HCX_MODEL_NAME: str = Field(default="HCX-005", description="사용할 HCX 모델명")
 
-    # LLM 선택 설정
+    # BGE-M3 로컬 임베딩 설정
+    BGE_M3_MODEL_PATH: Optional[str] = Field(default=None, description="BGE-M3 로컬 모델 경로")
+    BGE_M3_DEVICE: Optional[str] = Field(default=None, description="BGE-M3 실행 디바이스 (None=자동감지, cpu, cuda, mps)")
+
+    # LLM/Embedding 선택 설정
     DEFAULT_LLM: str = Field(default="gemini", description="사용할 기본 LLM (gemini 또는 hcx)")
+    DEFAULT_EMBEDDING: str = Field(default="gemini", description="사용할 기본 임베딩 (gemini, hcx, bge_m3)")
 
     # 프롬프트 커스터마이징 설정
     DEFAULT_PROMPT_TYPE: str = Field(
@@ -110,6 +115,23 @@ PROMPT_TYPE_HELP = {
     PromptType.DEFAULT: "기본 RAGAS 프롬프트 (영어, 범용)",
     PromptType.NUCLEAR_HYDRO_TECH: "원자력/수력 기술 문서 특화 프롬프트 (한영 혼용, 수식 포함)",
     PromptType.KOREAN_FORMAL: "한국어 공식 문서 프롬프트"
+}
+
+# 지원되는 LLM 및 임베딩 모델 목록 (중앙 관리)
+SUPPORTED_LLM_TYPES = ["gemini", "hcx"]
+SUPPORTED_EMBEDDING_TYPES = ["gemini", "hcx", "bge_m3"]
+SUPPORTED_DEVICE_TYPES = ["cpu", "cuda", "mps"]
+
+# 웹 UI용 모델 표시명
+LLM_DISPLAY_NAMES = {
+    "gemini": "🔥 Google Gemini 2.5 Flash",
+    "hcx": "🚀 NAVER HyperCLOVA X"
+}
+
+EMBEDDING_DISPLAY_NAMES = {
+    "gemini": "🌐 Google Gemini Embedding",
+    "hcx": "🚀 NAVER HCX Embedding", 
+    "bge_m3": "🎯 BGE-M3 Local Embedding"
 }
 
 

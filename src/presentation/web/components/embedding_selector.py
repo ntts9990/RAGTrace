@@ -5,7 +5,7 @@
 """
 
 import streamlit as st
-from src.config import settings
+from src.config import settings, EMBEDDING_DISPLAY_NAMES, SUPPORTED_EMBEDDING_TYPES
 
 
 def show_embedding_selector() -> str:
@@ -17,11 +17,8 @@ def show_embedding_selector() -> str:
     """
     st.markdown("### 🔍 임베딩 모델 선택")
     
-    # 임베딩 옵션 정의
-    embedding_options = {
-        "🌐 Google Gemini Embedding": "gemini",
-        "🎯 Naver HCX Embedding": "hcx"
-    }
+    # 임베딩 옵션 정의 (config에서 가져오기)
+    embedding_options = EMBEDDING_DISPLAY_NAMES
     
     # HCX API 키 확인
     hcx_available = bool(settings.CLOVA_STUDIO_API_KEY)
@@ -29,17 +26,17 @@ def show_embedding_selector() -> str:
     if not hcx_available:
         st.warning("⚠️ HCX 임베딩을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
         # HCX 옵션 비활성화
-        available_options = {"🌐 Google Gemini Embedding": "gemini"}
+        available_options = {display: emb_type for display, emb_type in embedding_options.items() if emb_type != "hcx"}
     else:
         available_options = embedding_options
     
     # session_state에 기본값 설정
     if "selected_embedding" not in st.session_state:
-        st.session_state.selected_embedding = "gemini"  # 기본값을 gemini로 설정
+        st.session_state.selected_embedding = settings.DEFAULT_EMBEDDING
     
     # 현재 선택된 임베딩이 사용 가능한 옵션에 없으면 기본값으로 변경
     if st.session_state.selected_embedding not in available_options.values():
-        st.session_state.selected_embedding = "gemini"
+        st.session_state.selected_embedding = settings.DEFAULT_EMBEDDING
     
     # 현재 선택된 임베딩에 해당하는 설명 찾기
     current_description = None

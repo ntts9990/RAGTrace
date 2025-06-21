@@ -6,8 +6,9 @@
 
 from dependency_injector import containers, providers
 from src.infrastructure.embedding.gemini_http_adapter import GeminiHttpEmbeddingAdapter
+from src.infrastructure.embedding.bge_m3_adapter import BgeM3EmbeddingAdapter
 
-from src.config import settings
+from src.config import settings, SUPPORTED_LLM_TYPES, SUPPORTED_EMBEDDING_TYPES
 from src.domain.prompts import PromptType
 from src.application.use_cases import RunEvaluationUseCase
 from src.application.services.data_validator import DataContentValidator
@@ -49,6 +50,11 @@ class Container(containers.DeclarativeContainer):
             HcxEmbeddingAdapter,
             api_key=config.CLOVA_STUDIO_API_KEY,
         ),
+        bge_m3=providers.Singleton(
+            BgeM3EmbeddingAdapter,
+            model_path=config.BGE_M3_MODEL_PATH,
+            device=config.BGE_M3_DEVICE,  # None이면 자동 감지
+        ),
     )
     
     repository_factory = providers.Singleton(FileRepositoryFactory)
@@ -88,23 +94,19 @@ def get_evaluation_use_case_with_llm(llm_type: str = None, embedding_type: str =
         llm_type = settings.DEFAULT_LLM
     
     if embedding_type is None:
-        embedding_type = llm_type  # LLM과 동일한 타입으로 기본 설정
+        embedding_type = settings.DEFAULT_EMBEDDING
     
     # LLM 어댑터 선택
-    if llm_type == "gemini":
-        llm_adapter = container.llm_providers()["gemini"]
-    elif llm_type == "hcx":
-        llm_adapter = container.llm_providers()["hcx"]
-    else:
-        raise ValueError(f"지원하지 않는 LLM 타입: {llm_type}")
+    if llm_type not in SUPPORTED_LLM_TYPES:
+        raise ValueError(f"지원하지 않는 LLM 타입: {llm_type}. 지원되는 타입: {SUPPORTED_LLM_TYPES}")
     
-    # Embedding 어댑터 선택
-    if embedding_type == "gemini":
-        embedding_adapter = container.embedding_providers()["gemini"]
-    elif embedding_type == "hcx":
-        embedding_adapter = container.embedding_providers()["hcx"]
-    else:
-        raise ValueError(f"지원하지 않는 Embedding 타입: {embedding_type}")
+    llm_adapter = container.llm_providers()[llm_type]
+    
+    # Embedding 어댑터 선택  
+    if embedding_type not in SUPPORTED_EMBEDDING_TYPES:
+        raise ValueError(f"지원하지 않는 Embedding 타입: {embedding_type}. 지원되는 타입: {SUPPORTED_EMBEDDING_TYPES}")
+    
+    embedding_adapter = container.embedding_providers()[embedding_type]       
     
     # 선택된 LLM과 Embedding으로 유스케이스 생성 (모든 의존성 주입)
     from src.application.use_cases import RunEvaluationUseCase

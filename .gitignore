@@ -132,19 +132,19 @@ dmypy.json
 .ruff_cache/
 
 # RAGTrace specific files
-data/db/*.db
-data/temp/
-temp/
+/data/db/
+/data/temp/
+/temp/
 *.tmp
 *.temp
+/reports/
+/test_results.json
+/models/
 
 # API diagnosis and debug files
-debug_*.py
-test_*.py
-diagnose_*.py
-
-# 테스트 실행 중 잘못 생성되는 임시 파일
-<MagicMock name='DATABASE_PATH'*
+/debug_*.py
+/test_*.py
+/diagnose_*.py
 
 # IDE files
 .vscode/

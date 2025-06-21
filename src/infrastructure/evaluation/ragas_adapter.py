@@ -161,6 +161,15 @@ class RagasEvalAdapter:
         print(f"\n=== RAGAS 평가 시작 (RunConfig 사용) ===")
         print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
         print(f"🤖 LLM 모델: {self.llm.model}")
+        
+        # 임베딩 모델 정보 출력
+        embedding_info = f"🌐 임베딩 모델: {type(self.embeddings).__name__}"
+        if hasattr(self.embeddings, 'model_name'):
+            embedding_info += f" ({self.embeddings.model_name})"
+        elif hasattr(self.embeddings, 'device'):
+            embedding_info += f" (디바이스: {self.embeddings.device})"
+        print(embedding_info)
+        
         print(f"🚀 평가 실행 중... (타임아웃: {self.run_config.timeout}초)")
         
         result = [None]

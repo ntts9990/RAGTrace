@@ -5,7 +5,7 @@ LLM 선택 컴포넌트
 """
 
 import streamlit as st
-from src.config import settings
+from src.config import settings, LLM_DISPLAY_NAMES, SUPPORTED_LLM_TYPES
 
 
 def show_llm_selector() -> str:
@@ -17,11 +17,8 @@ def show_llm_selector() -> str:
     """
     st.markdown("### 🤖 LLM 모델 선택")
     
-    # LLM 옵션 정의
-    llm_options = {
-        "🔥 Google Gemini 2.5 Flash": "gemini",
-        "🎯 Naver HCX-005": "hcx"
-    }
+    # LLM 옵션 정의 (config에서 가져오기)
+    llm_options = LLM_DISPLAY_NAMES
     
     # HCX API 키 확인
     hcx_available = bool(settings.CLOVA_STUDIO_API_KEY)
@@ -29,7 +26,7 @@ def show_llm_selector() -> str:
     if not hcx_available:
         st.warning("⚠️ HCX 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
         # HCX 옵션 비활성화
-        available_options = {"🔥 Google Gemini 2.5 Flash": "gemini"}
+        available_options = {display: llm_type for display, llm_type in llm_options.items() if llm_type != "hcx"}
     else:
         available_options = llm_options
     
@@ -39,7 +36,7 @@ def show_llm_selector() -> str:
     
     # 현재 선택된 LLM이 사용 가능한 옵션에 없으면 기본값으로 변경
     if st.session_state.selected_llm not in available_options.values():
-        st.session_state.selected_llm = "gemini"
+        st.session_state.selected_llm = settings.DEFAULT_LLM
     
     # 현재 선택된 LLM에 해당하는 설명 찾기
     current_description = None
@@ -64,10 +61,13 @@ def show_llm_selector() -> str:
     st.session_state.selected_llm = selected_llm
     
     # 선택된 LLM 정보 표시
-    if selected_llm == "gemini":
-        st.info("🔥 **Google Gemini 2.5 Flash**: 빠르고 효율적인 다목적 LLM")
-    elif selected_llm == "hcx":
-        st.info("🎯 **Naver HCX-005**: 한국어에 최적화된 고성능 LLM")
+    llm_descriptions = {
+        "gemini": "🔥 **Google Gemini 2.5 Flash**: 빠르고 효율적인 다목적 LLM",
+        "hcx": "🎯 **Naver HCX-005**: 한국어에 최적화된 고성능 LLM"
+    }
+    
+    if selected_llm in llm_descriptions:
+        st.info(llm_descriptions[selected_llm])
     
     return selected_llm
 

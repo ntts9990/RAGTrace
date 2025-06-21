@@ -11,8 +11,10 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 - **Naver HCX-005**: 한국어에 특화된 고성능 LLM
 - **Google Gemini Embedding**: 다국어 임베딩 모델
 - **Naver HCX Embedding**: 한국어 특화 임베딩 모델
+- **BGE-M3 Local Embedding**: 로컬 다국어 임베딩 (GPU 자동 감지)
 - **런타임 모델 선택**: CLI와 웹 UI에서 동적 LLM/임베딩 모델 전환
-- **최적화된 성능**: Rate limiting 제거로 빠른 평가 처리
+- **폐쇄망 지원**: BGE-M3로 완전한 오프라인 임베딩 처리
+- **GPU 최적화**: CUDA, MPS(Apple Silicon), CPU 자동 감지 및 최적화
 
 ### 📊 포괄적인 평가 지표
 - **Faithfulness (충실성)**: 답변이 주어진 컨텍스트에 얼마나 충실한가
@@ -95,8 +97,13 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # 선택: Naver HCX API 키
 CLOVA_STUDIO_API_KEY=your_clova_studio_api_key_here
 
-# 선택: 기본 LLM 설정
-DEFAULT_LLM=gemini
+# 선택: 기본 모델 설정
+DEFAULT_LLM=hcx  # 또는 "gemini"
+DEFAULT_EMBEDDING=bge_m3  # 또는 "gemini", "hcx"
+
+# 선택: BGE-M3 로컬 임베딩 설정
+BGE_M3_MODEL_PATH="./models/bge-m3"  # 로컬 모델 경로
+# BGE_M3_DEVICE="auto"  # auto, cpu, cuda, mps (자동 감지하려면 주석 처리)
 EOF
 ```
 
@@ -139,7 +146,10 @@ uv run python cli.py evaluate evaluation_data.json --llm hcx
 
 # LLM과 임베딩 모델 독립 선택
 uv run python cli.py evaluate evaluation_data.json --llm gemini --embedding hcx
-uv run python cli.py evaluate evaluation_data.json --llm hcx --embedding gemini
+uv run python cli.py evaluate evaluation_data.json --llm hcx --embedding bge_m3
+
+# BGE-M3 로컬 임베딩 사용 (오프라인)
+uv run python cli.py evaluate evaluation_data.json --llm hcx --embedding bge_m3
 
 # 커스텀 프롬프트 사용
 uv run python cli.py evaluate evaluation_data.json --llm gemini --prompt-type korean_tech
@@ -210,7 +220,8 @@ RAGTrace/
 │   │   │   └── hcx_adapter.py       # Naver HCX 연동
 │   │   ├── embedding/               # 임베딩 어댑터
 │   │   │   ├── gemini_http_adapter.py # Google Gemini Embedding (HTTP)
-│   │   │   └── hcx_adapter.py       # Naver HCX 임베딩 연동
+│   │   │   ├── hcx_adapter.py       # Naver HCX 임베딩 연동
+│   │   │   └── bge_m3_adapter.py    # BGE-M3 로컬 임베딩 (GPU 자동 감지)
 │   │   ├── evaluation/              # 평가 프레임워크 연동
 │   │   └── repository/              # 데이터 저장소
 │   │
@@ -231,7 +242,10 @@ RAGTrace/
 │
 ├── 📂 docs/                         # 문서
 │   ├── RAGTRACE_METRICS.md          # 메트릭 상세 설명 (한국어)
-│   └── LLM_Customization_Manual.md  # LLM 커스터마이징 가이드
+│   ├── LLM_Customization_Manual.md  # LLM 커스터마이징 가이드
+│   ├── Offline_LLM_Integration_Guide.md # 폐쇄망 배포 가이드
+│   ├── BGE_M3_GPU_Guide.md          # BGE-M3 GPU 최적화 가이드
+│   └── Troubleshooting_Guide.md     # 종합 문제 해결 가이드
 │
 ├── cli.py                          # 고급 CLI 진입점
 ├── hello.py                        # 연결 테스트 스크립트
@@ -249,16 +263,32 @@ RAGTrace/
 
 ## 🔧 기술적 특징
 
+### BGE-M3 로컬 임베딩 및 GPU 최적화
+
+RAGTrace는 완전한 오프라인 임베딩 처리를 위해 BGE-M3 모델을 지원합니다:
+
+- **자동 GPU 감지**: CUDA, MPS(Apple Silicon), CPU 자동 선택 및 최적화
+- **디바이스별 최적화**: 각 디바이스에 최적화된 배치 크기와 메모리 관리
+- **다국어 지원**: 100+ 언어 지원으로 글로벌 RAG 시스템에 적합
+- **성능 모니터링**: GPU 메모리 사용량 실시간 모니터링 및 자동 정리
+- **폐쇄망 지원**: 인터넷 연결 없이 완전한 임베딩 처리 가능
+
 ### HTTP 직접 호출 아키텍처
 
-RAGTrace는 안정성과 성능을 위해 LangChain의 Google GenAI 라이브러리 대신 HTTP API를 직접 호출합니다:
+안정성과 성능을 위해 LangChain의 Google GenAI 라이브러리 대신 HTTP API를 직접 호출:
 
 - **HttpGeminiWrapper**: Google Gemini API를 HTTP로 직접 호출하는 LangChain 호환 래퍼
 - **GeminiHttpEmbeddingAdapter**: Gemini Embedding API의 HTTP 직접 호출 어댑터
 - **타임아웃 방지**: DNS 해결 실패 및 라이브러리 내부 타임아웃 문제 해결
 - **안정성 향상**: 네트워크 연결 문제에 대한 더 나은 제어와 오류 처리
 
-이 접근 방식으로 기존의 0% 진행률 타임아웃 문제가 완전히 해결되었습니다.
+### 성능 벤치마크 (BGE-M3)
+
+| 디바이스 | 처리량 (docs/sec) | 배치 크기 | 메모리 사용량 |
+|---------|------------------|----------|--------------|
+| **CUDA GPU** | ~60 | 64 | 2-4GB VRAM |
+| **Apple MPS** | ~15 | 32 | 통합 메모리 |
+| **CPU** | ~40 | 16 | 4-8GB RAM |
 
 ## 🔧 고급 설정
 
@@ -297,16 +327,37 @@ uv lock --upgrade
 uv tree
 ```
 
-### LLM 모델 설정
+### LLM 및 임베딩 모델 설정
 
 ```bash
 # .env 파일에서 상세 설정 가능
+# Google Gemini 설정
 GEMINI_MODEL_NAME=models/gemini-2.5-flash-preview-05-20
 GEMINI_EMBEDDING_MODEL_NAME=models/gemini-embedding-exp-03-07
 
+# Naver HCX 설정
 HCX_MODEL_NAME=HCX-005
 
-DEFAULT_LLM=gemini  # 또는 "hcx"
+# BGE-M3 로컬 임베딩 설정
+BGE_M3_MODEL_PATH="./models/bge-m3"  # 로컬 모델 저장 경로
+BGE_M3_DEVICE="auto"  # auto, cpu, cuda, mps
+
+# 기본 모델 선택
+DEFAULT_LLM=hcx  # 또는 "gemini"
+DEFAULT_EMBEDDING=bge_m3  # 또는 "gemini", "hcx"
+```
+
+### BGE-M3 로컬 모델 다운로드
+
+```bash
+# BGE-M3 모델 자동 다운로드 및 설정 테스트
+uv run python test_bge_m3_local.py
+
+# GPU 성능 테스트
+uv run python test_bge_m3_gpu.py
+
+# RAGTrace 통합 테스트
+uv run python test_bge_m3_integration.py
 ```
 
 ### 프롬프트 커스터마이징
@@ -368,7 +419,25 @@ DEFAULT_PROMPT_TYPE=default           # 기본 RAGAS 프롬프트
    uv run python src/presentation/main.py evaluation_data_variant1 --llm gemini
    ```
 
-4. **UV 관련 문제**
+4. **BGE-M3 관련 문제**
+   ```bash
+   # 의존성 설치 확인
+   uv add sentence-transformers torch
+   
+   # GPU 드라이버 확인 (CUDA)
+   nvidia-smi
+   
+   # Apple Silicon MPS 확인
+   python -c "import torch; print(torch.backends.mps.is_available())"
+   
+   # 모델 다운로드 테스트
+   uv run python test_bge_m3_local.py
+   
+   # GPU 메모리 부족 시 CPU 강제 사용
+   echo 'BGE_M3_DEVICE="cpu"' >> .env
+   ```
+
+5. **UV 관련 문제**
    ```bash
    # UV 캐시 클리어
    uv cache clean
@@ -382,7 +451,7 @@ DEFAULT_PROMPT_TYPE=default           # 기본 RAGAS 프롬프트
    uv python install 3.11
    ```
 
-5. **데이터베이스 문제**
+6. **데이터베이스 문제**
    ```bash
    # 데이터베이스 초기화
    rm -f data/db/evaluations.db

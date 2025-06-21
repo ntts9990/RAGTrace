@@ -10,7 +10,12 @@ import argparse
 import sys
 from typing import Optional
 
-from src.config import settings, PROMPT_TYPE_HELP
+from src.config import (
+    settings, 
+    PROMPT_TYPE_HELP, 
+    SUPPORTED_LLM_TYPES, 
+    SUPPORTED_EMBEDDING_TYPES
+)
 from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets, get_evaluation_data_path
@@ -50,15 +55,15 @@ def create_parser() -> argparse.ArgumentParser:
     )
     eval_parser.add_argument(
         "--llm",
-        choices=["gemini", "hcx"],
-        default="gemini",
-        help="평가에 사용할 LLM (기본값: gemini)"
+        choices=SUPPORTED_LLM_TYPES,
+        default=settings.DEFAULT_LLM,
+        help=f"평가에 사용할 LLM (기본값: {settings.DEFAULT_LLM})"
     )
     eval_parser.add_argument(
         "--embedding",
-        choices=["gemini", "hcx"],
+        choices=SUPPORTED_EMBEDDING_TYPES,
         default=None,
-        help="평가에 사용할 임베딩 모델. 지정하지 않으면 LLM과 동일한 모델을 사용합니다."
+        help=f"평가에 사용할 임베딩 모델 (기본값: {settings.DEFAULT_EMBEDDING}). 지정하지 않으면 기본 임베딩을 사용합니다."
     )
     eval_parser.add_argument(
         "--prompt-type", 
@@ -125,19 +130,19 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
                     verbose: bool = False):
     """데이터셋 평가 실행"""
     
-    # 임베딩 모델 선택 (미지정 시 LLM과 동일하게 설정)
-    embedding_choice = embedding or llm
+    # 임베딩 모델 선택 (미지정 시 기본 임베딩 사용)
+    embedding_choice = embedding or settings.DEFAULT_EMBEDDING
     
     # LLM 및 임베딩 어댑터 선택
     try:
         llm_adapter = container.llm_providers()[llm]
         embedding_adapter = container.embedding_providers()[embedding_choice]
         
-        if llm == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
-            print("❌ 'hcx' LLM을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+        if llm in ["hcx"] and not settings.CLOVA_STUDIO_API_KEY:
+            print(f"❌ '{llm}' LLM을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
             return False
-        if embedding_choice == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
-            print("❌ 'hcx' 임베딩을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+        if embedding_choice in ["hcx"] and not settings.CLOVA_STUDIO_API_KEY:
+            print(f"❌ '{embedding_choice}' 임베딩을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
             return False
 
     except Exception as e:

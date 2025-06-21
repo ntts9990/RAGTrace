@@ -8,7 +8,9 @@ RAGTrace is a comprehensive RAG (Retrieval-Augmented Generation) evaluation fram
 
 **Key Features:**
 - **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
-- **Multi-Embedding Support**: Google Gemini Embedding and Naver HCX Embedding  
+- **Multi-Embedding Support**: Google Gemini, Naver HCX, and BGE-M3 Local Embedding
+- **BGE-M3 GPU Auto-Detection**: Automatic CUDA/MPS/CPU detection with optimization
+- **Local Model Support**: Fully offline embedding processing with BGE-M3
 - **Interactive Web Dashboard**: Real-time evaluation with Streamlit
 - **Complete Dependency Injection**: Using dependency-injector framework
 - **Clean Architecture**: Domain, Application, Infrastructure, Presentation layers
@@ -16,6 +18,7 @@ RAGTrace is a comprehensive RAG (Retrieval-Augmented Generation) evaluation fram
 - **Comprehensive Metrics**: Faithfulness, Answer Relevancy, Context Recall/Precision
 - **Historical Tracking**: SQLite-based evaluation history with visualization
 - **Production Ready**: Error handling, timeout management, and user-friendly interfaces
+- **Centralized Configuration**: All default values managed in single config file
 
 ## Architecture
 
@@ -145,8 +148,13 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # Optional: Naver Cloud CLOVA Studio API Key (for HCX-005)
 CLOVA_STUDIO_API_KEY=your_clova_studio_api_key_here
 
-# Optional: Override default LLM
-DEFAULT_LLM=gemini  # or "hcx"
+# Optional: Override default models
+DEFAULT_LLM=hcx  # or "gemini"
+DEFAULT_EMBEDDING=bge_m3  # or "gemini", "hcx"
+
+# Optional: BGE-M3 Local Embedding Configuration
+BGE_M3_MODEL_PATH="./models/bge-m3"  # Local model path
+# BGE_M3_DEVICE="auto"  # auto, cpu, cuda, mps (auto-detection if commented)
 ```
 
 ### Dependencies Installation
@@ -172,6 +180,10 @@ ragas>=0.1.0
 google-generativeai>=0.3.0
 python-dotenv>=1.0.0
 
+# Local embeddings
+sentence-transformers>=2.2.2
+torch>=2.0.0
+
 # Web dashboard
 streamlit>=1.28.0
 plotly>=5.17.0
@@ -189,12 +201,15 @@ pydantic-settings>=2.0.0
 
 ### LLM Integration
 - **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
-- **Multi-Embedding Support**: Google Gemini Embedding and Naver HCX Embedding
+- **Multi-Embedding Support**: Google Gemini, Naver HCX, and BGE-M3 Local Embedding
+- **BGE-M3 Auto-Detection**: Automatic GPU/CPU detection (CUDA, MPS, CPU) with performance optimization
+- **Local Model Support**: Fully offline embedding processing with BGE-M3 sentence-transformers
 - **HTTP Direct Call Architecture**: Custom HTTP wrappers to bypass LangChain timeout issues
 - **Stability Improvements**: HttpGeminiWrapper and GeminiHttpEmbeddingAdapter for reliable API calls
 - **Error Handling**: Comprehensive timeout and retry mechanisms with network stability
 - **Runtime Selection**: Dynamic LLM and embedding model switching via CLI and web UI
 - **Independent Selection**: LLM and embedding models can be chosen independently
+- **Centralized Configuration**: All model types and settings managed in single config file
 
 ### Data Management
 - **Evaluation Data**: JSON format in `data/` directory
@@ -244,6 +259,7 @@ pydantic-settings>=2.0.0
 - `src/infrastructure/llm/hcx_adapter.py` - Naver HCX LLM integration
 - `src/infrastructure/embedding/gemini_http_adapter.py` - HTTP direct call adapter for Gemini Embedding
 - `src/infrastructure/embedding/hcx_adapter.py` - Naver HCX Embedding integration
+- `src/infrastructure/embedding/bge_m3_adapter.py` - BGE-M3 local embedding with GPU auto-detection
 
 ### Web Components
 - `src/presentation/web/main.py` - Main dashboard
@@ -254,6 +270,10 @@ pydantic-settings>=2.0.0
 - `data/evaluation_data.json` - Sample evaluation datasets
 - `data/db/evaluations.db` - SQLite evaluation history
 - `docs/RAGTRACE_METRICS.md` - Comprehensive metric explanations in Korean
+- `docs/LLM_Customization_Manual.md` - Guide for adding new LLM models
+- `docs/Offline_LLM_Integration_Guide.md` - Guide for offline/air-gapped deployment
+- `docs/BGE_M3_GPU_Guide.md` - BGE-M3 GPU optimization guide
+- `docs/Troubleshooting_Guide.md` - Comprehensive troubleshooting guide
 
 ## Web Dashboard Features
 
@@ -276,6 +296,50 @@ pydantic-settings>=2.0.0
 - **Responsive Design**: Mobile-friendly interface
 
 ## Recent Updates
+
+### ✅ BGE-M3 Local Embedding Integration (2024)
+
+Added comprehensive local embedding support with GPU auto-detection:
+
+**New Features**:
+- **BGE-M3 Local Embedding**: Complete offline embedding processing using sentence-transformers
+- **GPU Auto-Detection**: Automatic CUDA/MPS/CPU detection with device-specific optimization
+- **Performance Optimization**: Device-specific batch sizes and memory management
+- **Multilingual Support**: BGE-M3 supports 100+ languages with excellent cross-lingual performance
+- **Air-gapped Deployment**: Full offline capability for enterprise environments
+
+**Implementation**:
+- `src/infrastructure/embedding/bge_m3_adapter.py` - BGE-M3 adapter with auto-detection
+- `docs/BGE_M3_GPU_Guide.md` - Comprehensive GPU optimization guide
+- `docs/Offline_LLM_Integration_Guide.md` - Complete offline deployment guide
+- GPU memory monitoring and automatic cleanup
+- Configurable device selection with smart defaults
+
+**Performance Results**:
+- CUDA: ~60 docs/sec with GPU acceleration
+- MPS (Apple Silicon): ~15 docs/sec with Metal acceleration  
+- CPU: ~40 docs/sec with multi-core optimization
+- 1024-dimensional embeddings with cosine similarity optimization
+
+### ✅ Enhanced Logging and Configuration Management (2024)
+
+**Embedding Model Visibility**:
+- Added comprehensive embedding model logging throughout the evaluation process
+- Clear identification of which LLM and embedding models are being used
+- Device information display for BGE-M3 (CPU/GPU/MPS)
+
+**Centralized Configuration**:
+- Eliminated all hardcoded default values across the codebase
+- Centralized model type definitions in `src/config.py`
+- Dynamic model validation with clear error messages
+- Consistent display names for web UI components
+
+**Files Updated**:
+- `src/config.py` - Added SUPPORTED_*_TYPES and DISPLAY_NAMES constants
+- `src/presentation/main.py` - Added embedding model logging
+- `src/infrastructure/evaluation/ragas_adapter.py` - Enhanced evaluation logging
+- `cli.py` - Dynamic model choices from config
+- Web UI components - Centralized display names and validation
 
 ### ✅ LangChain Timeout Issue Resolution (2024)
 

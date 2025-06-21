@@ -13,6 +13,9 @@ class HcxEmbeddingAdapter(Embeddings):
         
         self.api_key = api_key
         self.api_url = "https://clovastudio.stream.ntruss.com/testapp/v1/api-tools/embedding/v2"
+        self.model_name = "HCX-Embedding"
+        
+        print(f"✅ HCX 임베딩 어댑터 초기화 완료: {self.model_name}")
 
     def _embed(self, text: str) -> List[float]:
         """단일 텍스트에 대한 임베딩을 수행합니다."""
