@@ -14,11 +14,16 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 # Set working directory
 WORKDIR /app
 
-# Copy project configuration first (as root for now)
+# Copy project configuration and source code for package build
 COPY pyproject.toml ./
 COPY uv.toml ./
 COPY .python-version ./
 COPY uv.lock ./
+COPY src/ ./src/
+COPY README.md CLAUDE.md ./
+
+# Create LICENSE file for build
+RUN echo "Apache License 2.0" > LICENSE
 
 # Set up UV environment
 ENV UV_PYTHON=3.11
@@ -32,11 +37,9 @@ RUN uv sync --no-dev || uv sync
 # Create non-root user
 RUN useradd -m -u 1000 ragtrace
 
-# Copy application files with correct ownership
-COPY --chown=ragtrace:ragtrace src/ ./src/
+# Copy remaining application files with correct ownership
 COPY --chown=ragtrace:ragtrace data/ ./data/
 COPY --chown=ragtrace:ragtrace cli.py hello.py ./
-COPY --chown=ragtrace:ragtrace README.md CLAUDE.md ./
 
 # Create data directories and fix ownership
 RUN mkdir -p /app/data/db /app/data/temp && \
