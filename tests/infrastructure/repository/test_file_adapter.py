@@ -4,6 +4,7 @@ from unittest.mock import mock_open, patch
 import pytest
 
 from src.domain.entities.evaluation_data import EvaluationData
+from src.domain.exceptions.evaluation_exceptions import InvalidDataFormatError
 from src.infrastructure.repository.file_adapter import FileRepositoryAdapter
 
 
@@ -41,19 +42,17 @@ def test_file_repository_load_data_success(temp_json_file):
 
 
 def test_file_repository_file_not_found():
-    """파일이 존재하지 않을 때 빈 리스트를 반환하는지 테스트"""
+    """파일이 존재하지 않을 때 InvalidDataFormatError가 발생하는지 테스트"""
     # Arrange
     adapter = FileRepositoryAdapter(file_path="non_existent_file.json")
 
-    # Act
-    loaded_data = adapter.load_data()
-
-    # Assert
-    assert loaded_data == []
+    # Act & Assert
+    with pytest.raises(InvalidDataFormatError):
+        adapter.load_data()
 
 
 def test_file_repository_invalid_json(tmp_path):
-    """JSON 형식이 잘못되었을 때 빈 리스트를 반환하는지 테스트"""
+    """JSON 형식이 잘못되었을 때 InvalidDataFormatError가 발생하는지 테스트"""
     # Arrange
     invalid_json_path = tmp_path / "invalid.json"
     with open(invalid_json_path, "w", encoding="utf-8") as f:
@@ -61,11 +60,9 @@ def test_file_repository_invalid_json(tmp_path):
 
     adapter = FileRepositoryAdapter(file_path=str(invalid_json_path))
 
-    # Act
-    loaded_data = adapter.load_data()
-
-    # Assert
-    assert loaded_data == []
+    # Act & Assert
+    with pytest.raises(InvalidDataFormatError):
+        adapter.load_data()
 
 
 class TestFileRepositoryAdapter:

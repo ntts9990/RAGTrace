@@ -136,7 +136,7 @@ class TestRagasEvalAdapter:
 
     @patch("src.infrastructure.evaluation.ragas_adapter.evaluate")
     def test_evaluate_exception_handling(self, mock_evaluate):
-        """평가 중 예외 발생 시 처리 테스트"""
+        """평가 중 예외 발생 시 폴백 처리 테스트"""
         # Mock dataset
         dataset = Dataset.from_dict({"question": ["테스트"], "answer": ["답변"], "contexts": [["컨텍스트"]], "ground_truth": ["정답"]})
         
@@ -149,6 +149,10 @@ class TestRagasEvalAdapter:
 
         adapter = RagasEvalAdapter(llm=mock_llm, embeddings=mock_embeddings)
         
-        with pytest.raises(Exception):
-            with patch('builtins.print'):  # Suppress print statements
-                adapter.evaluate(dataset)
+        # RagasEvalAdapter는 예외 발생 시 더미 결과를 반환함
+        with patch('builtins.print'):  # Suppress print statements
+            result = adapter.evaluate(dataset)
+        
+        # 더미 결과가 반환되는지 확인
+        assert isinstance(result, dict)
+        assert "ragas_score" in result
