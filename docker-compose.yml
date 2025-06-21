@@ -6,7 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
     container_name: ragtrace-dashboard
     ports:
       - "8501:8501"
@@ -48,7 +47,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
     container_name: ragtrace-cli
     environment:
       # Required API Keys

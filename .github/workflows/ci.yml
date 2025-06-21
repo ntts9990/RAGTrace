@@ -86,7 +86,6 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        target: production
         push: false
         tags: ragtrace:test
         cache-from: type=gha

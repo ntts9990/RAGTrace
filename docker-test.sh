@@ -27,7 +27,7 @@ EOF
 
 # Test Docker build
 echo "🔨 Docker 이미지 빌드 테스트..."
-docker build --target production -t ragtrace:test .
+docker build -t ragtrace:test .
 
 if [ $? -eq 0 ]; then
     echo "✅ Docker 이미지 빌드 성공"
