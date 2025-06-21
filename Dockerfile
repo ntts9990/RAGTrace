@@ -25,17 +25,21 @@ COPY README.md CLAUDE.md ./
 # Create LICENSE file for build
 RUN echo "Apache License 2.0" > LICENSE
 
-# Set up UV environment
+# Create non-root user first
+RUN useradd -m -u 1000 ragtrace
+
+# Set up UV environment with user-accessible cache
 ENV UV_PYTHON=3.11
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
-ENV UV_CACHE_DIR=/tmp/.uv-cache
+ENV UV_CACHE_DIR=/home/ragtrace/.cache/uv
 
-# Install dependencies using UV (as root to avoid permission issues)
+# Create cache directory with proper ownership
+RUN mkdir -p /home/ragtrace/.cache/uv && \
+    chown -R ragtrace:ragtrace /home/ragtrace/.cache
+
+# Install dependencies using UV (as root but cache owned by ragtrace)
 RUN uv sync --no-dev || uv sync
-
-# Create non-root user
-RUN useradd -m -u 1000 ragtrace
 
 # Copy remaining application files with correct ownership
 COPY --chown=ragtrace:ragtrace data/ ./data/
