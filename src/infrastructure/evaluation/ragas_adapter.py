@@ -22,11 +22,15 @@ class RagasEvalAdapter:
 
     def __init__(
         self,
-        llm: BaseLanguageModel,
+        llm: Any,  # LLM 어댑터 (GeminiAdapter 또는 HcxAdapter)
         embeddings: Embeddings,
         prompt_type: Optional[PromptType] = None,
     ):
-        self.llm = llm
+        # LLM 어댑터에서 실제 LangChain 호환 LLM 객체 가져오기
+        if hasattr(llm, 'get_llm'):
+            self.llm = llm.get_llm()
+        else:
+            self.llm = llm
         self.embeddings = embeddings
         self.prompt_type = prompt_type or PromptType.DEFAULT
         

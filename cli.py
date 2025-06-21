@@ -13,7 +13,7 @@ from typing import Optional
 from src.config import settings, PROMPT_TYPE_HELP
 from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
-from src.utils.paths import get_available_datasets
+from src.utils.paths import get_available_datasets, get_evaluation_data_path
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -24,10 +24,13 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 예시:
   # 기본 프롬프트로 평가 실행
-  python cli.py evaluate evaluation_data
+  python cli.py evaluate evaluation_data.json
 
+  # LLM과 임베딩 모델 선택
+  python cli.py evaluate evaluation_data.json --llm gemini --embedding hcx
+  
   # 한국어 기술 문서 프롬프트로 평가
-  python cli.py evaluate evaluation_data --prompt-type korean_tech
+  python cli.py evaluate evaluation_data.json --prompt-type korean_tech
   
   # 사용 가능한 데이터셋 목록 보기
   python cli.py list-datasets
@@ -158,10 +161,11 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
     print(f"📊 데이터셋: {dataset_name}")
     
     # 데이터셋 확인
-    available_datasets = get_available_datasets()
-    if dataset_name not in available_datasets:
+    dataset_path = get_evaluation_data_path(dataset_name)
+    if dataset_path is None:
         print(f"❌ 데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
         print("사용 가능한 데이터셋:")
+        available_datasets = get_available_datasets()
         for ds in available_datasets:
             print(f"  - {ds}")
         return False

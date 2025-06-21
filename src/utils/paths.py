@@ -83,16 +83,36 @@ def get_evaluation_data_path(dataset_name: str) -> Path | None:
     Returns:
         Path: 데이터 파일 경로 (파일이 존재하지 않으면 None)
     """
-    # variant 키워드가 포함된 경우 처리
+    # 1. 정확한 파일명으로 먼저 확인
+    if dataset_name in EVALUATION_DATA_FILES:
+        file_path = EVALUATION_DATA_FILES[dataset_name]
+        if file_path.exists():
+            return file_path
+    
+    # 2. 직접 파일명이 주어진 경우
+    file_path = DATA_DIR / dataset_name
+    if file_path.exists():
+        return file_path
+    
+    # 3. 확장자가 없는 경우 .json 추가해서 확인
+    if not dataset_name.endswith('.json'):
+        json_path = DATA_DIR / f"{dataset_name}.json"
+        if json_path.exists():
+            return json_path
+    
+    # 4. variant 키워드가 포함된 경우 처리
     if "variant1" in dataset_name.lower():
         file_path = VARIANT1_EVALUATION_DATA
-    elif dataset_name in EVALUATION_DATA_FILES:
-        file_path = EVALUATION_DATA_FILES[dataset_name]
-    else:
-        # 직접 파일명이 주어진 경우
-        file_path = DATA_DIR / dataset_name
+        if file_path.exists():
+            return file_path
+    
+    # 5. evaluation_data로 시작하는 경우 처리
+    if dataset_name.startswith("evaluation_data") and not dataset_name.endswith('.json'):
+        json_path = DATA_DIR / f"{dataset_name}.json"
+        if json_path.exists():
+            return json_path
 
-    return file_path if file_path.exists() else None
+    return None
 
 
 def get_available_datasets() -> list[str]:
