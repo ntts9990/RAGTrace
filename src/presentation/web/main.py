@@ -16,6 +16,7 @@ from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
 from src.presentation.web.components.prompt_selector import show_prompt_selector
 from src.presentation.web.components.llm_selector import show_llm_selector
+from src.presentation.web.components.embedding_selector import show_embedding_selector
 from src.utils.paths import (
     DATABASE_PATH,
     get_available_datasets,
@@ -92,6 +93,12 @@ def main_page():
 def show_overview():
     """메인 오버뷰 대시보드"""
     st.header("📊 평가 결과 개요")
+    
+    # 방금 완료된 평가가 있으면 축하 메시지 표시
+    if st.session_state.get("evaluation_completed", False):
+        st.success("🎉 새로운 평가가 방금 완료되었습니다!")
+        # 한 번 표시 후 상태 초기화
+        st.session_state.evaluation_completed = False
 
     # 액션 버튼들
     col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
@@ -305,6 +312,11 @@ def show_new_evaluation_page():
     
     st.markdown("---")
     
+    # 임베딩 선택 UI 표시
+    selected_embedding = show_embedding_selector()
+    
+    st.markdown("---")
+    
     # 프롬프트 선택 UI 표시
     selected_prompt_type = show_prompt_selector()
     
@@ -355,12 +367,14 @@ def show_new_evaluation_page():
     
     # 평가 설정 요약
     st.markdown("### 📋 평가 설정 요약")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.write(f"**🤖 LLM 모델:** {selected_llm}")
     with col2:
-        st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
+        st.write(f"**🔍 임베딩 모델:** {selected_embedding}")
     with col3:
+        st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
+    with col4:
         st.write(f"**📊 데이터셋:** {selected_dataset}")
     
     st.markdown("---")
@@ -375,29 +389,30 @@ def show_new_evaluation_page():
     
     with col2:
         if st.button("🚀 평가 시작", type="primary", use_container_width=True):
-            execute_evaluation(selected_prompt_type, selected_dataset, selected_llm)
+            execute_evaluation(selected_prompt_type, selected_dataset, selected_llm, selected_embedding)
     
     with col3:
         st.write("")  # 빈 공간
 
 
-def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str):
+def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str, embedding_type: str):
     """평가 실행 로직"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
             st.info(f"🤖 선택된 LLM: {llm_type}")
+            st.info(f"🔍 선택된 임베딩: {embedding_type}")
             st.info(f"📊 선택된 데이터셋: {dataset_name}")
             st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
             # HCX 선택 시 API 키 확인
-            if llm_type == "hcx":
+            if llm_type == "hcx" or embedding_type == "hcx":
                 from src.config import settings
                 if not settings.CLOVA_STUDIO_API_KEY:
                     st.error("❌ HCX 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
                     return
 
-            # 선택된 LLM으로 유스케이스 가져오기
-            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type)
+            # 선택된 LLM과 임베딩으로 유스케이스 가져오기
+            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type, embedding_type)
 
             # 평가 실행
             evaluation_result = evaluation_use_case.execute(
@@ -409,6 +424,7 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             if "metadata" not in result_dict:
                 result_dict["metadata"] = {}
             result_dict["metadata"]["llm_type"] = llm_type
+            result_dict["metadata"]["embedding_type"] = embedding_type
             result_dict["metadata"]["dataset"] = dataset_name
             result_dict["metadata"]["prompt_type"] = prompt_type.value
 
@@ -438,11 +454,27 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             
             # 결과 페이지로 이동
             st.markdown("---")
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if st.button("📊 결과 페이지로 이동", type="primary", use_container_width=True):
+            
+            # 평가 완료 상태 저장
+            st.session_state.evaluation_completed = True
+            st.session_state.latest_evaluation_result = result_dict
+            
+            st.info("💡 평가가 완료되었습니다! 결과를 확인해보세요.")
+            
+            # 여러 방법으로 결과 페이지 이동 제공
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("📊 Overview 페이지로 이동", type="primary", use_container_width=True, key="goto_overview"):
                     st.session_state.navigate_to = "🎯 Overview"
                     st.rerun()
+            
+            with col2:
+                if st.button("📈 Historical 페이지로 이동", type="secondary", use_container_width=True, key="goto_historical"):
+                    st.session_state.navigate_to = "📈 Historical"
+                    st.rerun()
+            
+            st.markdown("**또는** 사이드바에서 다른 페이지를 선택하세요.")
 
         except Exception as e:
             st.error(f"❌ 평가 중 오류 발생: {str(e)}")
