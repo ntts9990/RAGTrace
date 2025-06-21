@@ -12,9 +12,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.container import container
+from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
 from src.presentation.web.components.prompt_selector import show_prompt_selector
+from src.presentation.web.components.llm_selector import show_llm_selector
 from src.utils.paths import (
     DATABASE_PATH,
     get_available_datasets,
@@ -299,6 +300,11 @@ def show_new_evaluation_page():
     st.title("🚀 새 평가 실행")
     st.markdown("---")
     
+    # LLM 선택 UI 표시
+    selected_llm = show_llm_selector()
+    
+    st.markdown("---")
+    
     # 프롬프트 선택 UI 표시
     selected_prompt_type = show_prompt_selector()
     
@@ -349,10 +355,12 @@ def show_new_evaluation_page():
     
     # 평가 설정 요약
     st.markdown("### 📋 평가 설정 요약")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
+        st.write(f"**🤖 LLM 모델:** {selected_llm}")
     with col2:
+        st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
+    with col3:
         st.write(f"**📊 데이터셋:** {selected_dataset}")
     
     st.markdown("---")
@@ -367,21 +375,22 @@ def show_new_evaluation_page():
     
     with col2:
         if st.button("🚀 평가 시작", type="primary", use_container_width=True):
-            execute_evaluation(selected_prompt_type, selected_dataset)
+            execute_evaluation(selected_prompt_type, selected_dataset, selected_llm)
     
     with col3:
         st.write("")  # 빈 공간
 
 
-def execute_evaluation(prompt_type: PromptType, dataset_name: str):
+def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str):
     """평가 실행 로직"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
+            st.info(f"🤖 선택된 LLM: {llm_type}")
             st.info(f"📊 선택된 데이터셋: {dataset_name}")
             st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
-            # 컨테이너에서 유스케이스 가져오기
-            evaluation_use_case = container.run_evaluation_use_case
+            # 선택된 LLM으로 유스케이스 가져오기
+            evaluation_use_case = get_evaluation_use_case_with_llm(llm_type)
 
             # 평가 실행
             evaluation_result = evaluation_use_case.execute(
@@ -389,8 +398,9 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str):
                 prompt_type=prompt_type
             )
 
-            # 결과 저장 (데이터셋 정보 포함)
+            # 결과 저장 (메타데이터에 LLM 정보 포함)
             result_dict = evaluation_result.to_dict()
+            result_dict["metadata"]["llm_type"] = llm_type
             result_dict["metadata"]["dataset"] = dataset_name
             result_dict["metadata"]["prompt_type"] = prompt_type.value
 

@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -23,32 +24,50 @@ class SQLiteAdapter:
         """
         self.db_path = db_path or DATABASE_PATH
         self._init_db()
+    
+    @contextmanager
+    def _get_connection(self):
+        """데이터베이스 연결을 context manager로 관리"""
+        conn = None
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            yield conn
+            conn.commit()
+        except sqlite3.Error as e:
+            if conn:
+                conn.rollback()
+            print(f"❌ SQLite 오류 발생: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
 
     def _init_db(self):
         """데이터베이스 초기화"""
         # 디렉토리 생성
         ensure_directory_exists(self.db_path.parent)
 
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS evaluations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                faithfulness REAL,
-                answer_relevancy REAL,
-                context_recall REAL,
-                context_precision REAL,
-                ragas_score REAL,
-                raw_data TEXT
-            )
-        """
-        )
-
-        conn.commit()
-        conn.close()
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS evaluations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT NOT NULL,
+                        faithfulness REAL,
+                        answer_relevancy REAL,
+                        context_recall REAL,
+                        context_precision REAL,
+                        ragas_score REAL,
+                        raw_data TEXT
+                    )
+                """
+                )
+                print("✅ SQLite 데이터베이스 초기화 완료")
+        except sqlite3.Error as e:
+            print(f"❌ 데이터베이스 초기화 실패: {e}")
+            raise
 
     def save_evaluation(self, evaluation_data: dict[str, Any]) -> int:
         """평가 결과 저장
@@ -59,35 +78,36 @@ class SQLiteAdapter:
         Returns:
             int: 저장된 레코드의 ID
         """
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        # 현재 시간을 타임스탬프로 사용 (데이터에 없는 경우)
-        timestamp = evaluation_data.get("timestamp", datetime.now().isoformat())
-
-        cursor.execute(
-            """
-            INSERT INTO evaluations 
-            (timestamp, faithfulness, answer_relevancy, context_recall, 
-             context_precision, ragas_score, raw_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                timestamp,
-                evaluation_data.get("faithfulness"),
-                evaluation_data.get("answer_relevancy"),
-                evaluation_data.get("context_recall"),
-                evaluation_data.get("context_precision"),
-                evaluation_data.get("ragas_score"),
-                json.dumps(evaluation_data, ensure_ascii=False),
-            ),
-        )
-
-        evaluation_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-
-        return evaluation_id
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 현재 시간을 타임스탬프로 사용 (데이터에 없는 경우)
+                timestamp = evaluation_data.get("timestamp", datetime.now().isoformat())
+                
+                cursor.execute(
+                    """
+                    INSERT INTO evaluations 
+                    (timestamp, faithfulness, answer_relevancy, context_recall, 
+                     context_precision, ragas_score, raw_data)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        timestamp,
+                        evaluation_data.get("faithfulness"),
+                        evaluation_data.get("answer_relevancy"),
+                        evaluation_data.get("context_recall"),
+                        evaluation_data.get("context_precision"),
+                        evaluation_data.get("ragas_score"),
+                        json.dumps(evaluation_data, ensure_ascii=False),
+                    ),
+                )
+                
+                evaluation_id = cursor.lastrowid
+                return evaluation_id
+        except sqlite3.Error as e:
+            print(f"❌ 평가 결과 저장 실패: {e}")
+            raise
 
     def get_evaluation(self, evaluation_id: int) -> dict[str, Any] | None:
         """특정 평가 결과 조회
@@ -98,35 +118,38 @@ class SQLiteAdapter:
         Returns:
             평가 결과 데이터 또는 None
         """
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            SELECT id, timestamp, faithfulness, answer_relevancy, 
-                   context_recall, context_precision, ragas_score, raw_data
-            FROM evaluations 
-            WHERE id = ?
-        """,
-            (evaluation_id,),
-        )
-
-        row = cursor.fetchone()
-        conn.close()
-
-        if not row:
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute(
+                    """
+                    SELECT id, timestamp, faithfulness, answer_relevancy, 
+                           context_recall, context_precision, ragas_score, raw_data
+                    FROM evaluations 
+                    WHERE id = ?
+                """,
+                    (evaluation_id,),
+                )
+                
+                row = cursor.fetchone()
+                
+                if not row:
+                    return None
+                
+                return {
+                    "id": row[0],
+                    "timestamp": row[1],
+                    "faithfulness": row[2],
+                    "answer_relevancy": row[3],
+                    "context_recall": row[4],
+                    "context_precision": row[5],
+                    "ragas_score": row[6],
+                    "raw_data": json.loads(row[7]) if row[7] else None,
+                }
+        except sqlite3.Error as e:
+            print(f"❌ 평가 결과 조회 실패: {e}")
             return None
-
-        return {
-            "id": row[0],
-            "timestamp": row[1],
-            "faithfulness": row[2],
-            "answer_relevancy": row[3],
-            "context_recall": row[4],
-            "context_precision": row[5],
-            "ragas_score": row[6],
-            "raw_data": json.loads(row[7]) if row[7] else None,
-        }
 
     def get_all_evaluations(self, limit: int | None = None) -> list[dict[str, Any]]:
         """모든 평가 결과 조회
@@ -137,39 +160,44 @@ class SQLiteAdapter:
         Returns:
             평가 결과 데이터 리스트
         """
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        query = """
-            SELECT id, timestamp, faithfulness, answer_relevancy, 
-                   context_recall, context_precision, ragas_score, raw_data
-            FROM evaluations 
-            ORDER BY timestamp DESC
-        """
-
-        if limit:
-            query += f" LIMIT {limit}"
-
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        conn.close()
-
-        evaluations = []
-        for row in rows:
-            evaluations.append(
-                {
-                    "id": row[0],
-                    "timestamp": row[1],
-                    "faithfulness": row[2],
-                    "answer_relevancy": row[3],
-                    "context_recall": row[4],
-                    "context_precision": row[5],
-                    "ragas_score": row[6],
-                    "raw_data": json.loads(row[7]) if row[7] else None,
-                }
-            )
-
-        return evaluations
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT id, timestamp, faithfulness, answer_relevancy, 
+                           context_recall, context_precision, ragas_score, raw_data
+                    FROM evaluations 
+                    ORDER BY timestamp DESC
+                """
+                
+                if limit:
+                    query += " LIMIT ?"
+                    cursor.execute(query, (limit,))
+                else:
+                    cursor.execute(query)
+                
+                rows = cursor.fetchall()
+                
+                evaluations = []
+                for row in rows:
+                    evaluations.append(
+                        {
+                            "id": row[0],
+                            "timestamp": row[1],
+                            "faithfulness": row[2],
+                            "answer_relevancy": row[3],
+                            "context_recall": row[4],
+                            "context_precision": row[5],
+                            "ragas_score": row[6],
+                            "raw_data": json.loads(row[7]) if row[7] else None,
+                        }
+                    )
+                
+                return evaluations
+        except sqlite3.Error as e:
+            print(f"❌ 평가 결과 목록 조회 실패: {e}")
+            return []
 
     def delete_evaluation(self, evaluation_id: int) -> bool:
         """평가 결과 삭제
@@ -180,16 +208,15 @@ class SQLiteAdapter:
         Returns:
             bool: 삭제 성공 여부
         """
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        cursor.execute("DELETE FROM evaluations WHERE id = ?", (evaluation_id,))
-        deleted_count = cursor.rowcount
-
-        conn.commit()
-        conn.close()
-
-        return deleted_count > 0
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM evaluations WHERE id = ?", (evaluation_id,))
+                deleted_count = cursor.rowcount
+                return deleted_count > 0
+        except sqlite3.Error as e:
+            print(f"❌ 평가 결과 삭제 실패: {e}")
+            return False
 
     def get_statistics(self) -> dict[str, Any]:
         """평가 통계 조회
@@ -197,57 +224,72 @@ class SQLiteAdapter:
         Returns:
             통계 데이터
         """
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-
-        # 총 평가 횟수
-        cursor.execute("SELECT COUNT(*) FROM evaluations")
-        total_count = cursor.fetchone()[0]
-
-        # 평균 점수들
-        cursor.execute(
-            """
-            SELECT 
-                AVG(faithfulness) as avg_faithfulness,
-                AVG(answer_relevancy) as avg_answer_relevancy,
-                AVG(context_recall) as avg_context_recall,
-                AVG(context_precision) as avg_context_precision,
-                AVG(ragas_score) as avg_ragas_score
-            FROM evaluations 
-            WHERE faithfulness IS NOT NULL
-        """
-        )
-        avg_row = cursor.fetchone()
-
-        # 최신 평가
-        cursor.execute(
-            """
-            SELECT timestamp 
-            FROM evaluations 
-            ORDER BY timestamp DESC 
-            LIMIT 1
-        """
-        )
-        latest_row = cursor.fetchone()
-
-        conn.close()
-
-        return {
-            "total_evaluations": total_count,
-            "average_scores": {
-                "faithfulness": avg_row[0] if avg_row[0] else 0,
-                "answer_relevancy": avg_row[1] if avg_row[1] else 0,
-                "context_recall": avg_row[2] if avg_row[2] else 0,
-                "context_precision": avg_row[3] if avg_row[3] else 0,
-                "ragas_score": avg_row[4] if avg_row[4] else 0,
-            },
-            "latest_evaluation": latest_row[0] if latest_row else None,
-        }
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 총 평가 횟수
+                cursor.execute("SELECT COUNT(*) FROM evaluations")
+                total_count = cursor.fetchone()[0]
+                
+                # 평균 점수들
+                cursor.execute(
+                    """
+                    SELECT 
+                        AVG(faithfulness) as avg_faithfulness,
+                        AVG(answer_relevancy) as avg_answer_relevancy,
+                        AVG(context_recall) as avg_context_recall,
+                        AVG(context_precision) as avg_context_precision,
+                        AVG(ragas_score) as avg_ragas_score
+                    FROM evaluations 
+                    WHERE faithfulness IS NOT NULL
+                """
+                )
+                avg_row = cursor.fetchone()
+                
+                # 최신 평가
+                cursor.execute(
+                    """
+                    SELECT timestamp 
+                    FROM evaluations 
+                    ORDER BY timestamp DESC 
+                    LIMIT 1
+                """
+                )
+                latest_row = cursor.fetchone()
+                
+                return {
+                    "total_evaluations": total_count,
+                    "average_scores": {
+                        "faithfulness": avg_row[0] if avg_row and avg_row[0] else 0,
+                        "answer_relevancy": avg_row[1] if avg_row and avg_row[1] else 0,
+                        "context_recall": avg_row[2] if avg_row and avg_row[2] else 0,
+                        "context_precision": avg_row[3] if avg_row and avg_row[3] else 0,
+                        "ragas_score": avg_row[4] if avg_row and avg_row[4] else 0,
+                    },
+                    "latest_evaluation": latest_row[0] if latest_row else None,
+                }
+        except sqlite3.Error as e:
+            print(f"❌ 통계 조회 실패: {e}")
+            return {
+                "total_evaluations": 0,
+                "average_scores": {
+                    "faithfulness": 0,
+                    "answer_relevancy": 0,
+                    "context_recall": 0,
+                    "context_precision": 0,
+                    "ragas_score": 0,
+                },
+                "latest_evaluation": None,
+            }
 
     def clear_all_data(self):
         """모든 데이터 삭제 (테스트용)"""
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM evaluations")
-        conn.commit()
-        conn.close()
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM evaluations")
+                print("✅ 모든 평가 데이터 삭제 완료")
+        except sqlite3.Error as e:
+            print(f"❌ 데이터 삭제 실패: {e}")
+            raise

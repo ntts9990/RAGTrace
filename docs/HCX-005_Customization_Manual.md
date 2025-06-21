@@ -317,4 +317,161 @@ python run_dashboard.py
 | **응답 파싱** | `candidates[0].content.parts[0].text` | `result.message.content` | `HcxAdapter`가 HCX 응답 JSON 구조에 맞게 파싱 |
 | **주요 파라미터** | `generationConfig` (temperature 등) | `topP`, `topK`, `temperature` 등 | `_send_request` 메서드에서 파라미터 매핑 |
 
-</rewritten_file> 
+# HCX-005 모델 연동 가이드
+
+이 문서는 RAGTrace 프로젝트에서 Naver Cloud CLOVA Studio의 HCX-005 모델을 사용하기 위한 핵심 API 명세를 정리한 가이드입니다.
+
+## 1. 개요
+
+- **모델**: HCX-005 (Vision/Language Model)
+- **주요 기능**:
+  - `Chat Completions v3` API를 통한 텍스트 및 이미지 처리
+  - `Function Calling` 지원
+- **특징**: 이 모델은 평가 파이프라인에서 LLM의 성능을 측정하는 데 사용될 수 있습니다.
+
+## 2. 인증 및 기본 설정
+
+- **API Key 발급**: 네이버 클라우드 플랫폼 콘솔의 `CLOVA Studio` > `API 키` 메뉴에서 발급받습니다.
+- **API URL**: `https://clovastudio.stream.ntruss.com`
+- **공통 요청 헤더**:
+  - `Authorization`: `Bearer {발급받은 API Key}`
+  - `Content-Type`: `application/json`
+
+## 3. Chat Completions API (v3) 핵심 명세
+
+HCX-005 모델을 사용하기 위한 기본 API 명세입니다.
+
+### 3.1. 엔드포인트
+
+- **Method**: `POST`
+- **URI**: `/v3/chat-completions/{modelName}`
+  - **`modelName`**: `HCX-005`
+
+### 3.2. 주요 요청 파라미터 (Request Body)
+
+| 필드                | 타입          | 필수 | 설명                                                                                                |
+| ------------------- | ------------- | ---- | --------------------------------------------------------------------------------------------------- |
+| `messages`          | Array         | O    | 대화 메시지 목록. `role`과 `content`로 구성.                                                        |
+| `maxTokens`         | Integer       | X    | 최대 생성 토큰 수. (기본값: 100, **최대: 4096**)                                                    |
+| `temperature`       | Double        | X    | 다양성 조절 (0.0 ~ 1.0). 높을수록 다양함. (기본값: 0.5)                                             |
+| `topP`              | Double        | X    | 누적 확률 기반 샘플링 (0.0 ~ 1.0). (기본값: 0.8)                                                    |
+| `repetitionPenalty` | Double        | X    | 반복 패널티 (0.0 ~ 2.0). (기본값: 1.1)                                                              |
+| `tools`             | Array         | X    | Function Calling을 위한 도구(함수) 목록 정의.                                                       |
+| `toolChoice`        | String/Object | X    | 도구 호출 방식 지정 (`auto`, `none`, 또는 특정 함수 강제).                                          |
+
+### 3.3. `messages` 구조
+
+- **`role`**: `system`, `user`, `assistant`, `tool`
+- **`content`**:
+  - **텍스트**: `String`
+  - **텍스트+이미지**: `Array`
+    - `type`: "text", `text`: "설명"
+    - `type`: "image_url", `imageUrl`: { `url`: "..." } 또는 `dataUri`: { `data`: "base64..." }
+
+### 3.4. 요청 예시 (텍스트 및 이미지)
+
+```shell
+curl --request POST 'https://clovastudio.stream.ntruss.com/testapp/v3/chat-completions/HCX-005' \
+--header 'Authorization: Bearer {CLOVA Studio API Key}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "messages": [
+      {
+        "role": "system",
+        "content": "- 친절하게 답변하는 AI 어시스턴트입니다."
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "image_url",
+            "imageUrl": {
+              "url": "https://.../image.png"
+            }
+          },
+          {
+            "type": "text",
+            "text": "이 사진에 대해서 설명해줘"
+          }
+        ]
+      }
+    ],
+    "maxTokens": 256,
+    "temperature": 0.5
+  }'
+```
+
+### 3.5. 주요 응답 파라미터 (Response Body)
+
+- `result.message.content`: 모델이 생성한 답변 텍스트.
+- `result.usage`: 토큰 사용량 (`promptTokens`, `completionTokens`, `totalTokens`).
+- `result.finishReason`: 생성 중단 이유 (`length`, `stop`, `tool_calls`).
+
+### 3.6. HCX-005 모델 제약 사항
+
+- **토큰 제한**: 입력 토큰과 출력 토큰의 합은 **128,000**을 초과할 수 없습니다.
+- **이미지 제한**: 요청당 최대 **5개**의 이미지를 포함할 수 있습니다 (턴당 1개).
+- **Request Body 크기**: 50MB 이하여야 합니다.
+
+## 4. Function Calling 사용법
+
+외부 함수나 API를 호출하여 동적인 정보를 답변에 활용하는 기능입니다.
+
+### 4.1. 동작 흐름
+
+1.  **[사용자 -> 모델]** `messages`와 함께 사용 가능한 함수 목록(`tools`)을 전달합니다.
+2.  **[모델 -> 사용자]** 모델이 함수 호출이 필요하다고 판단하면, `finishReason: "tool_calls"`와 함께 호출할 함수 정보(`toolCalls`)를 응답합니다.
+3.  **[사용자]** 응답받은 정보를 바탕으로 실제 함수(클라이언트 측 코드)를 실행합니다.
+4.  **[사용자 -> 모델]** 함수 실행 결과를 `role: "tool"` 메시지에 담아 다시 모델에 전달합니다.
+5.  **[모델 -> 사용자]** 모델이 함수 실행 결과를 바탕으로 최종 답변을 생성하여 응답합니다.
+
+### 4.2. 요청 예시 (Python)
+
+```python
+import requests
+import json
+
+# Step 1 & 2: 함수 정의 전달 및 모델의 함수 호출 요청 받기
+response = requests.post(
+    "https://clovastudio.stream.ntruss.com/testapp/v3/chat-completions/HCX-005",
+    headers={...},
+    json={
+        "messages": [{"role": "user", "content": "오늘 서울 날씨 알려줘"}],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "특정 지역의 날씨 정보를 가져옵니다.",
+                "parameters": { ... }
+            }
+        }],
+        "toolChoice": "auto"
+    }
+)
+result = response.json()
+tool_call = result["result"]["message"]["toolCalls"][0]
+
+# Step 3: 실제 함수 실행
+arguments = json.loads(tool_call["function"]["arguments"])
+function_result = get_weather(**arguments) # 로컬/외부 API 호출
+
+# Step 4 & 5: 함수 실행 결과 전달 및 최종 답변 받기
+final_response = requests.post(
+    "https://clovastudio.stream.ntruss.com/testapp/v3/chat-completions/HCX-005",
+    headers={...},
+    json={
+        "messages": [
+            {"role": "user", "content": "오늘 서울 날씨 알려줘"},
+            result["result"]["message"], # 이전 모델 응답
+            {
+                "role": "tool",
+                "toolCallId": tool_call["id"],
+                "content": json.dumps(function_result)
+            }
+        ],
+        ...
+    }
+)
+final_result = final_response.json()
+print(final_result["result"]["message"]["content"])
+``` 

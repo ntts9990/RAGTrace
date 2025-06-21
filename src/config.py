@@ -28,11 +28,19 @@ class Settings(BaseSettings):
 
     # API 요청 제한 설정
     GEMINI_REQUESTS_PER_MINUTE: int = Field(
-        default=1000, description="Gemini API 분당 요청 수 제한"
+        default=30, description="Gemini API 분당 요청 수 제한"
     )
     EMBEDDING_REQUESTS_PER_MINUTE: int = Field(
-        default=1000, description="임베딩 API 분당 요청 수 제한"
+        default=30, description="임베딩 API 분당 요청 수 제한"
     )
+
+    # HCX API 설정
+    CLOVA_STUDIO_API_KEY: Optional[str] = Field(default=None, description="Naver Cloud CLOVA Studio API 키")
+    HCX_MODEL_NAME: str = Field(default="HCX-005", description="사용할 HCX 모델명")
+    HCX_REQUESTS_PER_MINUTE: int = Field(default=30, description="HCX API 분당 요청 수 제한")
+
+    # LLM 선택 설정
+    DEFAULT_LLM: str = Field(default="gemini", description="사용할 기본 LLM (gemini 또는 hcx)")
 
     # 프롬프트 커스터마이징 설정
     DEFAULT_PROMPT_TYPE: str = Field(
@@ -120,6 +128,12 @@ def validate_settings():
             "GEMINI_API_KEY가 설정되지 않았습니다. .env 파일이나 환경변수를 확인하세요."
         )
     
+    # HCX API 키는 선택 사항이므로, 사용할 경우에만 검증할 수 있도록 별도 함수나 로직 필요
+    # if not settings.CLOVA_STUDIO_API_KEY:
+    #     raise ValueError(
+    #         "CLOVA_STUDIO_API_KEY가 설정되지 않았습니다. .env 파일이나 환경변수를 확인하세요."
+    #     )
+
     # 프롬프트 타입 유효성 검증
     try:
         settings.get_prompt_type()

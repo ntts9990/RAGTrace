@@ -29,13 +29,16 @@ class RunEvaluationUseCase:
         llm_port: LlmPort,
         evaluation_runner_factory: "RagasEvalAdapterFactory",
         repository_factory: "FileRepositoryFactory",
+        data_validator: DataContentValidator,
+        generation_service: GenerationService,
+        result_conversion_service: ResultConversionService,
     ):
         self.llm_port = llm_port
         self.evaluation_runner_factory = evaluation_runner_factory
         self.repository_factory = repository_factory
-        self.data_validator = DataContentValidator()
-        self.generation_service = GenerationService(answer_generator=llm_port)
-        self.result_conversion_service = ResultConversionService()
+        self.data_validator = data_validator
+        self.generation_service = generation_service
+        self.result_conversion_service = result_conversion_service
 
     def execute(
         self, 

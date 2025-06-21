@@ -12,8 +12,8 @@ def main():
     print("RAGTrace 평가를 시작합니다...")
 
     try:
-        # 1. 컨테이너에서 유스케이스 가져오기
-        evaluation_use_case = container.run_evaluation_use_case
+        # 1. 컨테이너에서 유스케이스 가져오기 (기본 LLM 사용)
+        evaluation_use_case = container.run_evaluation_use_case()
 
         # 2. 평가 실행 (기본 데이터셋 사용)
         print("평가를 진행 중입니다. 잠시만 기다려주세요...")

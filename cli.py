@@ -11,7 +11,7 @@ import sys
 from typing import Optional
 
 from src.config import settings, PROMPT_TYPE_HELP
-from src.container import container
+from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets
 
@@ -44,6 +44,12 @@ def create_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument(
         "dataset",
         help="평가할 데이터셋 이름 (확장자 제외)"
+    )
+    eval_parser.add_argument(
+        "--llm",
+        choices=["gemini", "hcx"],
+        default="gemini",
+        help="평가에 사용할 LLM 모델 (기본값: gemini)"
     )
     eval_parser.add_argument(
         "--prompt-type", 
@@ -105,9 +111,14 @@ def list_prompts():
         print("💡 --prompt-type 옵션으로 다른 프롬프트를 선택할 수 있습니다.")
 
 
-def evaluate_dataset(dataset_name: str, prompt_type: Optional[str] = None, 
+def evaluate_dataset(dataset_name: str, llm: str, prompt_type: Optional[str] = None, 
                     output_file: Optional[str] = None, verbose: bool = False):
     """데이터셋 평가 실행"""
+    
+    # HCX 사용 시 API 키 확인
+    if llm == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
+        print("❌ 'hcx' 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+        return False
     
     # 프롬프트 타입 설정
     if prompt_type:
@@ -115,11 +126,12 @@ def evaluate_dataset(dataset_name: str, prompt_type: Optional[str] = None,
             selected_prompt_type = PromptType(prompt_type)
         except ValueError:
             print(f"❌ 잘못된 프롬프트 타입: {prompt_type}")
-            print(f"   사용 가능한 타입: {[pt.value for pt in PromptType]}")
+            print(f"사용 가능한 타입: {[pt.value for pt in PromptType]}")
             return False
     else:
         selected_prompt_type = None  # 기본 프롬프트 사용
     
+    print(f"🤖 LLM: {llm}")
     print(f"🎯 프롬프트 타입: {selected_prompt_type.value if selected_prompt_type else 'DEFAULT'}")
     print(f"📊 데이터셋: {dataset_name}")
     
@@ -133,8 +145,8 @@ def evaluate_dataset(dataset_name: str, prompt_type: Optional[str] = None,
         return False
     
     try:
-        # 컨테이너에서 유스케이스 가져오기
-        evaluation_use_case = container.run_evaluation_use_case
+        # 선택된 LLM으로 유스케이스 가져오기
+        evaluation_use_case = get_evaluation_use_case_with_llm(llm)
         
         # 평가 실행
         print("\n🚀 평가를 시작합니다...")
@@ -216,6 +228,7 @@ def main():
     elif args.command == "evaluate":
         success = evaluate_dataset(
             dataset_name=args.dataset,
+            llm=args.llm,
             prompt_type=args.prompt_type,
             output_file=args.output,
             verbose=args.verbose

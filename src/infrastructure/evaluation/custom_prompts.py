@@ -255,7 +255,7 @@ class CustomPromptFactory:
     @staticmethod
     def get_available_prompt_types() -> List[PromptType]:
         """사용 가능한 프롬프트 타입 목록 반환"""
-        return [PromptType.DEFAULT, PromptType.KOREAN_TECH, PromptType.MULTILINGUAL_TECH]
+        return [PromptType.DEFAULT, PromptType.NUCLEAR_HYDRO_TECH, PromptType.KOREAN_FORMAL]
     
     @staticmethod
     def get_prompt_type_description(prompt_type: PromptType) -> str:

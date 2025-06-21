@@ -3,6 +3,7 @@ from typing import List
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.application.ports.llm import LlmPort
+from src.infrastructure.llm.rate_limiter import RateLimitedGeminiLLM
 
 
 class GeminiAdapter(LlmPort):
@@ -19,6 +20,7 @@ class GeminiAdapter(LlmPort):
         self.api_key = api_key
         self.model_name = model_name
         self.requests_per_minute = requests_per_minute
+        print(f"✅ Gemini LLM Rate Limiting 활성화: {requests_per_minute} requests/minute")
 
     def generate_answer(self, question: str, contexts: List[str]) -> str:
         """
@@ -54,13 +56,16 @@ class GeminiAdapter(LlmPort):
 
     def get_llm(self) -> ChatGoogleGenerativeAI:
         """
-        Gemini LLM 객체를 반환합니다.
+        Rate limiting이 적용된 Gemini LLM 객체를 반환합니다.
         
         Note: 이 메서드는 하위 호환성을 위해 유지되지만,
         향후 generate_answer 메서드 사용을 권장합니다.
         """
-        return ChatGoogleGenerativeAI(
+        return RateLimitedGeminiLLM(
             model=self.model_name,
             google_api_key=self.api_key,
-            temperature=0.1
+            temperature=0.1,
+            timeout=60,  # 60초 타임아웃
+            max_retries=2,  # 최대 2회 재시도
+            requests_per_minute=self.requests_per_minute  # Rate limiting 적용
         )
