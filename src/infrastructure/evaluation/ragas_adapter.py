@@ -2,7 +2,8 @@ from typing import Any, Optional
 
 import pandas as pd
 from datasets import Dataset
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.embeddings import Embeddings
+from langchain_core.language_models import BaseLanguageModel
 from ragas import evaluate
 from ragas.metrics import (
     answer_relevancy,
@@ -14,7 +15,6 @@ from ragas.metrics import (
 from src.domain.prompts import PromptType
 from src.infrastructure.evaluation.custom_prompts import CustomPromptFactory
 from src.infrastructure.evaluation.parsing_strategies import ResultParser
-from src.infrastructure.llm.rate_limiter import RateLimitedGeminiEmbeddings
 
 
 class RagasEvalAdapter:
@@ -22,14 +22,12 @@ class RagasEvalAdapter:
 
     def __init__(
         self,
-        embedding_model_name: str,
-        api_key: str,
-        embedding_requests_per_minute: int,
+        llm: BaseLanguageModel,
+        embeddings: Embeddings,
         prompt_type: Optional[PromptType] = None,
     ):
-        self.embedding_model_name = embedding_model_name
-        self.api_key = api_key
-        self.embedding_requests_per_minute = embedding_requests_per_minute
+        self.llm = llm
+        self.embeddings = embeddings
         self.prompt_type = prompt_type or PromptType.DEFAULT
         
         # 결과 파서 초기화
@@ -113,24 +111,17 @@ class RagasEvalAdapter:
         
         return DummyResult(len(dataset))
 
-    def evaluate(self, dataset: Dataset, llm: Any) -> dict[str, float]:
+    def evaluate(self, dataset: Dataset) -> dict[str, float]:
         """
-        주어진 데이터셋과 LLM을 사용하여 Ragas 평가를 수행하고 결과를 반환합니다.
-
-        :param dataset: 평가할 데이터셋 (Hugging Face Dataset 객체)
-        :param llm: 평가에 사용할 LLM 객체 (LangChain 연동)
-        :return: 평가 지표별 점수를 담은 딕셔너리
+        주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
         """
         try:
-            # 임베딩 모델 초기화
-            embeddings = self._initialize_embeddings()
-            
             # 실제 평가 실행 (타임아웃 적용)
-            raw_result = self._run_evaluation_with_timeout(dataset, llm, embeddings)
+            raw_result = self._run_evaluation_with_timeout(dataset)
             
             # 결과 파싱 및 최종 리포트 생성
             result_dict = self._parse_result(raw_result, dataset)
-            return self._create_final_report(result_dict, dataset, llm)
+            return self._create_final_report(result_dict, dataset)
             
         except Exception as e:
             print(f"❌ 평가 중 오류 발생: {str(e)}")
@@ -138,34 +129,19 @@ class RagasEvalAdapter:
             try:
                 raw_result = self._create_dummy_result(dataset)
                 result_dict = self._parse_result(raw_result, dataset)
-                return self._create_final_report(result_dict, dataset, llm)
+                return self._create_final_report(result_dict, dataset)
             except Exception as fallback_error:
                 print(f"❌ 샘플 결과 생성도 실패: {str(fallback_error)}")
                 return self._create_error_result()
 
-    def _initialize_embeddings(self):
-        """임베딩 모델 초기화"""
-        try:
-            embeddings = GoogleGenerativeAIEmbeddings(
-                model=self.embedding_model_name,
-                google_api_key=self.api_key,
-                timeout=60,  # 60초 타임아웃
-                max_retries=2  # 최대 2회 재시도
-            )
-            print("✅ 임베딩 모델 초기화 완료")
-            return embeddings
-        except Exception as e:
-            print(f"⚠️  임베딩 모델 초기화 실패: {e}")
-            raise
-
-    def _run_evaluation_with_timeout(self, dataset: Dataset, llm: Any, embeddings):
+    def _run_evaluation_with_timeout(self, dataset: Dataset):
         """타임아웃이 적용된 평가 실행"""
         import threading
         import time
         
         print(f"\n=== RAGAS 평가 시작 (새로운 모델 사용) ===")
         print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
-        print(f"🤖 LLM 모델: {getattr(llm, 'model', 'Unknown')}")
+        print(f"🤖 LLM 모델: {self.llm.model}")
         print(f"🚀 평가 실행 중... (5분 타임아웃)")
         
         result = [None]
@@ -180,8 +156,8 @@ class RagasEvalAdapter:
                 result[0] = evaluate(
                     dataset=dataset,
                     metrics=self.metrics,
-                    llm=llm,
-                    embeddings=embeddings,
+                    llm=self.llm,
+                    embeddings=self.embeddings,
                     raise_exceptions=False,
                 )
             except Exception as e:
@@ -207,7 +183,7 @@ class RagasEvalAdapter:
             print("⚠️  RAGAS 평가 결과 없음 - 더미 결과 반환")
             return self._create_dummy_result(dataset)
 
-    def _run_evaluation(self, dataset: Dataset, llm: Any, embeddings):
+    def _run_evaluation(self, dataset: Dataset):
         """평가 실행"""
         import datetime
         import uuid
@@ -218,7 +194,7 @@ class RagasEvalAdapter:
         print("\n=== 한국어 콘텐트 RAGAS 평가 시작 ===")
         print(f"🔍 평가 ID: {evaluation_id}")
         print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
-        print(f"🤖 LLM 모델: {llm.model}")
+        print(f"🤖 LLM 모델: {self.llm.model}")
         print("평가 진행 중...")
 
         try:
@@ -226,8 +202,8 @@ class RagasEvalAdapter:
             result = evaluate(
                 dataset=dataset,
                 metrics=self.metrics,
-                llm=llm,
-                embeddings=embeddings,
+                llm=self.llm,
+                embeddings=self.embeddings,
                 raise_exceptions=False,
             )
             print("✅ RAGAS evaluate 함수 완료")
@@ -235,9 +211,9 @@ class RagasEvalAdapter:
             
         except Exception as eval_error:
             print(f"❌ RAGAS evaluate 함수에서 오류: {eval_error}")
-            return self._fallback_evaluation(dataset, llm, embeddings)
+            return self._fallback_evaluation(dataset)
 
-    def _fallback_evaluation(self, dataset: Dataset, llm: Any, embeddings):
+    def _fallback_evaluation(self, dataset: Dataset):
         """평가 실패 시 기본 메트릭으로 재시도"""
         print("🔄 기본 메트릭으로 재시도...")
         from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision
@@ -247,8 +223,8 @@ class RagasEvalAdapter:
             result = evaluate(
                 dataset=dataset,
                 metrics=basic_metrics,
-                llm=llm,
-                embeddings=embeddings,
+                llm=self.llm,
+                embeddings=self.embeddings,
                 raise_exceptions=False,
             )
             print("✅ 기본 메트릭으로 평가 성공")
@@ -271,7 +247,7 @@ class RagasEvalAdapter:
             ]
             return result_dict
 
-    def _create_final_report(self, result_dict: dict, dataset: Dataset, llm: Any) -> dict:
+    def _create_final_report(self, result_dict: dict, dataset: Dataset) -> dict:
         """최종 리포트 생성"""
         import datetime
         import uuid
@@ -284,8 +260,8 @@ class RagasEvalAdapter:
         result_dict["metadata"] = {
             "evaluation_id": str(uuid.uuid4())[:8],
             "timestamp": datetime.datetime.now().isoformat(),
-            "model": str(llm.model),
-            "temperature": getattr(llm, "temperature", 0.0),
+            "model": str(self.llm.model),
+            "temperature": getattr(self.llm, "temperature", 0.0),
             "dataset_size": len(dataset),
         }
         

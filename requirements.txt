@@ -1,0 +1,24 @@
+# Core Evaluation Framework
+dependency-injector>=4.48.1
+ragas>=0.1.0
+google-generativeai>=0.3.0
+python-dotenv>=1.0.0
+
+# Configuration and Validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Data Processing
+datasets>=2.14.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Web Dashboard
+streamlit>=1.28.0
+plotly>=5.17.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# Optional: Performance Monitoring
+# watchdog>=3.0.0  # For better Streamlit performance

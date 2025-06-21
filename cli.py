@@ -49,7 +49,13 @@ def create_parser() -> argparse.ArgumentParser:
         "--llm",
         choices=["gemini", "hcx"],
         default="gemini",
-        help="평가에 사용할 LLM 모델 (기본값: gemini)"
+        help="평가에 사용할 LLM (기본값: gemini)"
+    )
+    eval_parser.add_argument(
+        "--embedding",
+        choices=["gemini", "hcx"],
+        default=None,
+        help="평가에 사용할 임베딩 모델. 지정하지 않으면 LLM과 동일한 모델을 사용합니다."
     )
     eval_parser.add_argument(
         "--prompt-type", 
@@ -111,13 +117,28 @@ def list_prompts():
         print("💡 --prompt-type 옵션으로 다른 프롬프트를 선택할 수 있습니다.")
 
 
-def evaluate_dataset(dataset_name: str, llm: str, prompt_type: Optional[str] = None, 
-                    output_file: Optional[str] = None, verbose: bool = False):
+def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = None, 
+                    prompt_type: Optional[str] = None, output_file: Optional[str] = None, 
+                    verbose: bool = False):
     """데이터셋 평가 실행"""
     
-    # HCX 사용 시 API 키 확인
-    if llm == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
-        print("❌ 'hcx' 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+    # 임베딩 모델 선택 (미지정 시 LLM과 동일하게 설정)
+    embedding_choice = embedding or llm
+    
+    # LLM 및 임베딩 어댑터 선택
+    try:
+        llm_adapter = container.llm_providers()[llm]
+        embedding_adapter = container.embedding_providers()[embedding_choice]
+        
+        if llm == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
+            print("❌ 'hcx' LLM을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+            return False
+        if embedding_choice == "hcx" and not settings.CLOVA_STUDIO_API_KEY:
+            print("❌ 'hcx' 임베딩을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+            return False
+
+    except Exception as e:
+        print(f"❌ '{llm}' LLM 또는 '{embedding_choice}' 임베딩 어댑터 초기화 중 오류 발생: {e}")
         return False
     
     # 프롬프트 타입 설정
@@ -132,6 +153,7 @@ def evaluate_dataset(dataset_name: str, llm: str, prompt_type: Optional[str] = N
         selected_prompt_type = None  # 기본 프롬프트 사용
     
     print(f"🤖 LLM: {llm}")
+    print(f"🌐 Embedding: {embedding_choice}")
     print(f"🎯 프롬프트 타입: {selected_prompt_type.value if selected_prompt_type else 'DEFAULT'}")
     print(f"📊 데이터셋: {dataset_name}")
     
@@ -145,8 +167,24 @@ def evaluate_dataset(dataset_name: str, llm: str, prompt_type: Optional[str] = N
         return False
     
     try:
-        # 선택된 LLM으로 유스케이스 가져오기
-        evaluation_use_case = get_evaluation_use_case_with_llm(llm)
+        # 평가 어댑터 생성 (LLM과 Embedding 주입)
+        ragas_adapter = container.ragas_eval_adapter(
+            llm=llm_adapter,
+            embeddings=embedding_adapter,
+            prompt_type=selected_prompt_type
+        )
+        
+        # GenerationService 생성
+        from src.application.services.generation_service import GenerationService
+        generation_service = GenerationService(answer_generator=llm_adapter)
+        
+        # 유스케이스 생성 (평가 어댑터 주입)
+        evaluation_use_case = container.run_evaluation_use_case(
+            llm_port=llm_adapter,
+            evaluation_runner_factory=ragas_adapter,
+            generation_service=generation_service,
+            # ... 기타 의존성 주입은 컨테이너가 처리 ...
+        )
         
         # 평가 실행
         print("\n🚀 평가를 시작합니다...")
@@ -154,10 +192,7 @@ def evaluate_dataset(dataset_name: str, llm: str, prompt_type: Optional[str] = N
         if verbose:
             print("📝 상세 로그가 활성화되었습니다.")
         
-        result = evaluation_use_case.execute(
-            dataset_name=dataset_name,
-            prompt_type=selected_prompt_type
-        )
+        result = evaluation_use_case.execute(dataset_name=dataset_name)
         
         # 결과 출력
         print("\n✅ 평가가 완료되었습니다!")
@@ -229,6 +264,7 @@ def main():
         success = evaluate_dataset(
             dataset_name=args.dataset,
             llm=args.llm,
+            embedding=args.embedding,
             prompt_type=args.prompt_type,
             output_file=args.output,
             verbose=args.verbose

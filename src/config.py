@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     CLOVA_STUDIO_API_KEY: Optional[str] = Field(default=None, description="Naver Cloud CLOVA Studio API 키")
     HCX_MODEL_NAME: str = Field(default="HCX-005", description="사용할 HCX 모델명")
     HCX_REQUESTS_PER_MINUTE: int = Field(default=30, description="HCX API 분당 요청 수 제한")
+    HCX_EMBEDDING_REQUESTS_PER_MINUTE: int = Field(default=30, description="HCX Embedding API 분당 요청 수 제한")
 
     # LLM 선택 설정
     DEFAULT_LLM: str = Field(default="gemini", description="사용할 기본 LLM (gemini 또는 hcx)")

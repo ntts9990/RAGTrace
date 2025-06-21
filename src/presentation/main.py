@@ -13,13 +13,13 @@ def main():
 
     try:
         # 1. 컨테이너에서 유스케이스 가져오기 (기본 LLM 사용)
-        evaluation_use_case = container.run_evaluation_use_case()
+        from src.container import get_evaluation_use_case_with_llm
+        evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm()
 
         # 2. 평가 실행 (기본 데이터셋 사용)
         print("평가를 진행 중입니다. 잠시만 기다려주세요...")
         evaluation_result = evaluation_use_case.execute(
-            dataset_name="evaluation_data",
-            prompt_type=None  # 기본 프롬프트 사용
+            dataset_name="evaluation_data.json"
         )
 
         # 3. 결과 출력

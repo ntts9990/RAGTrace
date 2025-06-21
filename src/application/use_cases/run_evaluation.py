@@ -27,7 +27,7 @@ class RunEvaluationUseCase:
     def __init__(
         self,
         llm_port: LlmPort,
-        evaluation_runner_factory: "RagasEvalAdapterFactory",
+        evaluation_runner_factory: Any,  # RagasEvalAdapter 인스턴스
         repository_factory: "FileRepositoryFactory",
         data_validator: DataContentValidator,
         generation_service: GenerationService,
@@ -61,7 +61,7 @@ class RunEvaluationUseCase:
         try:
             # 1. 필요한 서비스 인스턴스 생성
             repository_port = self.repository_factory.create_repository(dataset_name)
-            evaluation_runner = self.evaluation_runner_factory.create_evaluator(prompt_type)
+            evaluation_runner = self.evaluation_runner_factory  # 이미 인스턴스가 전달됨
 
             # 2. 데이터 로드
             evaluation_data_list = repository_port.load_data()
@@ -98,7 +98,7 @@ class RunEvaluationUseCase:
 
             # 7. 평가 실행 (Evaluation 단계)
             print("평가를 수행하는 중...")
-            result_dict = evaluation_runner.evaluate(dataset=dataset, llm=llm)
+            result_dict = evaluation_runner.evaluate(dataset=dataset)
 
             # 8. 결과 검증 및 변환
             return self.result_conversion_service.validate_and_convert_result(
