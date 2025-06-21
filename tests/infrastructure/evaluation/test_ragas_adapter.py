@@ -44,7 +44,8 @@ class TestRagasEvalAdapter:
             llm=mock_llm,
             embeddings=mock_embeddings,
         )
-        result = adapter.evaluate(dataset, mock_llm)
+        with patch('builtins.print'):  # Suppress print statements
+            result = adapter.evaluate(dataset)
 
         # 결과 검증
         assert isinstance(result, dict)
@@ -102,7 +103,8 @@ class TestRagasEvalAdapter:
         mock_evaluate.return_value = mock_result
 
         adapter = RagasEvalAdapter(llm=mock_llm, embeddings=mock_embeddings)
-        result = adapter.evaluate(dataset, mock_llm)
+        with patch('builtins.print'):  # Suppress print statements
+            result = adapter.evaluate(dataset)
 
         assert isinstance(result, dict)
         assert "ragas_score" in result
@@ -126,7 +128,8 @@ class TestRagasEvalAdapter:
         mock_evaluate.return_value = mock_result
 
         adapter = RagasEvalAdapter(llm=mock_llm, embeddings=mock_embeddings)
-        result = adapter.evaluate(dataset, mock_llm)
+        with patch('builtins.print'):  # Suppress print statements
+            result = adapter.evaluate(dataset)
 
         assert isinstance(result, dict)
         assert "answer_relevancy" in result  # 기본값으로 채워져야 함
@@ -147,4 +150,5 @@ class TestRagasEvalAdapter:
         adapter = RagasEvalAdapter(llm=mock_llm, embeddings=mock_embeddings)
         
         with pytest.raises(Exception):
-            adapter.evaluate(dataset, mock_llm)
+            with patch('builtins.print'):  # Suppress print statements
+                adapter.evaluate(dataset)
