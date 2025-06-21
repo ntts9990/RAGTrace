@@ -1,0 +1,98 @@
+# Git
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/build
+**/develop-eggs
+**/dist
+**/downloads
+**/eggs
+**/.eggs
+**/lib
+**/lib64
+**/parts
+**/sdist
+**/var
+**/wheels
+**/*.egg-info
+**/.installed.cfg
+**/MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.uv-cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Development
+.env
+.env.local
+.env.*.local
+*.orig
+
+# Documentation
+docs/build/
+site/
+
+# Testing
+.coverage
+.tox/
+.pytest_cache/
+htmlcov/
+.nyc_output
+
+# CI/CD
+.github/
+*.md
+LICENSE
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+/temp/
+
+# UV specific
+.uv-cache/
+
+# Keep essential files
+!README.md
+!CLAUDE.md
+!LICENSE
+!.python-version
+!uv.lock

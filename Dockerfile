@@ -1,43 +1,67 @@
-FROM python:3.11-slim
+# Multi-stage build for RAGTrace with UV
+FROM python:3.11-slim as builder
 
-# 시스템 패키지 업데이트 및 필수 도구 설치
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# 작업 디렉토리 설정
+# Set working directory
 WORKDIR /app
 
-# pyproject.toml과 소스 코드 복사
-COPY pyproject.toml .
-COPY src/ ./src/
-COPY data/ ./data/
-COPY run_dashboard.py .
-COPY README.md .
+# Copy UV configuration files
+COPY pyproject.toml uv.toml uv.lock .python-version ./
 
-# uv 설치 (더 빠른 패키지 관리)
-RUN pip install uv
+# Create virtual environment and install dependencies
+RUN uv sync --frozen --no-dev
 
-# 의존성 설치
-RUN uv pip install --system -e .
+# Production stage
+FROM python:3.11-slim as production
 
-# 포트 노출
-EXPOSE 8501
+# Install system dependencies and UV
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# 헬스체크 추가
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# 비루트 사용자 생성 및 권한 설정
-RUN useradd -m -u 1000 ragtrace && \
-    chown -R ragtrace:ragtrace /app
+# Create non-root user
+RUN useradd -m -u 1000 ragtrace
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder --chown=ragtrace:ragtrace /app/.venv /app/.venv
+
+# Copy application files
+COPY --chown=ragtrace:ragtrace pyproject.toml uv.toml .python-version ./
+COPY --chown=ragtrace:ragtrace src/ ./src/
+COPY --chown=ragtrace:ragtrace data/ ./data/
+COPY --chown=ragtrace:ragtrace cli.py hello.py ./
+COPY --chown=ragtrace:ragtrace README.md CLAUDE.md ./
+
+# Create data directories with proper permissions
+RUN mkdir -p /app/data/db /app/data/temp && \
+    chown -R ragtrace:ragtrace /app/data
+
+# Switch to non-root user
 USER ragtrace
 
-# 환경 변수 설정
+# Environment variables
 ENV PYTHONPATH=/app
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-# Streamlit 직접 실행
-CMD ["streamlit", "run", "src/presentation/web/main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+# Expose port
+EXPOSE 8501
+
+# Default command - can be overridden
+CMD ["uv", "run", "streamlit", "run", "src/presentation/web/main.py", "--server.port=8501", "--server.address=0.0.0.0"]

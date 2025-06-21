@@ -1,29 +1,40 @@
 version: '3.8'
 
 services:
+  # RAGTrace Main Application
   ragtrace:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     container_name: ragtrace-dashboard
     ports:
       - "8501:8501"
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-preview-05-20}
+      # Required API Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CLOVA_STUDIO_API_KEY=${CLOVA_STUDIO_API_KEY:-}
+      
+      # Model Configuration
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME:-models/gemini-2.5-flash-preview-05-20}
+      - GEMINI_EMBEDDING_MODEL_NAME=${GEMINI_EMBEDDING_MODEL_NAME:-models/gemini-embedding-exp-03-07}
+      - HCX_MODEL_NAME=${HCX_MODEL_NAME:-HCX-005}
+      - DEFAULT_LLM=${DEFAULT_LLM:-gemini}
+      
+      # Streamlit Configuration
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
-      - USE_LOCAL_LLM=${USE_LOCAL_LLM:-false}
-      - LOCAL_LLM_BASE_URL=http://ollama:11434
-      - DEBUG_MODE=${DEBUG_MODE:-false}
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      
+      # Application Configuration
+      - PYTHONPATH=/app
+      - UV_PROJECT_ENVIRONMENT=/app/.venv
     volumes:
       - ./data:/app/data
-      - ./reports:/app/reports
       - evaluation_db:/app/data/db
     networks:
-      - ragas-network
-    depends_on:
-      - ollama
+      - ragtrace-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
@@ -32,66 +43,79 @@ services:
       retries: 3
       start_period: 40s
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ragas-ollama
-    ports:
-      - "11434:11434"
+  # CLI Service (for running evaluations without web interface)
+  ragtrace-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ragtrace-cli
+    environment:
+      # Required API Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CLOVA_STUDIO_API_KEY=${CLOVA_STUDIO_API_KEY:-}
+      
+      # Model Configuration
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME:-models/gemini-2.5-flash-preview-05-20}
+      - GEMINI_EMBEDDING_MODEL_NAME=${GEMINI_EMBEDDING_MODEL_NAME:-models/gemini-embedding-exp-03-07}
+      - HCX_MODEL_NAME=${HCX_MODEL_NAME:-HCX-005}
+      - DEFAULT_LLM=${DEFAULT_LLM:-gemini}
+      
+      # Application Configuration
+      - PYTHONPATH=/app
+      - UV_PROJECT_ENVIRONMENT=/app/.venv
     volumes:
-      - ollama_data:/root/.ollama
+      - ./data:/app/data
+      - evaluation_db:/app/data/db
     networks:
-      - ragas-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - ragtrace-network
+    command: ["uv", "run", "python", "hello.py"]
+    profiles:
+      - cli
 
-  # PostgreSQL (선택사항 - 대용량 데이터 저장용)
+  # Optional: PostgreSQL for large-scale data storage
   postgres:
     image: postgres:15-alpine
-    container_name: ragas-postgres
+    container_name: ragtrace-postgres
     environment:
-      - POSTGRES_DB=ragas_db
-      - POSTGRES_USER=ragas_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ragas_password}
+      - POSTGRES_DB=ragtrace_db
+      - POSTGRES_USER=ragtrace_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ragtrace_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/db:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     networks:
-      - ragas-network
+      - ragtrace-network
     restart: unless-stopped
     profiles:
       - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ragtrace_user -d ragtrace_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Redis (선택사항 - 캐싱용)
+  # Optional: Redis for caching
   redis:
     image: redis:7-alpine
-    container_name: ragas-redis
+    container_name: ragtrace-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - ragas-network
+      - ragtrace-network
     restart: unless-stopped
     profiles:
       - cache
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  ollama_data:
-    driver: local
   postgres_data:
     driver: local
   redis_data:
@@ -100,5 +124,5 @@ volumes:
     driver: local
 
 networks:
-  ragas-network:
+  ragtrace-network:
     driver: bridge
