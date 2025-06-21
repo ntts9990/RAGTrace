@@ -64,6 +64,8 @@ def test_to_dict_method():
         "context_precision": 1.0,
         "ragas_score": 1.0,
         "metadata": {"key": "value"},
+        "generation_failures": 0,
+        "generation_successes": 0,
     }
 
     assert result.to_dict() == expected_dict
