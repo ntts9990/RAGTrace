@@ -80,8 +80,8 @@ target/
 profile_default/
 ipython_config.py
 
-# pyenv
-.python-version
+# pyenv (commented out since we want to track .python-version for uv)
+# .python-version
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -89,6 +89,11 @@ ipython_config.py
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
 #Pipfile.lock
+
+# UV specific files
+.uv-cache/
+.uv/
+uv.lock.bak
 
 # celery beat schedule file
 celerybeat-schedule
@@ -123,5 +128,31 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Ruff cache
+.ruff_cache/
+
+# RAGTrace specific files
+data/db/*.db
+data/temp/
+temp/
+*.tmp
+*.temp
+
+# API diagnosis and debug files
+debug_*.py
+test_*.py
+diagnose_*.py
+
 # 테스트 실행 중 잘못 생성되는 임시 파일
 <MagicMock name='DATABASE_PATH'*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

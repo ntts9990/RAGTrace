@@ -1,8 +1,7 @@
 from typing import List
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-
 from src.application.ports.llm import LlmPort
+from src.infrastructure.llm.http_gemini_wrapper import HttpGeminiWrapper
 
 
 class GeminiAdapter(LlmPort):
@@ -52,17 +51,13 @@ class GeminiAdapter(LlmPort):
         except Exception as e:
             raise RuntimeError(f"답변 생성 중 오류 발생: {str(e)}") from e
 
-    def get_llm(self) -> ChatGoogleGenerativeAI:
+    def get_llm(self) -> HttpGeminiWrapper:
         """
         Gemini LLM 객체를 반환합니다.
         
-        Note: 이 메서드는 하위 호환성을 위해 유지되지만,
-        향후 generate_answer 메서드 사용을 권장합니다.
+        HttpGeminiWrapper를 사용하여 HTTP로 직접 API 호출합니다.
         """
-        return ChatGoogleGenerativeAI(
-            model=self.model_name,
-            google_api_key=self.api_key,
-            temperature=0.1,
-            timeout=60,  # 60초 타임아웃
-            max_retries=2,  # 최대 2회 재시도
+        return HttpGeminiWrapper(
+            api_key=self.api_key,
+            model_name=self.model_name,
         )

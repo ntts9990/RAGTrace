@@ -1,0 +1,19 @@
+# UV Configuration for RAGTrace
+# This file configures UV behavior for the RAGTrace project
+
+# Enable dependency caching
+cache-dir = ".uv-cache"
+
+# Use PyPI as primary index
+index-url = "https://pypi.org/simple"
+
+# Package resolution strategy
+resolution = "highest"
+
+# Use native TLS
+native-tls = true
+
+# Compile bytecode for faster imports
+compile-bytecode = true
+
+# Note: dev-dependencies are defined in pyproject.toml [tool.uv] section

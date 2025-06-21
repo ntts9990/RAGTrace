@@ -6,11 +6,16 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseLanguageModel
 from ragas import evaluate
 from ragas.metrics import (
+    Faithfulness,
+    AnswerRelevancy,
+    ContextRecall,
+    ContextPrecision,
     answer_relevancy,
     context_precision,
     context_recall,
     faithfulness,
 )
+from ragas.run_config import RunConfig
 
 from src.domain.prompts import PromptType
 from src.infrastructure.evaluation.custom_prompts import CustomPromptFactory
@@ -37,6 +42,15 @@ class RagasEvalAdapter:
         # 결과 파서 초기화
         self.result_parser = ResultParser()
 
+        # RAGAS RunConfig 설정 - 안정적인 평가를 위한 최적화된 설정
+        self.run_config = RunConfig(
+            timeout=300,        # 5분 타임아웃 (기본 180초보다 여유있게)
+            max_retries=3,      # 재시도 횟수 (기본 10회보다 적게)
+            max_workers=4,      # 적절한 병렬 처리 (기본 16개보다 보수적)
+            max_wait=60,        # 최대 대기 시간
+            log_tenacity=True   # 재시도 로그 활성화
+        )
+
         # 프롬프트 타입에 따른 메트릭 설정
         if self.prompt_type == PromptType.DEFAULT:
             # 기본 RAGAS 메트릭 사용
@@ -48,7 +62,7 @@ class RagasEvalAdapter:
             ]
             print("기본 RAGAS 프롬프트를 사용합니다 (영어)")
         else:
-            # 커스텀 메트릭 사용
+            # 커스텀 메트릭 사용 (기존 방식)
             custom_metrics = CustomPromptFactory.create_custom_metrics(self.prompt_type)
             self.metrics = [
                 custom_metrics['faithfulness'],
@@ -65,6 +79,7 @@ class RagasEvalAdapter:
         print("- Answer Relevancy: 질문과 답변의 연관성")
         print("- Context Recall: 관련 정보 검색 완성도")
         print("- Context Precision: 검색된 문맥의 정확성")
+        print(f"⚙️  RAGAS 설정: 타임아웃={self.run_config.timeout}초, 워커={self.run_config.max_workers}개, 재시도={self.run_config.max_retries}회")
 
     def _combine_individual_results(self, individual_results: dict, dataset: Dataset):
         """개별 메트릭 결과들을 하나의 결과로 합치기"""
@@ -91,8 +106,8 @@ class RagasEvalAdapter:
 
     def _create_dummy_result(self, dataset: Dataset):
         """평가 실패 시 더미 결과 생성"""
-        print("⚠️  네트워크 문제로 인해 샘플 결과를 생성합니다")
-        print("   실제 원자력/수력 기술 문서 평가 기준을 반영한 점수입니다")
+        print("⚠️  네트워크 또는 API 응답 지연으로 인해 샘플 결과를 생성합니다")
+        print("   🚨 주의: 이는 실제 평가 결과가 아닙니다. 참고용으로만 사용하세요.")
         
         class DummyResult:
             def __init__(self, dataset_size):
@@ -139,29 +154,27 @@ class RagasEvalAdapter:
                 return self._create_error_result()
 
     def _run_evaluation_with_timeout(self, dataset: Dataset):
-        """타임아웃이 적용된 평가 실행"""
+        """RAGAS RunConfig를 사용한 안정적인 평가 실행"""
         import threading
         import time
         
-        print(f"\n=== RAGAS 평가 시작 (새로운 모델 사용) ===")
+        print(f"\n=== RAGAS 평가 시작 (RunConfig 사용) ===")
         print(f"📊 데이터셋 크기: {len(dataset)}개 QA 쌍")
         print(f"🤖 LLM 모델: {self.llm.model}")
-        print(f"🚀 평가 실행 중... (5분 타임아웃)")
+        print(f"🚀 평가 실행 중... (타임아웃: {self.run_config.timeout}초)")
         
         result = [None]
         exception = [None]
         
         def run_evaluation():
             try:
-                # RAGAS 평가 실행 (직렬 처리로 변경)
-                import os
-                os.environ["RAGAS_MAX_WORKERS"] = "1"  # 병렬 처리 최소화
-                
+                # RAGAS RunConfig를 사용한 평가 실행
                 result[0] = evaluate(
                     dataset=dataset,
                     metrics=self.metrics,
                     llm=self.llm,
                     embeddings=self.embeddings,
+                    run_config=self.run_config,  # RunConfig 사용
                     raise_exceptions=False,
                 )
             except Exception as e:
@@ -170,15 +183,22 @@ class RagasEvalAdapter:
         thread = threading.Thread(target=run_evaluation)
         thread.daemon = True
         thread.start()
-        thread.join(timeout=300)  # 5분 타임아웃
+        
+        # RunConfig의 타임아웃보다 여유있게 설정 (+ 60초 버퍼)
+        thread_timeout = self.run_config.timeout + 60
+        thread.join(timeout=thread_timeout)
         
         if thread.is_alive():
-            print("⏰ RAGAS 평가 타임아웃 (5분 초과) - 더미 결과 반환")
+            print(f"⏰ RAGAS 평가 타임아웃 ({thread_timeout}초 초과) - 더미 결과 반환")
+            print("💡 네트워크 연결이나 API 응답 지연으로 인한 문제일 수 있습니다")
+            print("   - LLM API 서버 상태를 확인해보세요")
+            print("   - 데이터셋 크기를 줄여서 테스트해보세요")
             return self._create_dummy_result(dataset)
         
         if exception[0]:
             print(f"❌ RAGAS 평가 오류: {exception[0]}")
-            return self._create_dummy_result(dataset)
+            print("🔄 폴백: 기본 메트릭으로 재시도...")
+            return self._fallback_evaluation(dataset)
         
         if result[0]:
             print("✅ RAGAS 평가 완료")
@@ -223,12 +243,22 @@ class RagasEvalAdapter:
         from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision
         basic_metrics = [faithfulness, answer_relevancy, context_recall, context_precision]
         
+        # 더 보수적인 RunConfig로 재시도
+        fallback_config = RunConfig(
+            timeout=180,        # 3분으로 단축
+            max_retries=2,      # 재시도 2회
+            max_workers=2,      # 워커 2개로 제한
+            max_wait=30,
+            log_tenacity=True
+        )
+        
         try:
             result = evaluate(
                 dataset=dataset,
                 metrics=basic_metrics,
                 llm=self.llm,
                 embeddings=self.embeddings,
+                run_config=fallback_config,
                 raise_exceptions=False,
             )
             print("✅ 기본 메트릭으로 평가 성공")

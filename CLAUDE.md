@@ -36,7 +36,13 @@ The project follows Clean Architecture with complete dependency injection:
 
 ### Web Dashboard (Recommended)
 ```bash
-# Start the interactive web dashboard
+# Start the interactive web dashboard (UV recommended)
+uv run streamlit run src/presentation/web/main.py
+
+# Or using Just
+just dashboard
+
+# Legacy method
 python run_dashboard.py
 ```
 Access at: http://localhost:8501
@@ -53,41 +59,80 @@ Access at: http://localhost:8501
 
 ### CLI Evaluation (Advanced)
 ```bash
-# Basic evaluation (supports both with and without .json extension)
-python cli.py evaluate evaluation_data
-python cli.py evaluate evaluation_data.json
+# Basic evaluation with UV (recommended)
+uv run python cli.py evaluate evaluation_data
+uv run python cli.py evaluate evaluation_data.json
 
 # LLM selection
-python cli.py evaluate evaluation_data.json --llm gemini
-python cli.py evaluate evaluation_data.json --llm hcx
+uv run python cli.py evaluate evaluation_data.json --llm gemini
+uv run python cli.py evaluate evaluation_data.json --llm hcx
 
 # Independent LLM and embedding model selection
-python cli.py evaluate evaluation_data.json --llm gemini --embedding hcx
-python cli.py evaluate evaluation_data.json --llm hcx --embedding gemini
+uv run python cli.py evaluate evaluation_data.json --llm gemini --embedding hcx
+uv run python cli.py evaluate evaluation_data.json --llm hcx --embedding gemini
 
 # Custom prompt types
-python cli.py evaluate evaluation_data.json --prompt-type nuclear_hydro_tech
-python cli.py evaluate evaluation_data.json --prompt-type korean_formal
+uv run python cli.py evaluate evaluation_data.json --prompt-type nuclear_hydro_tech
+uv run python cli.py evaluate evaluation_data.json --prompt-type korean_formal
 
 # Save results to file
-python cli.py evaluate evaluation_data.json --output results.json
+uv run python cli.py evaluate evaluation_data.json --output results.json
 
 # Verbose output with detailed logs
-python cli.py evaluate evaluation_data.json --verbose
+uv run python cli.py evaluate evaluation_data.json --verbose
 
 # Information commands
-python cli.py list-datasets
-python cli.py list-prompts
-python cli.py --help
+uv run python cli.py list-datasets
+uv run python cli.py list-prompts
+uv run python cli.py --help
+
+# Using Just for convenience
+just eval evaluation_data
+just eval-llm evaluation_data gemini
 ```
 
 ### Simple Evaluation (Basic)
 ```bash
-# Quick evaluation with default settings
-python src/presentation/main.py
+# Quick evaluation with default settings (UV recommended)
+uv run python src/presentation/main.py
+
+# With parameters
+uv run python src/presentation/main.py evaluation_data_variant1 --llm gemini --embedding gemini --prompt-type default
+
+# Using Just
+just quick-test
 ```
 
 ## Environment Setup
+
+### UV Package Manager
+
+**IMPORTANT: This project uses UV for dependency management. UV is REQUIRED.**
+
+#### Install UV
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Homebrew (macOS)
+brew install uv
+
+# pip
+pip install uv
+```
+
+#### Quick Setup
+```bash
+# Automated setup (recommended)
+chmod +x uv-setup.sh
+./uv-setup.sh
+
+# Or manual setup
+uv sync --all-extras
+```
 
 ### Required API Keys
 
@@ -107,12 +152,16 @@ DEFAULT_LLM=gemini  # or "hcx"
 ### Dependencies Installation
 
 ```bash
-# Using uv (recommended)
-uv pip install -r requirements.txt
+# Install all dependencies with UV
+uv sync --all-extras
 
-# Or using pip
-pip install dependency-injector ragas google-generativeai python-dotenv
-pip install streamlit plotly pandas numpy requests
+# Install specific extras
+uv sync --extra dev        # Development tools
+uv sync --extra performance # Performance monitoring
+uv sync --extra analysis   # Data analysis tools
+
+# Production install (no dev dependencies)
+uv sync --no-dev
 ```
 
 ### Full Requirements
@@ -141,8 +190,9 @@ pydantic-settings>=2.0.0
 ### LLM Integration
 - **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
 - **Multi-Embedding Support**: Google Gemini Embedding and Naver HCX Embedding
-- **Optimized Performance**: No rate limiting for improved evaluation speed
-- **Error Handling**: Comprehensive timeout and retry mechanisms
+- **HTTP Direct Call Architecture**: Custom HTTP wrappers to bypass LangChain timeout issues
+- **Stability Improvements**: HttpGeminiWrapper and GeminiHttpEmbeddingAdapter for reliable API calls
+- **Error Handling**: Comprehensive timeout and retry mechanisms with network stability
 - **Runtime Selection**: Dynamic LLM and embedding model switching via CLI and web UI
 - **Independent Selection**: LLM and embedding models can be chosen independently
 
@@ -169,7 +219,17 @@ pydantic-settings>=2.0.0
 ### Entry Points
 - `cli.py` - Advanced CLI with LLM selection
 - `src/presentation/main.py` - Simple CLI entry point
-- `run_dashboard.py` - Web dashboard launcher
+- `run_dashboard.py` - Web dashboard launcher (legacy)
+- `hello.py` - Environment and connectivity test script
+
+### UV Configuration Files
+- `pyproject.toml` - Project metadata, dependencies, and tool configurations
+- `uv.toml` - UV-specific settings (cache, resolution strategy)
+- `uv.lock` - Locked dependency versions (generated automatically)
+- `.python-version` - Python version specification for UV
+- `uv-setup.sh` - Automated UV environment setup script
+- `justfile` - Task runner with UV-based commands
+- `UV_SETUP.md` - Detailed UV setup and usage guide
 
 ### Core Architecture  
 - `src/container.py` - Dependency injection container
@@ -179,8 +239,10 @@ pydantic-settings>=2.0.0
 - `src/infrastructure/` - External adapters and services
 
 ### LLM and Embedding Adapters
-- `src/infrastructure/llm/gemini_adapter.py` - Google Gemini LLM integration
+- `src/infrastructure/llm/gemini_adapter.py` - Google Gemini LLM integration with HTTP wrapper
+- `src/infrastructure/llm/http_gemini_wrapper.py` - HTTP direct call wrapper for Gemini LLM
 - `src/infrastructure/llm/hcx_adapter.py` - Naver HCX LLM integration
+- `src/infrastructure/embedding/gemini_http_adapter.py` - HTTP direct call adapter for Gemini Embedding
 - `src/infrastructure/embedding/hcx_adapter.py` - Naver HCX Embedding integration
 
 ### Web Components
@@ -213,11 +275,40 @@ pydantic-settings>=2.0.0
 - **Export Capabilities**: JSON/CSV result export
 - **Responsive Design**: Mobile-friendly interface
 
+## Recent Updates
+
+### ✅ LangChain Timeout Issue Resolution (2024)
+
+The project has successfully resolved the LangChain Google GenAI timeout issue that was causing evaluations to hang at 0% progress:
+
+**Problem**: 
+- RAGAS evaluations would start but never progress beyond 0%
+- LangChain Google GenAI library calls were hanging due to DNS resolution issues
+- Both `ChatGoogleGenerativeAI` and `GoogleGenerativeAIEmbeddings` were affected
+
+**Solution Implemented**:
+1. **HttpGeminiWrapper**: Custom LangChain-compatible wrapper that calls Google Gemini API directly via HTTP
+2. **GeminiHttpEmbeddingAdapter**: HTTP-based embedding adapter for Google Gemini embeddings  
+3. **Container Updates**: Modified dependency injection to use HTTP adapters instead of LangChain libraries
+4. **Network Stability**: Improved error handling and timeout management
+
+**Results**:
+- ✅ Evaluations now complete successfully with actual RAGAS scores
+- ✅ No more 0% progress hangs or timeouts
+- ✅ Both CLI and Streamlit work reliably
+- ✅ Typical evaluation time: ~1-2 minutes for 8 QA pairs
+
+**Files Modified**:
+- `src/infrastructure/llm/http_gemini_wrapper.py` (new)
+- `src/infrastructure/embedding/gemini_http_adapter.py` (new)
+- `src/infrastructure/llm/gemini_adapter.py` (updated to use HTTP wrapper)
+- `src/container.py` (updated DI configuration)
+
 ## Development Guidelines
 
 ### Requirements
 - **Python**: 3.11+ required
-- **Virtual Environment**: Use uv for dependency management
+- **Virtual Environment**: Use uv for dependency management (ALWAYS use `uv pip` instead of `pip`)
 - **Type Hints**: Comprehensive typing throughout codebase
 - **Testing**: Built-in test utilities and mock evaluations
 
@@ -237,64 +328,124 @@ pydantic-settings>=2.0.0
 
 ### Common Issues
 1. **API Key Errors**: Ensure `.env` file has correct API keys
-2. **Rate Limiting**: Adjust `*_REQUESTS_PER_MINUTE` in config
-3. **Import Errors**: Install missing dependencies with `uv pip install`
+2. **Evaluation Timeout**: Fixed with HTTP wrapper implementation (no longer an issue)
+3. **Import Errors**: Install missing dependencies with `uv sync --all-extras`
 4. **Database Issues**: Delete `data/db/evaluations.db` to reset
+5. **LangChain Issues**: Uses custom HTTP wrappers to bypass LangChain timeout problems
+6. **UV Issues**: Use `uv cache clean` and `uv lock` to fix dependency problems
+
+### Just Commands Reference
+```bash
+# Setup and installation
+just setup              # Complete environment setup
+just install            # Install dependencies only
+just install-all        # Install with all extras
+
+# Running applications
+just dashboard          # Start Streamlit dashboard
+just eval              # Run basic evaluation
+just eval-llm dataset llm # Run evaluation with specific LLM
+
+# Development
+just test              # Run tests
+just test-cov          # Run tests with coverage
+just format            # Format code with black
+just lint              # Lint with ruff
+just typecheck         # Type check with mypy
+just check             # Run all quality checks
+
+# Maintenance
+just clean             # Clean cache and temp files
+just update            # Update dependencies
+just build             # Build package
+
+# Utilities
+just info              # Show project information
+just --list            # List all available commands
+```
 
 ### Debug Commands
 ```bash
-# Test basic connectivity
-python hello.py
+# Test basic connectivity (UV recommended)
+uv run python hello.py
 
 # Check container configuration  
-python -c "from src.container import container; print('Container OK')"
+uv run python -c "from src.container import container; print('Container OK')"
 
 # Validate datasets
-python cli.py list-datasets
+uv run python cli.py list-datasets
 
 # Test LLM adapters
-python -c "from src.container import get_evaluation_use_case_with_llm; print('DI OK')"
+uv run python -c "from src.container import get_evaluation_use_case_with_llm; print('DI OK')"
+
+# Test evaluation directly (should complete without timeout)
+uv run python src/presentation/main.py evaluation_data_variant1 --llm gemini --embedding gemini
+
+# API connectivity diagnosis (if needed)
+uv run python diagnose_api_issue.py
+
+# Using Just commands (convenient)
+just test-connection
+just eval
+just diagnose
+just info
 ```
 
 ## Execution Instructions
 
 ### Quick Start (Web Dashboard)
 ```bash
-# 1. Set up environment
-echo "GEMINI_API_KEY=your_key_here" > .env
+# 1. Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Install dependencies
-uv pip install dependency-injector ragas google-generativeai python-dotenv streamlit plotly pandas numpy
+# 2. Clone and setup
+git clone <repository-url>
+cd RAGTrace
 
-# 3. Start web dashboard
-streamlit run src/presentation/web/main.py
+# 3. Automated setup
+chmod +x uv-setup.sh
+./uv-setup.sh
 
-# 4. Open browser to http://localhost:8501
+# 4. Set up environment (edit .env file with your API keys)
+# GEMINI_API_KEY=your_key_here
+
+# 5. Start web dashboard
+uv run streamlit run src/presentation/web/main.py
+
+# 6. Open browser to http://localhost:8501
 ```
 
 ### CLI Evaluation
 ```bash
-# Basic evaluation
-python cli.py
+# Basic evaluation with UV
+uv run python cli.py evaluate evaluation_data
 
 # With options
-python cli.py --dataset evaluation_data --llm gemini --embedding gemini
+uv run python cli.py evaluate evaluation_data --llm gemini --embedding gemini
 
 # HCX model (requires CLOVA_STUDIO_API_KEY)
-python cli.py --llm hcx --embedding hcx
+uv run python cli.py evaluate evaluation_data --llm hcx --embedding hcx
+
+# Using Just commands
+just eval evaluation_data
+just eval-llm evaluation_data gemini
 ```
 
 ### Testing System Components
 ```bash
-# Test connectivity
-python hello.py
+# Test connectivity with UV
+uv run python hello.py
 
 # Test dependency injection
-python -c "from src.container import container; print('✅ Container loaded successfully')"
+uv run python -c "from src.container import container; print('✅ Container loaded successfully')"
 
 # List available datasets
-python cli.py list-datasets
+uv run python cli.py list-datasets
 
 # Validate configuration
-python -c "from src.config import settings; print(f'✅ Default LLM: {settings.DEFAULT_LLM}')"
+uv run python -c "from src.config import settings; print(f'✅ Default LLM: {settings.DEFAULT_LLM}')"
+
+# Using Just commands
+just test-connection
+just info
 ```

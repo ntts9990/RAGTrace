@@ -399,10 +399,27 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
     """평가 실행 로직"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
-            st.info(f"🤖 선택된 LLM: {llm_type}")
-            st.info(f"🔍 선택된 임베딩: {embedding_type}")
-            st.info(f"📊 선택된 데이터셋: {dataset_name}")
-            st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
+            # 평가 설정 정보를 더 명확하게 표시
+            st.markdown("### 🔧 평가 설정")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.info(f"🤖 **LLM 모델**: {llm_type}")
+                st.info(f"📊 **데이터셋**: {dataset_name}")
+            
+            with col2:
+                st.info(f"🔍 **임베딩 모델**: {embedding_type}")
+                st.info(f"🎯 **프롬프트 타입**: {prompt_type.value}")
+            
+            # 프롬프트 타입 설명 추가
+            if prompt_type == PromptType.DEFAULT:
+                st.success("📝 **기본 RAGAS 프롬프트 (영어)** - 범용적이고 안정적인 평가")
+            elif prompt_type == PromptType.NUCLEAR_HYDRO_TECH:
+                st.success("⚛️ **원자력/수력 기술 문서 특화 프롬프트** - 기술 정확성과 안전 규정에 최적화")
+            elif prompt_type == PromptType.KOREAN_FORMAL:
+                st.success("📋 **한국어 공식 문서 특화 프롬프트** - 정책 문서와 법규 해석에 최적화")
+            
+            st.markdown("---")
 
             # HCX 선택 시 API 키 확인
             if llm_type == "hcx" or embedding_type == "hcx":
@@ -411,13 +428,34 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
                     st.error("❌ HCX 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
                     return
 
-            # 선택된 LLM과 임베딩으로 유스케이스 가져오기
-            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type, embedding_type)
-
-            # 평가 실행
-            evaluation_result = evaluation_use_case.execute(
-                dataset_name=dataset_name
-            )
+            # 선택된 LLM, 임베딩, 프롬프트로 유스케이스 가져오기
+            st.info("🔧 평가 시스템 초기화 중...")
+            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type, embedding_type, prompt_type)
+            
+            st.info("📊 데이터셋 로딩 및 검증 중...")
+            
+            # 진행 상황 표시를 위한 placeholder
+            progress_placeholder = st.empty()
+            
+            with progress_placeholder.container():
+                st.info("⚡ 평가 실행 중... (최대 30초 소요)")
+                st.warning("💡 **참고**: 현재 네트워크 문제로 인해 실제 평가가 진행되지 않을 수 있습니다. 30초 후 샘플 결과를 표시합니다.")
+                progress_bar = st.progress(0)
+                progress_text = st.empty()
+                
+                # 평가 실행
+                progress_text.text("평가 시작...")
+                progress_bar.progress(25)
+                
+                evaluation_result = evaluation_use_case.execute(
+                    dataset_name=dataset_name
+                )
+                
+                progress_bar.progress(100)
+                progress_text.text("평가 완료!")
+            
+            # 진행 상황 표시 제거
+            progress_placeholder.empty()
 
             # 결과 저장 (메타데이터에 LLM 정보 포함)
             result_dict = evaluation_result.to_dict()
@@ -444,13 +482,30 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             st.balloons()  # 성공 시 풍선 효과
             
             # 평가 결과 요약 표시
-            col1, col2, col3 = st.columns(3)
+            st.markdown("### 📊 평가 결과")
+            
+            # 모든 점수가 0인지 확인 (더미 결과 여부)
+            all_zero = all(result_dict.get(metric, 0) == 0 for metric in ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision'])
+            
+            if all_zero:
+                st.error("🚨 **샘플 결과**: 네트워크 문제로 인해 실제 평가가 실행되지 않았습니다.")
+                st.markdown("""
+                **해결 방법:**
+                1. 인터넷 연결 상태 확인
+                2. Google AI API 할당량 확인
+                3. 방화벽/프록시 설정 확인
+                4. 잠시 후 다시 시도
+                """)
+            
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("RAGAS Score", f"{result_dict.get('ragas_score', 0):.3f}")
+                st.metric("🏆 RAGAS Score", f"{result_dict.get('ragas_score', 0):.3f}")
             with col2:
-                st.metric("Faithfulness", f"{result_dict.get('faithfulness', 0):.3f}")
+                st.metric("✅ Faithfulness", f"{result_dict.get('faithfulness', 0):.3f}")
             with col3:
-                st.metric("Answer Relevancy", f"{result_dict.get('answer_relevancy', 0):.3f}")
+                st.metric("🎯 Answer Relevancy", f"{result_dict.get('answer_relevancy', 0):.3f}")
+            with col4:
+                st.metric("🔄 Context Recall", f"{result_dict.get('context_recall', 0):.3f}")
             
             # 결과 페이지로 이동
             st.markdown("---")

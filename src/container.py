@@ -5,9 +5,10 @@
 """
 
 from dependency_injector import containers, providers
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from src.infrastructure.embedding.gemini_http_adapter import GeminiHttpEmbeddingAdapter
 
 from src.config import settings
+from src.domain.prompts import PromptType
 from src.application.use_cases import RunEvaluationUseCase
 from src.application.services.data_validator import DataContentValidator
 from src.application.services.generation_service import GenerationService
@@ -40,9 +41,9 @@ class Container(containers.DeclarativeContainer):
 
     embedding_providers = providers.Dict(
         gemini=providers.Singleton(
-            GoogleGenerativeAIEmbeddings,
-            model=config.GEMINI_EMBEDDING_MODEL_NAME,
-            google_api_key=config.GEMINI_API_KEY,
+            GeminiHttpEmbeddingAdapter,
+            api_key=config.GEMINI_API_KEY,
+            model_name=config.GEMINI_EMBEDDING_MODEL_NAME,
         ),
         hcx=providers.Singleton(
             HcxEmbeddingAdapter,
@@ -81,7 +82,7 @@ class Container(containers.DeclarativeContainer):
 container = Container()
 
 
-def get_evaluation_use_case_with_llm(llm_type: str = None, embedding_type: str = None):
+def get_evaluation_use_case_with_llm(llm_type: str = None, embedding_type: str = None, prompt_type: PromptType = None):
     """런타임에 특정 LLM과 Embedding을 선택하여 평가 유스케이스를 생성"""
     if llm_type is None:
         llm_type = settings.DEFAULT_LLM
@@ -116,7 +117,7 @@ def get_evaluation_use_case_with_llm(llm_type: str = None, embedding_type: str =
     ragas_adapter = container.ragas_eval_adapter(
         llm=llm_adapter,
         embeddings=embedding_adapter,
-        prompt_type=None
+        prompt_type=prompt_type
     )
     
     return RunEvaluationUseCase(

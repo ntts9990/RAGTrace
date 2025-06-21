@@ -5,52 +5,92 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ragtrace"
 version = "0.1.0"
-description = "RAG tracing and evaluation dashboard using Streamlit and Ragas"
+description = "Multi-LLM RAG system performance evaluation platform with HTTP-based API integration"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
     { name = "ntts9990", email = "ntts.9990@gmail.com" },
 ]
+keywords = ["rag", "evaluation", "llm", "ragas", "gemini", "hcx", "streamlit"]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
+    "Intended Audience :: Developers", 
+    "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "streamlit>=1.28.0",
+    # Core Evaluation Framework
+    "dependency-injector>=4.48.1",
     "ragas>=0.1.0",
+    "google-generativeai>=0.3.0",
     "langchain-google-genai>=1.0.0",
+    "langchain-core>=0.1.0",
+    
+    # Configuration and Environment
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0", 
+    "pydantic-settings>=2.0.0",
+    
+    # Data Processing
     "datasets>=2.14.0",
     "pandas>=2.0.0",
-    "python-dotenv>=1.0.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "plotly>=5.15.0",
     "numpy>=1.24.0",
+    
+    # Web Dashboard
+    "streamlit>=1.28.0",
+    "plotly>=5.17.0",
+    
+    # HTTP Requests and Network
+    "requests>=2.31.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+    # Testing
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
+    
+    # Code Quality
     "black>=23.0.0",
     "ruff>=0.5.0",
     "mypy>=1.0.0",
-    "flake8>=6.0.0",
     "isort>=5.12.0",
+    
+    # Performance Monitoring
+    "watchdog>=3.0.0",  # For better Streamlit performance
+]
+
+performance = [
+    "watchdog>=3.0.0",  # For file watching and hot reload
+]
+
+analysis = [
+    "jupyter>=1.0.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/ntts9990/RAGTrace"
 Issues = "https://github.com/ntts9990/RAGTrace/issues"
+Repository = "https://github.com/ntts9990/RAGTrace.git"
+Documentation = "https://github.com/ntts9990/RAGTrace/blob/main/README.md"
+
+[project.scripts]
+ragtrace = "cli:main"
+ragtrace-dashboard = "run_dashboard:main"
 
 [tool.setuptools]
 packages = ["src"]
 package-dir = {"" = "."}
+
+# Note: UV configuration is in uv.toml file
 
 [tool.black]
 line-length = 88

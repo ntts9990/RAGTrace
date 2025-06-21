@@ -14,6 +14,18 @@ from ragas.metrics._context_precision import ContextPrecisionPrompt
 
 from src.domain.prompts import CustomPromptConfig, PromptType
 
+# 원자력/수력 기술 문서 특화 프롬프트 버전
+NUCLEAR_HYDRO_TECH_FAITHFULNESS = "nuclear_hydro_tech_faithfulness_v1"
+NUCLEAR_HYDRO_TECH_ANSWER_RELEVANCY = "nuclear_hydro_tech_answer_relevancy_v1"
+NUCLEAR_HYDRO_TECH_CONTEXT_RECALL = "nuclear_hydro_tech_context_recall_v1"
+NUCLEAR_HYDRO_TECH_CONTEXT_PRECISION = "nuclear_hydro_tech_context_precision_v1"
+
+# 한국어 공식 문서 특화 프롬프트 버전
+KOREAN_FORMAL_FAITHFULNESS = "korean_formal_faithfulness_v1"
+KOREAN_FORMAL_ANSWER_RELEVANCY = "korean_formal_answer_relevancy_v1"
+KOREAN_FORMAL_CONTEXT_RECALL = "korean_formal_context_recall_v1"
+KOREAN_FORMAL_CONTEXT_PRECISION = "korean_formal_context_precision_v1"
+
 
 class CustomStatementGeneratorPrompt(StatementGeneratorPrompt):
     """커스텀 Statement Generator 프롬프트"""
