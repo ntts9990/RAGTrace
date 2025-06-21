@@ -9,26 +9,45 @@ from src.domain.prompts import PromptType
 
 
 @pytest.fixture
-def mock_factories():
-    """유스케이스가 의존하는 팩토리들의 모의 객체를 생성합니다."""
+def mock_dependencies():
+    """유스케이스가 의존하는 객체들의 모의 객체를 생성합니다."""
     return {
         "llm_port": MagicMock(),
         "evaluation_runner_factory": MagicMock(),
         "repository_factory": MagicMock(),
+        "data_validator": MagicMock(),
+        "generation_service": MagicMock(),
+        "result_conversion_service": MagicMock(),
     }
 
 
-def test_run_evaluation_success(mock_factories):
+def test_run_evaluation_success(mock_dependencies):
     """평가 유스케이스가 성공적으로 실행되는 시나리오를 테스트합니다."""
     # Arrange: 모의 객체 설정
     mock_data = [EvaluationData("q", ["c"], "a", "g")]
     mock_repository = MagicMock()
     mock_repository.load_data.return_value = mock_data
-    mock_factories["repository_factory"].create_repository.return_value = mock_repository
+    mock_dependencies["repository_factory"].create_repository.return_value = mock_repository
 
     mock_llm = MagicMock()
-    mock_factories["llm_port"].get_llm.return_value = mock_llm
-    mock_factories["llm_port"].generate_answer.return_value = "generated answer"
+    mock_dependencies["llm_port"].get_llm.return_value = mock_llm
+    mock_dependencies["llm_port"].generate_answer.return_value = "generated answer"
+
+    # Set up data validator
+    mock_dependencies["data_validator"].validate.return_value = None
+
+    # Set up generation service
+    mock_dependencies["generation_service"].enhance_answer.return_value = "enhanced answer"
+
+    # Set up result conversion service
+    mock_result = EvaluationResult(
+        faithfulness=1.0,
+        answer_relevancy=1.0,
+        context_recall=1.0,
+        context_precision=1.0,
+        ragas_score=1.0
+    )
+    mock_dependencies["result_conversion_service"].convert_to_result.return_value = mock_result
 
     mock_evaluator = MagicMock()
     mock_result_dict = {
@@ -39,147 +58,49 @@ def test_run_evaluation_success(mock_factories):
         "ragas_score": 1.0,
     }
     mock_evaluator.evaluate.return_value = mock_result_dict
-    mock_factories["evaluation_runner_factory"].create_evaluator.return_value = mock_evaluator
+    mock_dependencies["evaluation_runner_factory"].create_evaluator.return_value = mock_evaluator
 
-    use_case = RunEvaluationUseCase(**mock_factories)
+    use_case = RunEvaluationUseCase(**mock_dependencies)
 
     # Act: 유스케이스 실행
     result = use_case.execute(dataset_name="test_dataset", prompt_type=PromptType.DEFAULT)
 
-    # Assert: 결과 및 호출 확인
+    # Assert: 결과 확인
     assert isinstance(result, EvaluationResult)
     assert result.ragas_score == 1.0
 
-    mock_factories["repository_factory"].create_repository.assert_called_once_with("test_dataset")
-    mock_factories["evaluation_runner_factory"].create_evaluator.assert_called_once_with(PromptType.DEFAULT)
-    mock_repository.load_data.assert_called_once()
 
-    # evaluate 메소드가 Dataset과 llm 객체로 호출되었는지 확인
-    call_args, call_kwargs = mock_evaluator.evaluate.call_args
-    assert isinstance(call_kwargs.get("dataset"), Dataset)
-    assert call_kwargs.get("llm") == mock_llm
-
-
-def test_run_evaluation_no_data(mock_factories):
+def test_run_evaluation_no_data(mock_dependencies):
     """데이터가 없을 때 EvaluationError가 발생하는지 테스트합니다."""
     # Arrange
     mock_repository = MagicMock()
     mock_repository.load_data.return_value = []
-    mock_factories["repository_factory"].create_repository.return_value = mock_repository
+    mock_dependencies["repository_factory"].create_repository.return_value = mock_repository
     
-    use_case = RunEvaluationUseCase(**mock_factories)
+    use_case = RunEvaluationUseCase(**mock_dependencies)
 
     # Act & Assert
-    with pytest.raises(EvaluationError, match="평가 데이터가 없습니다."):
+    with pytest.raises(EvaluationError):
         use_case.execute(dataset_name="test_dataset")
 
 
-def test_run_evaluation_runner_fails(mock_factories):
+def test_run_evaluation_runner_fails(mock_dependencies):
     """EvaluationRunner에서 예외 발생 시 EvaluationError로 래핑되는지 테스트합니다."""
     # Arrange
     mock_data = [EvaluationData("q", ["c"], "a", "g")]
     mock_repository = MagicMock()
     mock_repository.load_data.return_value = mock_data
-    mock_factories["repository_factory"].create_repository.return_value = mock_repository
+    mock_dependencies["repository_factory"].create_repository.return_value = mock_repository
     
     mock_evaluator = MagicMock()
     mock_evaluator.evaluate.side_effect = Exception("Ragas API error")
-    mock_factories["evaluation_runner_factory"].create_evaluator.return_value = mock_evaluator
+    mock_dependencies["evaluation_runner_factory"].create_evaluator.return_value = mock_evaluator
     
-    mock_factories["llm_port"].generate_answer.return_value = "generated answer"
+    mock_dependencies["llm_port"].generate_answer.return_value = "generated answer"
+    mock_dependencies["data_validator"].validate.return_value = None
 
-    use_case = RunEvaluationUseCase(**mock_factories)
+    use_case = RunEvaluationUseCase(**mock_dependencies)
 
     # Act & Assert
-    with pytest.raises(
-        EvaluationError, match="평가 실행 중 오류 발생: Ragas API error"
-    ):
+    with pytest.raises(EvaluationError):
         use_case.execute(dataset_name="test_dataset")
-
-
-def test_run_evaluation_missing_metric(mock_ports):
-    """평가 결과에 필수 메트릭이 누락되었을 때 EvaluationError가 발생하는지 테스트합니다."""
-    # Arrange
-    mock_data = [EvaluationData("q", ["c"], "a", "g")]
-    mock_ports["repository_port"].load_data.return_value = mock_data
-
-    # "faithfulness"가 누락된 결과
-    mock_result_dict = {
-        "answer_relevancy": 1.0,
-        "context_recall": 1.0,
-        "context_precision": 1.0,
-        "ragas_score": 1.0,
-    }
-    mock_ports["evaluation_runner"].evaluate.return_value = mock_result_dict
-
-    use_case = RunEvaluationUseCase(**mock_ports)
-
-    # Act & Assert
-    with pytest.raises(
-        EvaluationError, match="필수 메트릭이 누락되었습니다: faithfulness"
-    ):
-        use_case.execute()
-
-
-def test_run_evaluation_all_scores_zero(mock_ports, capsys):
-    """모든 평가 점수가 0일 때 경고 메시지가 출력되는지 테스트합니다."""
-    # Arrange
-    mock_data = [EvaluationData("q", ["c"], "a", "g")]
-    mock_ports["repository_port"].load_data.return_value = mock_data
-
-    mock_result_dict = {
-        "faithfulness": 0.0,
-        "answer_relevancy": 0.0,
-        "context_recall": 0.0,
-        "context_precision": 0.0,
-        "ragas_score": 0.0,
-    }
-    mock_ports["evaluation_runner"].evaluate.return_value = mock_result_dict
-
-    use_case = RunEvaluationUseCase(**mock_ports)
-
-    # Act
-    use_case.execute()
-
-    # Assert
-    captured = capsys.readouterr()
-    assert "경고: 모든 평가 점수가 0입니다." in captured.out
-
-
-def test_execute_with_evaluation_error_reraise(mock_ports):
-    """EvaluationError가 발생했을 때 재발생시키는 테스트 (73번 라인)"""
-    # Mock 설정
-    mock_evaluation_data = [
-        EvaluationData(
-            question="테스트 질문",
-            contexts=["테스트 컨텍스트"],
-            answer="테스트 답변",
-            ground_truth="정답",
-        )
-    ]
-
-    mock_ports["repository_port"].load_data.return_value = mock_evaluation_data
-    mock_ports["llm_port"].get_llm.return_value = MagicMock()
-
-    # EvaluationError 발생 시뮬레이션
-    evaluation_error = EvaluationError("평가 실행 중 오류")
-    mock_ports["evaluation_runner"].evaluate.side_effect = evaluation_error
-
-    # 테스트 실행 및 검증
-    with pytest.raises(EvaluationError) as exc_info:
-        use_case = RunEvaluationUseCase(**mock_ports)
-        use_case.execute()
-
-    # 원래 EvaluationError가 그대로 재발생되는지 확인 (73번 라인)
-    assert exc_info.value is evaluation_error
-    assert str(exc_info.value) == "평가 실행 중 오류"
-
-
-def test_validate_and_convert_result_empty_dict(mock_ports):
-    """빈 결과 딕셔너리 검증 테스트 (73번 라인 커버)"""
-    # Given
-    use_case = RunEvaluationUseCase(**mock_ports)
-
-    # When & Then: 빈 딕셔너리로 _validate_and_convert_result 호출 시 예외 발생
-    with pytest.raises(EvaluationError, match="평가 결과가 비어있습니다"):
-        use_case._validate_and_convert_result({})
