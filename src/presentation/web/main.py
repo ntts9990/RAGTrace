@@ -389,6 +389,13 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             st.info(f"📊 선택된 데이터셋: {dataset_name}")
             st.info(f"🎯 선택된 프롬프트: {prompt_type.value}")
 
+            # HCX 선택 시 API 키 확인
+            if llm_type == "hcx":
+                from src.config import settings
+                if not settings.CLOVA_STUDIO_API_KEY:
+                    st.error("❌ HCX 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
+                    return
+
             # 선택된 LLM으로 유스케이스 가져오기
             evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type)
 
@@ -399,6 +406,8 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
 
             # 결과 저장 (메타데이터에 LLM 정보 포함)
             result_dict = evaluation_result.to_dict()
+            if "metadata" not in result_dict:
+                result_dict["metadata"] = {}
             result_dict["metadata"]["llm_type"] = llm_type
             result_dict["metadata"]["dataset"] = dataset_name
             result_dict["metadata"]["prompt_type"] = prompt_type.value
@@ -418,10 +427,22 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             st.success("✅ 평가가 완료되었습니다!")
             st.balloons()  # 성공 시 풍선 효과
             
+            # 평가 결과 요약 표시
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("RAGAS Score", f"{result_dict.get('ragas_score', 0):.3f}")
+            with col2:
+                st.metric("Faithfulness", f"{result_dict.get('faithfulness', 0):.3f}")
+            with col3:
+                st.metric("Answer Relevancy", f"{result_dict.get('answer_relevancy', 0):.3f}")
+            
             # 결과 페이지로 이동
-            if st.button("📊 결과 보기", type="primary"):
-                st.session_state.navigate_to = "🎯 Overview"
-                st.rerun()
+            st.markdown("---")
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("📊 결과 페이지로 이동", type="primary", use_container_width=True):
+                    st.session_state.navigate_to = "🎯 Overview"
+                    st.rerun()
 
         except Exception as e:
             st.error(f"❌ 평가 중 오류 발생: {str(e)}")

@@ -12,7 +12,7 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 - **Google Gemini Embedding**: 다국어 임베딩 모델
 - **Naver HCX Embedding**: 한국어 특화 임베딩 모델
 - **런타임 모델 선택**: CLI와 웹 UI에서 동적 LLM/임베딩 모델 전환
-- **Rate Limiting**: API 제한 준수를 위한 지능적 요청 관리
+- **최적화된 성능**: Rate limiting 제거로 빠른 평가 처리
 
 ### 📊 포괄적인 평가 지표
 - **Faithfulness (충실성)**: 답변이 주어진 컨텍스트에 얼마나 충실한가
@@ -89,7 +89,7 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 가장 직관적이고 기능이 풍부한 방법입니다:
 
 ```bash
-python run_dashboard.py
+streamlit run src/presentation/web/main.py
 ```
 
 웹 브라우저에서 http://localhost:8501 접속 후:
@@ -157,8 +157,7 @@ RAGTrace/
 │   ├── 📂 infrastructure/           # 인프라스트럭처 계층
 │   │   ├── llm/                     # LLM 어댑터
 │   │   │   ├── gemini_adapter.py    # Google Gemini 연동
-│   │   │   ├── hcx_adapter.py       # Naver HCX 연동
-│   │   │   └── rate_limiter.py      # Rate limiting 유틸리티
+│   │   │   └── hcx_adapter.py       # Naver HCX 연동
 │   │   ├── embedding/               # 임베딩 어댑터
 │   │   │   └── hcx_adapter.py       # Naver HCX 임베딩 연동
 │   │   ├── evaluation/              # 평가 프레임워크 연동
@@ -184,7 +183,6 @@ RAGTrace/
 │   └── LLM_Customization_Manual.md  # LLM 커스터마이징 가이드
 │
 ├── cli.py                          # 고급 CLI 진입점
-├── run_dashboard.py                # 웹 대시보드 실행기
 ├── hello.py                        # 연결 테스트
 ├── .env                           # 환경 변수 (생성 필요)
 ├── CLAUDE.md                      # Claude Code 가이드
@@ -199,11 +197,8 @@ RAGTrace/
 # .env 파일에서 상세 설정 가능
 GEMINI_MODEL_NAME=models/gemini-2.5-flash-preview-05-20
 GEMINI_EMBEDDING_MODEL_NAME=models/gemini-embedding-exp-03-07
-GEMINI_REQUESTS_PER_MINUTE=30
 
 HCX_MODEL_NAME=HCX-005
-HCX_REQUESTS_PER_MINUTE=30
-HCX_EMBEDDING_REQUESTS_PER_MINUTE=30
 
 DEFAULT_LLM=gemini  # 또는 "hcx"
 ```
@@ -213,8 +208,8 @@ DEFAULT_LLM=gemini  # 또는 "hcx"
 ```python
 # 사용 가능한 프롬프트 타입
 DEFAULT_PROMPT_TYPE=default           # 기본 RAGAS 프롬프트
-# korean_tech                        # 한국어 기술 문서용
-# multilingual_tech                  # 다국어 기술 문서용
+# nuclear_hydro_tech                 # 원자력/수력 기술 문서용
+# korean_formal                      # 한국어 공식 문서용
 ```
 
 ### 평가 데이터 형식
@@ -256,10 +251,10 @@ DEFAULT_PROMPT_TYPE=default           # 기본 RAGAS 프롬프트
    uv pip install dependency-injector ragas google-generativeai
    ```
 
-3. **Rate Limiting**
+3. **성능 문제**
    ```bash
-   # .env에서 요청 제한 조정
-   GEMINI_REQUESTS_PER_MINUTE=10  # 더 낮은 값으로 설정
+   # 더 적은 QA 쌍으로 테스트
+   # 또는 timeout 증가 (config.py에서 설정)
    ```
 
 4. **데이터베이스 문제**

@@ -3,7 +3,7 @@ from typing import List, Any, Dict
 
 from src.application.ports.llm import LlmPort
 from langchain_core.language_models.llms import LLM
-from langchain_core.outputs import GenerationChunk, Generation
+from langchain_core.outputs import GenerationChunk, Generation, LLMResult
 
 
 class HcxAdapter(LlmPort):
@@ -80,13 +80,16 @@ class HcxAdapter(LlmPort):
 class HcxLangChainCompat(LLM):
     """HcxAdapter를 LangChain LLM처럼 사용하기 위한 래퍼 클래스"""
     
-    adapter: HcxAdapter
+    def __init__(self, adapter: HcxAdapter, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, 'adapter', adapter)
+        object.__setattr__(self, 'model', adapter.model_name)
 
     @property
     def _llm_type(self) -> str:
         return "hcx"
 
-    def _call(self, prompt: str, stop: List[str] | None = None, **kwargs: Any) -> str:
+    def _call(self, prompt: str, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
         # Ragas는 주로 (question, contexts) 쌍으로 평가하지만,
         # 일부 메트릭은 단일 프롬프트(텍스트)를 사용하므로, 이를 question으로 간주합니다.
         return self.adapter.generate_answer(question=prompt, contexts=[])

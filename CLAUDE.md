@@ -7,13 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 RAGTrace is a comprehensive RAG (Retrieval-Augmented Generation) evaluation framework that provides quantitative assessment and analysis of RAG system performance. Built on the [RAGAS](https://github.com/explodinggradients/ragas) framework by ExplodingGradients, it implements Clean Architecture principles with full dependency injection.
 
 **Key Features:**
-- Multi-LLM support (Google Gemini, Naver HCX-005)
-- Multi-Embedding support (Google Gemini Embedding, Naver HCX Embedding)
-- Interactive web dashboard with real-time metrics
-- Complete dependency injection with dependency-injector
-- Rate limiting and API error handling
-- Korean and multilingual evaluation support
-- Historical tracking with SQLite storage
+- **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
+- **Multi-Embedding Support**: Google Gemini Embedding and Naver HCX Embedding  
+- **Interactive Web Dashboard**: Real-time evaluation with Streamlit
+- **Complete Dependency Injection**: Using dependency-injector framework
+- **Clean Architecture**: Domain, Application, Infrastructure, Presentation layers
+- **Flexible Data Handling**: Supports multiple datasets with automatic detection
+- **Comprehensive Metrics**: Faithfulness, Answer Relevancy, Context Recall/Precision
+- **Historical Tracking**: SQLite-based evaluation history with visualization
+- **Production Ready**: Error handling, timeout management, and user-friendly interfaces
 
 ## Architecture
 
@@ -32,51 +34,57 @@ The project follows Clean Architecture with complete dependency injection:
 
 ## Running the Application
 
+### Web Dashboard (Recommended)
+```bash
+# Start the interactive web dashboard
+python run_dashboard.py
+```
+Access at: http://localhost:8501
+
+**Dashboard Features:**
+- **LLM Selection**: Choose between Gemini and HCX models with real-time validation
+- **Embedding Model Choice**: Independent LLM and embedding model selection
+- **Prompt Type Selection**: Default, Korean tech, or multilingual prompts
+- **Dataset Management**: Automatic detection and validation of evaluation datasets
+- **Real-time Evaluation**: Live progress tracking with spinner and status updates
+- **Interactive Visualization**: Radar charts, bar charts, and trend analysis
+- **Historical Tracking**: SQLite-based evaluation history with comparison tools
+- **Detailed Analysis**: Individual QA pair examination and metric explanations
+
 ### CLI Evaluation (Advanced)
 ```bash
-# Basic evaluation with default LLM (Gemini)
+# Basic evaluation (supports both with and without .json extension)
 python cli.py evaluate evaluation_data
+python cli.py evaluate evaluation_data.json
 
-# Specify LLM model
+# LLM selection
 python cli.py evaluate evaluation_data.json --llm gemini
 python cli.py evaluate evaluation_data.json --llm hcx
 
-# Specify LLM and embedding model independently  
+# Independent LLM and embedding model selection
 python cli.py evaluate evaluation_data.json --llm gemini --embedding hcx
 python cli.py evaluate evaluation_data.json --llm hcx --embedding gemini
 
 # Custom prompt types
-python cli.py evaluate evaluation_data.json --llm gemini --prompt-type korean_tech
+python cli.py evaluate evaluation_data.json --prompt-type nuclear_hydro_tech
+python cli.py evaluate evaluation_data.json --prompt-type korean_formal
 
-# List available datasets and prompts
-python cli.py list-datasets
-python cli.py list-prompts
+# Save results to file
+python cli.py evaluate evaluation_data.json --output results.json
 
 # Verbose output with detailed logs
-python cli.py evaluate evaluation_data --llm gemini --verbose
+python cli.py evaluate evaluation_data.json --verbose
+
+# Information commands
+python cli.py list-datasets
+python cli.py list-prompts
+python cli.py --help
 ```
 
 ### Simple Evaluation (Basic)
 ```bash
+# Quick evaluation with default settings
 python src/presentation/main.py
-```
-
-### Web Dashboard (Recommended)
-```bash
-python run_dashboard.py
-```
-Access the interactive dashboard at: http://localhost:8501
-
-Features:
-- LLM selection (Gemini/HCX) in web UI
-- Real-time evaluation with progress tracking
-- Historical results comparison
-- Detailed metrics explanation
-- Performance monitoring
-
-### Testing
-```bash
-python hello.py  # Basic connectivity test
 ```
 
 ## Environment Setup
@@ -133,7 +141,7 @@ pydantic-settings>=2.0.0
 ### LLM Integration
 - **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
 - **Multi-Embedding Support**: Google Gemini Embedding and Naver HCX Embedding
-- **Rate Limiting**: Configured for 30 requests/minute per LLM and embedding model
+- **Optimized Performance**: No rate limiting for improved evaluation speed
 - **Error Handling**: Comprehensive timeout and retry mechanisms
 - **Runtime Selection**: Dynamic LLM and embedding model switching via CLI and web UI
 - **Independent Selection**: LLM and embedding models can be chosen independently
@@ -173,7 +181,6 @@ pydantic-settings>=2.0.0
 ### LLM and Embedding Adapters
 - `src/infrastructure/llm/gemini_adapter.py` - Google Gemini LLM integration
 - `src/infrastructure/llm/hcx_adapter.py` - Naver HCX LLM integration
-- `src/infrastructure/llm/rate_limiter.py` - Rate limiting utilities
 - `src/infrastructure/embedding/hcx_adapter.py` - Naver HCX Embedding integration
 
 ### Web Components
@@ -247,4 +254,47 @@ python cli.py list-datasets
 
 # Test LLM adapters
 python -c "from src.container import get_evaluation_use_case_with_llm; print('DI OK')"
+```
+
+## Execution Instructions
+
+### Quick Start (Web Dashboard)
+```bash
+# 1. Set up environment
+echo "GEMINI_API_KEY=your_key_here" > .env
+
+# 2. Install dependencies
+uv pip install dependency-injector ragas google-generativeai python-dotenv streamlit plotly pandas numpy
+
+# 3. Start web dashboard
+streamlit run src/presentation/web/main.py
+
+# 4. Open browser to http://localhost:8501
+```
+
+### CLI Evaluation
+```bash
+# Basic evaluation
+python cli.py
+
+# With options
+python cli.py --dataset evaluation_data --llm gemini --embedding gemini
+
+# HCX model (requires CLOVA_STUDIO_API_KEY)
+python cli.py --llm hcx --embedding hcx
+```
+
+### Testing System Components
+```bash
+# Test connectivity
+python hello.py
+
+# Test dependency injection
+python -c "from src.container import container; print('✅ Container loaded successfully')"
+
+# List available datasets
+python cli.py list-datasets
+
+# Validate configuration
+python -c "from src.config import settings; print(f'✅ Default LLM: {settings.DEFAULT_LLM}')"
 ```
