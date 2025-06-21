@@ -21,6 +21,7 @@ WORKDIR /app
 COPY --chown=ragtrace:ragtrace pyproject.toml ./
 COPY --chown=ragtrace:ragtrace uv.toml ./
 COPY --chown=ragtrace:ragtrace .python-version ./
+COPY --chown=ragtrace:ragtrace uv.lock ./
 
 # Copy application files
 COPY --chown=ragtrace:ragtrace src/ ./src/
@@ -41,7 +42,7 @@ ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install dependencies using UV
-RUN uv sync
+RUN uv sync --no-dev || uv sync
 
 # Streamlit configuration
 ENV STREAMLIT_SERVER_PORT=8501
