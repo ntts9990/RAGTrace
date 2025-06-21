@@ -17,3 +17,6 @@ native-tls = true
 compile-bytecode = true
 
 # Note: dev-dependencies are defined in pyproject.toml [tool.uv] section
+
+# Add find-links for PyTorch CPU
+find-links = ["https://download.pytorch.org/whl/cpu"]
