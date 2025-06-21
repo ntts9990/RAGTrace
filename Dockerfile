@@ -11,38 +11,39 @@ RUN apt-get update && apt-get install -y \
 # Install UV
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Create non-root user
-RUN useradd -m -u 1000 ragtrace
-
 # Set working directory
 WORKDIR /app
 
-# Copy project configuration
-COPY --chown=ragtrace:ragtrace pyproject.toml ./
-COPY --chown=ragtrace:ragtrace uv.toml ./
-COPY --chown=ragtrace:ragtrace .python-version ./
-COPY --chown=ragtrace:ragtrace uv.lock ./
-
-# Copy application files
-COPY --chown=ragtrace:ragtrace src/ ./src/
-COPY --chown=ragtrace:ragtrace data/ ./data/
-COPY --chown=ragtrace:ragtrace cli.py hello.py ./
-COPY --chown=ragtrace:ragtrace README.md CLAUDE.md ./
-
-# Create data directories
-RUN mkdir -p /app/data/db /app/data/temp && \
-    chown -R ragtrace:ragtrace /app/data
-
-# Switch to non-root user
-USER ragtrace
+# Copy project configuration first (as root for now)
+COPY pyproject.toml ./
+COPY uv.toml ./
+COPY .python-version ./
+COPY uv.lock ./
 
 # Set up UV environment
 ENV UV_PYTHON=3.11
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 
-# Install dependencies using UV
+# Install dependencies using UV (as root to avoid permission issues)
 RUN uv sync --no-dev || uv sync
+
+# Create non-root user
+RUN useradd -m -u 1000 ragtrace
+
+# Copy application files with correct ownership
+COPY --chown=ragtrace:ragtrace src/ ./src/
+COPY --chown=ragtrace:ragtrace data/ ./data/
+COPY --chown=ragtrace:ragtrace cli.py hello.py ./
+COPY --chown=ragtrace:ragtrace README.md CLAUDE.md ./
+
+# Create data directories and fix ownership
+RUN mkdir -p /app/data/db /app/data/temp && \
+    chown -R ragtrace:ragtrace /app
+
+# Switch to non-root user
+USER ragtrace
 
 # Streamlit configuration
 ENV STREAMLIT_SERVER_PORT=8501
