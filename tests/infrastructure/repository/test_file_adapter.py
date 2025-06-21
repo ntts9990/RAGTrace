@@ -65,68 +65,7 @@ def test_file_repository_invalid_json(tmp_path):
         adapter.load_data()
 
 
-class TestFileRepositoryAdapter:
-    """FileRepositoryAdapter 테스트"""
-
-    def test_init(self):
-        """초기화 테스트"""
-        adapter = FileRepositoryAdapter("test.json")
-        assert adapter.file_path == "test.json"
-
-    def test_load_data_success(self):
-        """데이터 로드 성공 테스트"""
-        test_data = [
-            {
-                "question": "질문1",
-                "answer": "답변1",
-                "contexts": ["컨텍스트1"],
-                "ground_truth": "정답1",
-            },
-            {
-                "question": "질문2",
-                "answer": "답변2",
-                "contexts": ["컨텍스트2"],
-                "ground_truth": "정답2",
-            },
-        ]
-
-        with patch("builtins.open", mock_open(read_data=json.dumps(test_data))):
-            adapter = FileRepositoryAdapter("test.json")
-            result = adapter.load_data()
-
-            assert len(result) == 2
-            assert all(isinstance(item, EvaluationData) for item in result)
-            assert result[0].question == "질문1"
-            assert result[1].question == "질문2"
-
-    def test_load_data_file_not_found(self, capsys):
-        """파일을 찾을 수 없는 경우 테스트"""
-        with patch("builtins.open", side_effect=FileNotFoundError()):
-            adapter = FileRepositoryAdapter("nonexistent.json")
-            result = adapter.load_data()
-
-            assert result == []
-            captured = capsys.readouterr()
-            assert "오류: 파일을 찾을 수 없습니다" in captured.out
-
-    def test_load_data_json_decode_error(self, capsys):
-        """JSON 디코딩 오류 테스트"""
-        invalid_json = "{ invalid json }"
-
-        with patch("builtins.open", mock_open(read_data=invalid_json)):
-            adapter = FileRepositoryAdapter("invalid.json")
-            result = adapter.load_data()
-
-            assert result == []
-            captured = capsys.readouterr()
-            assert "오류: JSON 파싱 중 오류가 발생했습니다" in captured.out
-
-    def test_load_data_general_exception(self, capsys):
-        """일반 예외 처리 테스트"""
-        with patch("builtins.open", side_effect=PermissionError("권한 없음")):
-            adapter = FileRepositoryAdapter("permission_denied.json")
-            result = adapter.load_data()
-
-            assert result == []
-            captured = capsys.readouterr()
-            assert "데이터 로드 중 예기치 않은 오류 발생" in captured.out
+def test_file_repository_initialization():
+    """FileRepositoryAdapter 초기화 테스트"""
+    adapter = FileRepositoryAdapter("test.json")
+    assert adapter.file_path == "test.json"
