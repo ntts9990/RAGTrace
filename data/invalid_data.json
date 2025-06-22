@@ -1,0 +1,17 @@
+[
+  {
+    "question": "질문만 있는 데이터"
+  },
+  {
+    "question": "What is AI?",
+    "contexts": [],
+    "answer": "AI is artificial intelligence",
+    "ground_truth": "Artificial Intelligence"
+  },
+  {
+    "question": "",
+    "contexts": ["Some context"],
+    "answer": "Answer",
+    "ground_truth": "Ground truth"
+  }
+]

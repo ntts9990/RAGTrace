@@ -1,0 +1,20 @@
+[
+  {
+    "question": "What is the capital of France?",
+    "contexts": [
+      "France is a country in Western Europe. Its capital and largest city is Paris.",
+      "Paris is known for the Eiffel Tower and many museums."
+    ],
+    "answer": "The capital of France is Paris.",
+    "ground_truth": "Paris"
+  },
+  {
+    "question": "한국의 수도는 어디인가요?",
+    "contexts": [
+      "대한민국은 동아시아에 위치한 국가입니다. 수도는 서울특별시입니다.",
+      "서울은 한강을 중심으로 발달한 도시입니다."
+    ],
+    "answer": "한국의 수도는 서울입니다.",
+    "ground_truth": "서울"
+  }
+]
