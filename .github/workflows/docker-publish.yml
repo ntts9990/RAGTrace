@@ -14,7 +14,7 @@ env:
 jobs:
   build-and-push:
     name: Build and Push Docker Images
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-16-cores
     permissions:
       contents: read
       packages: write
@@ -75,8 +75,6 @@ jobs:
         build-args: |
           BUILDKIT_STEP_LOG_MAX_SIZE=10485760
           BUILDKIT_STEP_LOG_MAX_SPEED=10485760
-          TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
-          UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
