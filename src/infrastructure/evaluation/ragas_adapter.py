@@ -51,23 +51,19 @@ class RagasEvalAdapter:
         주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
         """
         try:
-            # Strategy Context를 통한 평가 실행
-            raw_result = self.evaluation_context.run_evaluation_with_timeout(dataset)
+            # 단순화된 평가 실행: primary_strategy를 직접 호출
+            strategy = self.evaluation_context.primary_strategy
+            strategy.print_strategy_info()
             
-            # 결과 파싱 및 최종 리포트 생성
-            result_dict = self._parse_result(raw_result, dataset)
-            return self._create_final_report(result_dict, dataset)
+            raw_result = strategy.run_evaluation(dataset)
+            
+            # 결과 파싱만 수행하고 그대로 반환
+            return self._parse_result(raw_result, dataset)
             
         except Exception as e:
             print(f"❌ 평가 중 오류 발생: {str(e)}")
-            print("⚠️  폴백: 샘플 결과 반환")
-            try:
-                raw_result = self.evaluation_context._create_dummy_result(dataset)
-                result_dict = self._parse_result(raw_result, dataset)
-                return self._create_final_report(result_dict, dataset)
-            except Exception as fallback_error:
-                print(f"❌ 샘플 결과 생성도 실패: {str(fallback_error)}")
-                return self._create_error_result()
+            # 오류 발생 시 빈 결과 반환
+            return self._create_error_result()
 
 
     def _parse_result(self, result, dataset: Dataset) -> dict:
@@ -85,26 +81,6 @@ class RagasEvalAdapter:
                 for _ in range(len(dataset))
             ]
             return result_dict
-
-    def _create_final_report(self, result_dict: dict, dataset: Dataset) -> dict:
-        """최종 리포트 생성"""
-        # ragas_score 계산
-        metric_values = [v for k, v in result_dict.items() if k != "individual_scores" and v > 0]
-        result_dict["ragas_score"] = sum(metric_values) / len(metric_values) if metric_values else 0.0
-        
-        # 메타데이터 추가
-        result_dict["metadata"] = {
-            "evaluation_id": str(uuid.uuid4())[:8],
-            "timestamp": datetime.datetime.now().isoformat(),
-            "model": str(self.llm.model),
-            "temperature": getattr(self.llm, "temperature", 0.0),
-            "dataset_size": len(dataset),
-            "strategy": self.evaluation_context.primary_strategy.get_strategy_name(),
-        }
-        
-        print(f"✅ 평가 완료!")
-        print(f"📊 최종 결과: RAGAS Score = {result_dict['ragas_score']:.4f}")
-        return result_dict
 
     def _create_error_result(self) -> dict:
         """오류 발생 시 기본 결과 생성"""

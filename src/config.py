@@ -95,14 +95,6 @@ def get_prompt_type_from_env() -> PromptType:
     return settings.get_prompt_type()
 
 
-def set_prompt_type_for_session(prompt_type: PromptType):
-    """세션용 프롬프트 타입 설정 (환경변수 오버라이드)"""
-    os.environ["RAGAS_PROMPT_TYPE"] = prompt_type.value
-    # settings 인스턴스 업데이트
-    global settings
-    settings = Settings()
-
-
 def get_database_path() -> str:
     """데이터베이스 파일 경로 반환"""
     if settings.DATABASE_URL.startswith("sqlite:///"):
