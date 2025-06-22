@@ -4,8 +4,9 @@ developmentMode = false
 
 [server]
 # 서버 설정
-headless = false
-port = 8501
+port = 8503
+address = "0.0.0.0"
+headless = true
 enableCORS = false
 enableXsrfProtection = false
 
@@ -17,9 +18,21 @@ maxMessageSize = 200
 # 브라우저 자동 열기 설정
 gatherUsageStats = false
 
+[runner]
+# 실행 설정
+magicEnabled = true
+
+[logger]
+# 로그 설정
+level = "error"
+
+[client]
+# 클라이언트 설정
+showErrorDetails = false
+
 [theme]
 # 테마 설정
-primaryColor = "#1f77b4"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
+primaryColor = "#FF6B6B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730" 

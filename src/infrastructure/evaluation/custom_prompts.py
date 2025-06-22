@@ -253,9 +253,13 @@ class CustomPromptFactory:
                 custom_context_recall.context_recall_prompt = CustomContextRecallPrompt(config)
             
             # Context Precision 커스터마이징
-            context_precision_prompts = config.get_context_precision_prompts()
-            if context_precision_prompts:
-                custom_context_precision.context_precision_prompt = CustomContextPrecisionPrompt(config)
+            try:
+                context_precision_prompts = config.get_context_precision_prompts()
+                if context_precision_prompts:
+                    custom_context_precision.context_precision_prompt = CustomContextPrecisionPrompt(config)
+            except Exception as e:
+                print(f"⚠️ Context Precision 커스텀 프롬프트 적용 실패, 기본 프롬프트 사용: {e}")
+                # 기본 프롬프트 유지
         
         return {
             'faithfulness': custom_faithfulness,

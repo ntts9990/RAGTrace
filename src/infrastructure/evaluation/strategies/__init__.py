@@ -8,6 +8,7 @@ from .base_strategy import EvaluationStrategy
 from .standard_evaluation_strategy import StandardEvaluationStrategy
 from .custom_prompt_evaluation_strategy import CustomPromptEvaluationStrategy
 from .fallback_evaluation_strategy import FallbackEvaluationStrategy
+from .hcx_evaluation_strategy import HcxEvaluationStrategy
 from .evaluation_context import EvaluationContext
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     'StandardEvaluationStrategy', 
     'CustomPromptEvaluationStrategy',
     'FallbackEvaluationStrategy',
+    'HcxEvaluationStrategy',
     'EvaluationContext'
 ]

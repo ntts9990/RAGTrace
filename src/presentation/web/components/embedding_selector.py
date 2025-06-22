@@ -17,8 +17,8 @@ def show_embedding_selector() -> str:
     """
     st.markdown("### 🔍 임베딩 모델 선택")
     
-    # 임베딩 옵션 정의 (config에서 가져오기)
-    embedding_options = EMBEDDING_DISPLAY_NAMES
+    # 임베딩 옵션 정의 (config에서 가져와서 키-값 뒤바꾸기)
+    embedding_options = {display: emb_type for emb_type, display in EMBEDDING_DISPLAY_NAMES.items()}
     
     # HCX API 키 확인
     hcx_available = bool(settings.CLOVA_STUDIO_API_KEY)

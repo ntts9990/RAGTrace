@@ -17,8 +17,8 @@ def show_llm_selector() -> str:
     """
     st.markdown("### 🤖 LLM 모델 선택")
     
-    # LLM 옵션 정의 (config에서 가져오기)
-    llm_options = LLM_DISPLAY_NAMES
+    # LLM 옵션 정의 (config에서 가져와서 키-값 뒤바꾸기)
+    llm_options = {display: llm_type for llm_type, display in LLM_DISPLAY_NAMES.items()}
     
     # HCX API 키 확인
     hcx_available = bool(settings.CLOVA_STUDIO_API_KEY)

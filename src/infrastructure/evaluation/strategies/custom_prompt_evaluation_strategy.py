@@ -20,11 +20,20 @@ class CustomPromptEvaluationStrategy(EvaluationStrategy):
     def __init__(self, llm, embeddings, prompt_type: PromptType):
         super().__init__(llm, embeddings)
         self.prompt_type = prompt_type
+        # HCX 사용 시 순차 처리로 API 한도 방지
+        max_workers = 1
+        timeout = 600  # HCX 사용 시 타임아웃 증가
+        
+        # LLM이 HCX가 아닌 경우 더 많은 워커 사용 가능
+        if hasattr(llm, 'model') and 'HCX' not in str(llm.model):
+            max_workers = 4
+            timeout = 300
+        
         self.run_config = RunConfig(
-            timeout=300,
-            max_retries=3,
-            max_workers=4,
-            max_wait=60,
+            timeout=timeout,
+            max_retries=5,  # 재시도 횟수 증가
+            max_workers=max_workers,
+            max_wait=120,   # 대기 시간 증가
             log_tenacity=True
         )
         
@@ -32,12 +41,14 @@ class CustomPromptEvaluationStrategy(EvaluationStrategy):
         self.custom_metrics = CustomPromptFactory.create_custom_metrics(self.prompt_type)
     
     def get_metrics(self) -> List[Any]:
-        """커스텀 메트릭 반환"""
+        """커스텀 메트릭 반환 (Context Precision은 기본 메트릭 사용)"""
+        from ragas.metrics import context_precision
+        
         return [
             self.custom_metrics['faithfulness'],
             self.custom_metrics['answer_relevancy'],
             self.custom_metrics['context_recall'],
-            self.custom_metrics['context_precision'],
+            context_precision,  # 기본 메트릭 사용으로 안정성 확보
         ]
     
     def run_evaluation(self, dataset: Dataset) -> Any:

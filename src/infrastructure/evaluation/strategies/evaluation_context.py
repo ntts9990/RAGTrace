@@ -11,6 +11,7 @@ from .base_strategy import EvaluationStrategy
 from .standard_evaluation_strategy import StandardEvaluationStrategy
 from .custom_prompt_evaluation_strategy import CustomPromptEvaluationStrategy
 from .fallback_evaluation_strategy import FallbackEvaluationStrategy
+from .hcx_evaluation_strategy import HcxEvaluationStrategy
 
 
 class EvaluationContext:
@@ -27,6 +28,12 @@ class EvaluationContext:
     
     def _create_primary_strategy(self) -> EvaluationStrategy:
         """주요 전략 생성"""
+        # HCX 모델인 경우 전용 전략 사용
+        if hasattr(self.llm, 'model') and 'HCX' in str(self.llm.model):
+            print("🔧 HCX 모델 감지 - HCX 전용 평가 전략 사용")
+            return HcxEvaluationStrategy(self.llm, self.embeddings)
+        
+        # 기본 전략 선택
         if self.prompt_type == PromptType.DEFAULT:
             return StandardEvaluationStrategy(self.llm, self.embeddings)
         else:

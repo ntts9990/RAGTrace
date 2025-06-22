@@ -42,12 +42,12 @@ class RagasEvalAdapter:
         # 결과 파서 초기화
         self.result_parser = ResultParser()
 
-        # RAGAS RunConfig 설정 - 안정적인 평가를 위한 최적화된 설정
+        # RAGAS RunConfig 설정 - HCX API 한도를 고려한 매우 보수적 설정
         self.run_config = RunConfig(
-            timeout=300,        # 5분 타임아웃 (기본 180초보다 여유있게)
-            max_retries=3,      # 재시도 횟수 (기본 10회보다 적게)
-            max_workers=4,      # 적절한 병렬 처리 (기본 16개보다 보수적)
-            max_wait=60,        # 최대 대기 시간
+            timeout=600,        # 10분 타임아웃 (재시도 시간 고려)
+            max_retries=1,      # RAGAS 레벨 재시도 줄임 (어댑터에서 재시도)
+            max_workers=1,      # 순차 처리로 변경 (API 한도 방지)
+            max_wait=300,       # 최대 대기 시간 대폭 증가
             log_tenacity=True   # 재시도 로그 활성화
         )
 
@@ -134,21 +134,37 @@ class RagasEvalAdapter:
         """
         주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
         """
+        import time
+        
+        # 전체 평가 시간 측정 시작
+        total_start_time = time.time()
+        print(f"⏱️  전체 평가 시작: {len(dataset)}개 문항")
+        
         try:
             # 실제 평가 실행 (타임아웃 적용)
             raw_result = self._run_evaluation_with_timeout(dataset)
             
             # 결과 파싱 및 최종 리포트 생성
             result_dict = self._parse_result(raw_result, dataset)
-            return self._create_final_report(result_dict, dataset)
+            
+            # 전체 평가 시간 측정 완료
+            total_end_time = time.time()
+            total_duration = total_end_time - total_start_time
+            
+            print(f"⏱️  전체 평가 완료: {total_duration:.1f}초 ({total_duration/60:.1f}분)")
+            print(f"📊 평균 문항당 시간: {total_duration/len(dataset):.1f}초")
+            
+            return self._create_final_report(result_dict, dataset, total_duration)
             
         except Exception as e:
-            print(f"❌ 평가 중 오류 발생: {str(e)}")
+            total_end_time = time.time()
+            total_duration = total_end_time - total_start_time
+            print(f"❌ 평가 중 오류 발생 ({total_duration:.1f}초 경과): {str(e)}")
             print("⚠️  폴백: 샘플 결과 반환")
             try:
                 raw_result = self._create_dummy_result(dataset)
                 result_dict = self._parse_result(raw_result, dataset)
-                return self._create_final_report(result_dict, dataset)
+                return self._create_final_report(result_dict, dataset, total_duration)
             except Exception as fallback_error:
                 print(f"❌ 샘플 결과 생성도 실패: {str(fallback_error)}")
                 return self._create_error_result()
@@ -290,7 +306,7 @@ class RagasEvalAdapter:
             ]
             return result_dict
 
-    def _create_final_report(self, result_dict: dict, dataset: Dataset) -> dict:
+    def _create_final_report(self, result_dict: dict, dataset: Dataset, total_duration: float = 0.0) -> dict:
         """최종 리포트 생성"""
         import datetime
         import uuid
@@ -299,13 +315,16 @@ class RagasEvalAdapter:
         metric_values = [v for k, v in result_dict.items() if k != "individual_scores" and v > 0]
         result_dict["ragas_score"] = sum(metric_values) / len(metric_values) if metric_values else 0.0
         
-        # 메타데이터 추가
+        # 메타데이터 추가 (시간 정보 포함)
         result_dict["metadata"] = {
             "evaluation_id": str(uuid.uuid4())[:8],
             "timestamp": datetime.datetime.now().isoformat(),
             "model": str(self.llm.model),
             "temperature": getattr(self.llm, "temperature", 0.0),
             "dataset_size": len(dataset),
+            "total_duration_seconds": round(total_duration, 2),
+            "total_duration_minutes": round(total_duration / 60, 2),
+            "avg_time_per_item_seconds": round(total_duration / len(dataset), 2) if len(dataset) > 0 else 0.0,
         }
         
         print(f"✅ 평가 완료!")

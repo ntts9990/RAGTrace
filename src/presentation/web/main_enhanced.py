@@ -2,17 +2,12 @@
 RAGTrace Dashboard - Enhanced with Full Features
 
 main 브랜치의 모든 기능을 통합한 완전한 RAGTrace 대시보드입니다.
+무한 루프 문제를 해결하면서 모든 기능을 유지합니다.
 """
 
 import json
-import random
 import sqlite3
 from datetime import datetime
-import warnings
-
-# torch 관련 경고 무시
-warnings.filterwarnings("ignore", category=UserWarning, module="torch")
-warnings.filterwarnings("ignore", message=".*torch.classes.*")
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -32,9 +27,6 @@ from src.utils.paths import (
     get_available_datasets,
     get_evaluation_data_path,
 )
-from src.presentation.web.components.llm_selector import show_llm_selector
-from src.presentation.web.components.embedding_selector import show_embedding_selector
-from src.presentation.web.components.prompt_selector import show_prompt_selector
 
 
 # 페이지 정의
@@ -50,59 +42,45 @@ def load_pages():
     }
 
 
+# 사이드바 및 네비게이션
+st.sidebar.title("🔍 RAGTrace 대시보드")
+
+pages = load_pages()
+page_keys = list(pages.keys())
+
+# 페이지 네비게이션 상태 관리
+if "selected_page" not in st.session_state:
+    st.session_state.selected_page = "🎯 Overview"
+
+# 네비게이션 버튼으로 페이지 이동 처리
+if "navigate_to" in st.session_state:
+    st.session_state.selected_page = st.session_state.navigate_to
+    del st.session_state.navigate_to
+
+
 # 페이지 선택 콜백 함수
 def on_page_change():
     st.session_state.selected_page = st.session_state.page_selector
 
 
-# 메인 함수
+# 사이드바에서 페이지 선택
+st.sidebar.selectbox(
+    "페이지 선택",
+    page_keys,
+    index=page_keys.index(st.session_state.selected_page),
+    key="page_selector",
+    on_change=on_page_change,
+)
+
+page = st.session_state.selected_page
+
+
+# 메인 함수들
 def main():
-    """메인 애플리케이션 - Streamlit 앱 시작점"""
-    # 사이드바 및 네비게이션
-    st.sidebar.title("🔍 RAGTrace 대시보드")
-    
-    pages = load_pages()
-    page_keys = list(pages.keys())
-    
-    # 페이지 네비게이션 상태 관리
-    if "selected_page" not in st.session_state:
-        st.session_state.selected_page = "🎯 Overview"
-    
-    # 네비게이션 버튼으로 페이지 이동 처리
-    if "navigate_to" in st.session_state:
-        st.session_state.selected_page = st.session_state.navigate_to
-        del st.session_state.navigate_to
-    
-    # 사이드바에서 페이지 선택
-    st.sidebar.selectbox(
-        "페이지 선택",
-        page_keys,
-        index=page_keys.index(st.session_state.selected_page),
-        key="page_selector",
-        on_change=on_page_change,
-    )
-    
-    page = st.session_state.selected_page
-    
-    # 공통 헤더
+    """메인 애플리케이션"""
     st.title("🔍 RAGTrace - RAG 성능 추적 대시보드")
     st.markdown("---")
-    
-    # 페이지 라우팅
-    if page == "🎯 Overview":
-        show_overview()
-    elif page == "🚀 New Evaluation":
-        show_new_evaluation_page()
-    elif page == "📈 Historical":
-        show_historical()
-    elif page == "📚 Detailed Analysis":
-        show_detailed_analysis()
-    elif page == "📖 Metrics Explanation":
-        show_metrics_guide()
-    elif page == "⚡ Performance":
-        show_performance()
-    else:
-        show_overview()
+    show_overview()
 
 
 def show_overview():
@@ -120,23 +98,22 @@ def show_overview():
 
     with col1:
         if st.button(
-            "🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다",
-            key="overview_new_eval_btn"
+            "🚀 새 평가 실행", type="primary", help="새로운 RAG 평가를 시작합니다"
         ):
             st.session_state.navigate_to = "🚀 New Evaluation"
             st.rerun()
 
     with col2:
-        if st.button("🔄 새로고침", help="최신 결과를 다시 로드합니다", key="overview_refresh_btn"):
+        if st.button("🔄 새로고침", help="최신 결과를 다시 로드합니다"):
             st.rerun()
 
     with col3:
-        if st.button("📈 이력보기", help="과거 평가 결과를 확인합니다", key="overview_history_btn"):
+        if st.button("📈 이력보기", help="과거 평가 결과를 확인합니다"):
             st.session_state.navigate_to = "📈 Historical"
             st.rerun()
 
     with col4:
-        if st.button("📚 메트릭 가이드", help="RAGAS 점수의 의미를 알아보세요", key="overview_guide_btn"):
+        if st.button("📚 메트릭 가이드", help="RAGAS 점수의 의미를 알아보세요"):
             st.session_state.navigate_to = "📖 Metrics Explanation"
             st.rerun()
 
@@ -144,8 +121,6 @@ def show_overview():
     latest_result = load_latest_result()
 
     if latest_result:
-        # 평가 기본 정보 표시
-        show_evaluation_info(latest_result)
         show_metric_cards(latest_result)
         show_metric_charts(latest_result)
         show_recent_trends()
@@ -158,62 +133,6 @@ def show_overview():
         st.markdown(
             "📚 사이드바에서 **'Metrics Guide'**를 선택하면 각 점수가 무엇을 의미하는지 쉽게 알아볼 수 있습니다!"
         )
-    
-    # 컨테이너 테스트 버튼 (기존 기능 유지)
-    st.markdown("---")
-    if st.button("🧪 컨테이너 테스트", key="overview_container_test_btn"):
-        try:
-            with st.spinner("컨테이너 로딩 중..."):
-                from src.container import container
-                from src.container.factories.evaluation_use_case_factory import EvaluationRequest
-                
-                request = EvaluationRequest(
-                    llm_type="gemini",
-                    embedding_type="gemini",
-                    prompt_type=PromptType.DEFAULT
-                )
-                
-                evaluation_use_case, llm_adapter, embedding_adapter = container.create_evaluation_use_case(request)
-                st.success("✅ 컨테이너가 성공적으로 로딩되었습니다!")
-                st.info(f"LLM Adapter: {type(llm_adapter).__name__}")
-                st.info(f"Embedding Adapter: {type(embedding_adapter).__name__}")
-                
-        except Exception as e:
-            st.error(f"❌ 컨테이너 로딩 실패: {str(e)}")
-
-
-def show_evaluation_info(result):
-    """평가 기본 정보 표시"""
-    st.subheader("📋 평가 정보")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        qa_count = result.get('qa_count', 'N/A')
-        st.markdown(f"**QA 개수**")
-        st.markdown(f"<span style='font-size: 16px;'>{qa_count}</span>", unsafe_allow_html=True)
-    
-    with col2:
-        eval_id = result.get('evaluation_id', 'N/A')
-        if eval_id != 'N/A' and len(str(eval_id)) > 8:
-            eval_id = str(eval_id)[:8]
-        st.markdown(f"**평가 ID**")
-        st.markdown(f"<span style='font-size: 16px;'>{eval_id}</span>", unsafe_allow_html=True)
-    
-    with col3:
-        llm_model = result.get('llm_model', 'N/A')
-        st.markdown(f"**LLM 모델**")
-        st.markdown(f"<span style='font-size: 16px;'>{llm_model}</span>", unsafe_allow_html=True)
-    
-    with col4:
-        embedding_model = result.get('embedding_model', 'N/A')
-        st.markdown(f"**임베딩 모델**")
-        st.markdown(f"<span style='font-size: 16px;'>{embedding_model}</span>", unsafe_allow_html=True)
-    
-    dataset_name = result.get('dataset_name', 'N/A')
-    st.markdown(f"**데이터셋**: {dataset_name}")
-    
-    st.markdown("---")
 
 
 def show_metric_cards(result):
@@ -243,36 +162,6 @@ def show_metric_cards(result):
                 label=f"{icon} {name}",
                 value=f"{value:.3f}",
                 delta=f"{delta_value:.3f}" if delta_value is not None else None,
-            )
-
-    # 평가 시간 정보 표시
-    metadata = result.get("metadata", {})
-    if metadata.get("total_duration_seconds"):
-        st.subheader("⏱️ 평가 성능")
-        
-        time_col1, time_col2, time_col3 = st.columns(3)
-        
-        with time_col1:
-            st.metric(
-                label="⏱️ 총 평가 시간",
-                value=f"{metadata.get('total_duration_minutes', 0):.1f}분",
-                help=f"{metadata.get('total_duration_seconds', 0):.1f}초"
-            )
-        
-        with time_col2:
-            st.metric(
-                label="📊 평균 문항 시간",
-                value=f"{metadata.get('avg_time_per_item_seconds', 0):.1f}초",
-                help="문항당 평균 처리 시간"
-            )
-        
-        with time_col3:
-            dataset_size = metadata.get('dataset_size', 0)
-            throughput = dataset_size / metadata.get('total_duration_seconds', 1) * 60 if metadata.get('total_duration_seconds') else 0
-            st.metric(
-                label="🚀 처리 속도",
-                value=f"{throughput:.1f}문항/분",
-                help=f"총 {dataset_size}개 문항"
             )
 
 
@@ -400,7 +289,8 @@ def show_recent_trends():
 
 def show_new_evaluation_page():
     """새 평가 실행 페이지"""
-    st.header("🚀 새 평가 실행")
+    st.title("🚀 새 평가 실행")
+    st.markdown("---")
     
     # LLM 선택 UI 표시
     selected_llm = show_llm_selector()
@@ -432,9 +322,9 @@ def show_new_evaluation_page():
     # 현재 선택된 데이터셋의 인덱스 찾기
     try:
         current_index = existing_datasets.index(st.session_state.selected_dataset)
-    except (ValueError, IndexError):
+    except ValueError:
         current_index = 0
-        st.session_state.selected_dataset = existing_datasets[0] if existing_datasets else None
+        st.session_state.selected_dataset = existing_datasets[0]
     
     # 데이터셋 선택 UI
     selected_dataset = st.selectbox(
@@ -463,23 +353,10 @@ def show_new_evaluation_page():
     # 평가 설정 요약
     st.markdown("### 📋 평가 설정 요약")
     col1, col2, col3, col4 = st.columns(4)
-    
-    # 표시명 매핑
-    llm_display_names = {
-        "gemini": "🌐 Google Gemini 2.5 Flash",
-        "hcx": "🚀 NAVER HyperCLOVA X"
-    }
-    
-    embedding_display_names = {
-        "gemini": "🌐 Google Gemini Embedding",
-        "bge_m3": "🎯 BGE-M3 Local Embedding", 
-        "hcx": "🚀 NAVER HCX Embedding"
-    }
-    
     with col1:
-        st.write(f"**🤖 LLM 모델:** {llm_display_names.get(selected_llm, selected_llm)}")
+        st.write(f"**🤖 LLM 모델:** {selected_llm}")
     with col2:
-        st.write(f"**🔍 임베딩 모델:** {embedding_display_names.get(selected_embedding, selected_embedding)}")
+        st.write(f"**🔍 임베딩 모델:** {selected_embedding}")
     with col3:
         st.write(f"**🎯 프롬프트 타입:** {selected_prompt_type.value}")
     with col4:
@@ -491,12 +368,12 @@ def show_new_evaluation_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
-        if st.button("← 뒤로가기", key="new_eval_back_btn"):
+        if st.button("← 뒤로가기"):
             st.session_state.navigate_to = "🎯 Overview"
             st.rerun()
     
     with col2:
-        if st.button("🚀 평가 시작", type="primary", use_container_width=True, key="new_eval_start_btn"):
+        if st.button("🚀 평가 시작", type="primary", use_container_width=True):
             execute_evaluation(selected_prompt_type, selected_dataset, selected_llm, selected_embedding)
     
     with col3:
@@ -511,17 +388,7 @@ def show_llm_selector():
         return _show_llm_selector()
     except ImportError:
         # 컴포넌트가 없으면 간단한 대체 UI
-        st.markdown("### 🤖 LLM 모델 선택")
-        llm_options = {
-            "🌐 Google Gemini 2.5 Flash": "gemini",
-            "🚀 NAVER HyperCLOVA X": "hcx"
-        }
-        selected_display = st.selectbox(
-            "사용할 LLM 모델을 선택하세요:",
-            list(llm_options.keys()),
-            key="llm_selector"
-        )
-        return llm_options[selected_display]
+        return st.selectbox("LLM 모델 선택", ["gemini", "hcx"], key="llm_selector")
 
 
 def show_embedding_selector():
@@ -531,18 +398,7 @@ def show_embedding_selector():
         return _show_embedding_selector()
     except ImportError:
         # 컴포넌트가 없으면 간단한 대체 UI
-        st.markdown("### 🔍 임베딩 모델 선택")
-        embedding_options = {
-            "🌐 Google Gemini Embedding": "gemini",
-            "🎯 BGE-M3 Local Embedding": "bge_m3",
-            "🚀 NAVER HCX Embedding": "hcx"
-        }
-        selected_display = st.selectbox(
-            "사용할 임베딩 모델을 선택하세요:",
-            list(embedding_options.keys()),
-            key="embedding_selector"
-        )
-        return embedding_options[selected_display]
+        return st.selectbox("임베딩 모델 선택", ["gemini", "bge_m3", "hcx"], key="embedding_selector")
 
 
 def show_prompt_selector():
@@ -552,7 +408,6 @@ def show_prompt_selector():
         return _show_prompt_selector()
     except ImportError:
         # 컴포넌트가 없으면 간단한 대체 UI
-        st.markdown("### 🎯 프롬프트 타입 선택")
         prompt_options = [PromptType.DEFAULT, PromptType.KOREAN_FORMAL, PromptType.NUCLEAR_HYDRO_TECH]
         selected = st.selectbox("프롬프트 타입 선택", 
                                [p.value for p in prompt_options], 
@@ -561,7 +416,7 @@ def show_prompt_selector():
 
 
 def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str, embedding_type: str):
-    """평가 실행 로직"""
+    """평가 실행 로직 (지연 로딩 적용)"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
             # 평가 설정 정보 표시
@@ -586,20 +441,12 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             
             st.markdown("---")
 
-            # HCX 선택 시 API 키 확인 및 사용자 안내
+            # HCX 선택 시 API 키 확인
             if llm_type == "hcx" or embedding_type == "hcx":
                 from src.config import settings
                 if not settings.CLOVA_STUDIO_API_KEY:
                     st.error("❌ HCX 모델을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
                     return
-                else:
-                    st.warning("⚠️ **HCX API 사용 시 주의사항**")
-                    st.markdown("""
-                    - HCX API는 요청 한도가 있어 429 오류가 발생할 수 있습니다
-                    - 실패한 평가는 자동으로 재시도됩니다 (최대 3회)
-                    - 대량 평가 시에는 Gemini 모델 사용을 권장합니다
-                    """)
-                    st.markdown("---")
 
             # 컨테이너 로딩 (지연 로딩)
             st.info("🔧 평가 시스템 초기화 중...")
@@ -621,13 +468,7 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             progress_placeholder = st.empty()
             
             with progress_placeholder.container():
-                if llm_type == "hcx" or embedding_type == "hcx":
-                    st.info("⚡ 평가 실행 중... (HCX API 사용으로 10-15분 소요 예상)")
-                    st.warning("🔄 HCX API 429 오류 방지를 위해 순차 처리합니다. 중단하지 마시고 기다려주세요.")
-                    st.info("📊 설정: 워커 1개, 재시도 8회, 지수 백오프 적용")
-                else:
-                    st.info("⚡ 평가 실행 중... (2-5분 소요 예상)")
-                
+                st.info("⚡ 평가 실행 중... (최대 30초 소요)")
                 progress_bar = st.progress(0)
                 progress_text = st.empty()
                 
@@ -654,40 +495,15 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             result_dict["metadata"]["dataset"] = dataset_name
             result_dict["metadata"]["prompt_type"] = prompt_type.value
 
-            # 추가 정보 저장
-            import uuid
-            evaluation_id = str(uuid.uuid4())[:8]
-            
-            # LLM과 임베딩 모델 표시명 매핑
-            llm_display_names = {
-                "gemini": "Google Gemini 2.5 Flash",
-                "hcx": "NAVER HyperCLOVA X"
-            }
-            
-            embedding_display_names = {
-                "gemini": "Google Gemini Embedding",
-                "bge_m3": "BGE-M3 Local Embedding", 
-                "hcx": "NAVER HCX Embedding"
-            }
-            
-            result_dict["evaluation_id"] = evaluation_id
-            result_dict["llm_model"] = llm_display_names.get(llm_type, llm_type)
-            result_dict["embedding_model"] = embedding_display_names.get(embedding_type, embedding_type)
-            result_dict["dataset_name"] = dataset_name
-
             dataset_path = get_evaluation_data_path(dataset_name)
             if dataset_path:
                 try:
                     with open(dataset_path, encoding="utf-8") as f:
                         qa_data = json.load(f)
                         qa_count = len(result_dict.get("individual_scores", []))
-                        result_dict["qa_count"] = qa_count
                         result_dict["qa_data"] = qa_data[:qa_count]
                 except Exception as e:
                     st.warning(f"QA 데이터 로드 실패: {e}")
-                    result_dict["qa_count"] = len(result_dict.get("individual_scores", []))
-            else:
-                result_dict["qa_count"] = len(result_dict.get("individual_scores", []))
 
             save_evaluation_result(result_dict)
 
@@ -696,20 +512,6 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             
             # 평가 결과 요약 표시
             st.markdown("### 📊 평가 결과")
-            
-            # API 실패 케이스 확인 및 안내
-            individual_scores = result_dict.get("individual_scores", [])
-            failed_count = 0
-            total_count = len(individual_scores)
-            
-            for scores in individual_scores:
-                # 0.2는 API 실패 시 부여하는 부분 점수
-                if any(score == 0.2 for score in scores.values()):
-                    failed_count += 1
-            
-            if failed_count > 0:
-                st.warning(f"⚠️ **일부 평가 실패**: {total_count}개 중 {failed_count}개가 API 한도로 인해 부분 점수를 받았습니다.")
-                st.info("💡 **개선 방법**: Gemini 모델 사용 또는 잠시 후 재평가를 권장합니다.")
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -762,37 +564,9 @@ def show_historical():
 
         # 각 평가에 대한 상세 정보
         for i, row in df.iterrows():
-            # 제목에 모델 정보 포함
-            llm_model = row.get('llm_model', 'N/A')
-            embedding_model = row.get('embedding_model', 'N/A')
-            qa_count = row.get('qa_count', 'N/A')
-            
-            # 모델명이 길면 줄임
-            if llm_model and len(str(llm_model)) > 20:
-                llm_display = str(llm_model)[:20] + "..."
-            else:
-                llm_display = llm_model
-                
-            if embedding_model and len(str(embedding_model)) > 20:
-                embedding_display = str(embedding_model)[:20] + "..."
-            else:
-                embedding_display = embedding_model
-            
             with st.expander(
-                f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')} | QA: {qa_count}"
+                f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"
             ):
-                # 평가 기본 정보
-                st.markdown("**📋 평가 정보**")
-                info_col1, info_col2 = st.columns(2)
-                with info_col1:
-                    st.markdown(f"**LLM 모델**: <span style='font-size: 14px;'>{llm_display}</span>", unsafe_allow_html=True)
-                    st.markdown(f"**임베딩 모델**: <span style='font-size: 14px;'>{embedding_display}</span>", unsafe_allow_html=True)
-                with info_col2:
-                    st.markdown(f"**데이터셋**: <span style='font-size: 14px;'>{row.get('dataset_name', 'N/A')}</span>", unsafe_allow_html=True)
-                    st.markdown(f"**평가 ID**: <span style='font-size: 14px;'>{str(row.get('evaluation_id', 'N/A'))[:8]}</span>", unsafe_allow_html=True)
-                
-                st.markdown("---")
-                
                 col1, col2, col3 = st.columns([2, 2, 1])
 
                 with col1:
@@ -950,24 +724,6 @@ def init_db():
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
 
-    # 기존 테이블 구조 확인
-    cursor.execute("PRAGMA table_info(evaluations)")
-    columns = [row[1] for row in cursor.fetchall()]
-    
-    # 새로운 컬럼들이 없으면 추가
-    new_columns = [
-        'qa_count', 'evaluation_id', 'llm_model', 'embedding_model', 'dataset_name',
-        'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds'
-    ]
-    
-    for column in new_columns:
-        if column not in columns:
-            if column in ['qa_count', 'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds']:
-                cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} REAL")
-            else:
-                cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} TEXT")
-
-    # 테이블이 없으면 생성
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS evaluations (
@@ -978,15 +734,7 @@ def init_db():
             context_recall REAL,
             context_precision REAL,
             ragas_score REAL,
-            raw_data TEXT,
-            qa_count INTEGER,
-            evaluation_id TEXT,
-            llm_model TEXT,
-            embedding_model TEXT,
-            dataset_name TEXT,
-            total_duration_seconds REAL,
-            total_duration_minutes REAL,
-            avg_time_per_item_seconds REAL
+            raw_data TEXT
         )
     """
     )
@@ -1002,17 +750,12 @@ def save_evaluation_result(result):
     conn = sqlite3.connect(str(DATABASE_PATH))
     cursor = conn.cursor()
 
-    # 메타데이터에서 시간 정보 추출
-    metadata = result.get("metadata", {})
-    
     cursor.execute(
         """
         INSERT INTO evaluations (
             timestamp, faithfulness, answer_relevancy, 
-            context_recall, context_precision, ragas_score, raw_data,
-            qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
-            total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            context_recall, context_precision, ragas_score, raw_data
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
     """,
         (
             datetime.now().isoformat(),
@@ -1022,14 +765,6 @@ def save_evaluation_result(result):
             result.get("context_precision", 0),
             result.get("ragas_score", 0),
             json.dumps(result),
-            result.get("qa_count", 0),
-            result.get("evaluation_id", ""),
-            result.get("llm_model", ""),
-            result.get("embedding_model", ""),
-            result.get("dataset_name", ""),
-            metadata.get("total_duration_seconds", 0.0),
-            metadata.get("total_duration_minutes", 0.0),
-            metadata.get("avg_time_per_item_seconds", 0.0),
         ),
     )
 
@@ -1051,9 +786,7 @@ def load_evaluation_history(limit=None):
 
     query = """
         SELECT timestamp, faithfulness, answer_relevancy, 
-               context_recall, context_precision, ragas_score,
-               qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
-               total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
+               context_recall, context_precision, ragas_score
         FROM evaluations 
         ORDER BY timestamp DESC
     """
@@ -1073,5 +806,22 @@ def get_previous_result():
     return history[1] if len(history) > 1 else None
 
 
-if __name__ == "__main__":
+# 페이지 라우팅
+if page == "🎯 Overview":
     main()
+elif page == "🚀 New Evaluation":
+    show_new_evaluation_page()
+elif page == "📈 Historical":
+    show_historical()
+elif page == "📚 Detailed Analysis":
+    show_detailed_analysis()
+elif page == "📖 Metrics Explanation":
+    show_metrics_guide()
+elif page == "⚡ Performance":
+    show_performance()
+else:
+    main()
+
+
+if __name__ == "__main__":
+    main() 
