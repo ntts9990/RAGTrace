@@ -76,15 +76,35 @@ just dashboard
 CLI를 통해 더 세밀한 제어가 가능합니다.
 
 ```bash
-# 기본 평가 실행 (기본값: evaluation_data.json, hcx, bge_m3)
-uv run python cli.py evaluate
+# Excel/CSV 데이터를 JSON으로 변환 (검증 포함)
+uv run python cli.py import-data your_data.xlsx --validate
 
-# 특정 데이터셋 및 LLM/임베딩 모델 지정
-uv run python cli.py evaluate evaluation_data_small.json --llm gemini --embedding gemini
+# 변환된 데이터로 평가 실행
+uv run python cli.py evaluate your_data --llm gemini --embedding bge_m3
+
+# 기본 평가 실행 (기본값: evaluation_data.json)
+uv run python cli.py evaluate evaluation_data --llm gemini --embedding gemini
 
 # 사용 가능한 옵션 확인
 uv run python cli.py --help
 ```
+
+#### 📊 Excel/CSV 데이터 형식
+
+Excel 또는 CSV 파일은 다음 4개 컬럼을 포함해야 합니다:
+
+| 컬럼명 | 설명 | 예시 |
+|--------|------|------|
+| `question` | 평가할 질문 | "원자력 발전소의 주요 구성요소는?" |
+| `contexts` | 참고 문맥들 | JSON 배열 또는 `;` 구분 |
+| `answer` | 시스템 답변 | "원자로, 증기발생기, 터빈발전기..." |
+| `ground_truth` | 정답 기준 | "원자로, 증기발생기, 터빈발전기" |
+
+**contexts 작성 방법:**
+- JSON 배열: `["첫 번째 문맥", "두 번째 문맥"]` (권장)
+- 세미콜론 구분: `첫 번째 문맥;두 번째 문맥`
+- 파이프 구분: `첫 번째 문맥|두 번째 문맥`
+- 단일 문맥: `하나의 긴 문맥 내용`
 
 ## 📁 프로젝트 구조
 
@@ -98,6 +118,7 @@ RAGTrace/
 ├── 📂 data/                         # 평가 데이터 및 DB
 ├── 📂 docs/                         # 핵심 문서
 │   ├── Development_Guide.md         # 📘 통합 개발 가이드 (이것부터 읽으세요!)
+│   ├── Data_Import_Guide.md         # 📊 Excel/CSV 데이터 Import 가이드
 │   ├── Architecture_And_Debugging_History.md # 아키텍처 및 디버깅 변천사
 │   ├── User_Scenario_Analysis.md    # 사용자 시나리오 및 위험 분석
 │   └── RAGTRACE_METRICS.md          # 평가 메트릭 상세 설명

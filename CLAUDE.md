@@ -9,12 +9,13 @@ RAGTrace is a comprehensive RAG (Retrieval-Augmented Generation) evaluation fram
 **Key Features:**
 - **Multi-LLM Support**: Google Gemini 2.5 Flash and Naver HCX-005
 - **Multi-Embedding Support**: Google Gemini, Naver HCX, and BGE-M3 Local Embedding
+- **Excel/CSV Data Import**: Native support for Excel (.xlsx, .xls) and CSV files with automatic format detection
 - **BGE-M3 GPU Auto-Detection**: Automatic CUDA/MPS/CPU detection with optimization
 - **Local Model Support**: Fully offline embedding processing with BGE-M3
 - **Interactive Web Dashboard**: Real-time evaluation with Streamlit
 - **Complete Dependency Injection**: Using dependency-injector framework
 - **Clean Architecture**: Domain, Application, Infrastructure, Presentation layers
-- **Flexible Data Handling**: Supports multiple datasets with automatic detection
+- **Flexible Data Handling**: Supports multiple datasets with automatic detection and batch processing
 - **Comprehensive Metrics**: Faithfulness, Answer Relevancy, Context Recall/Precision
 - **Historical Tracking**: SQLite-based evaluation history with visualization
 - **Production Ready**: Error handling, timeout management, and user-friendly interfaces
@@ -62,6 +63,10 @@ Access at: http://localhost:8501
 
 ### CLI Evaluation (Advanced)
 ```bash
+# Excel/CSV data import and conversion
+uv run python cli.py import-data your_data.xlsx --validate --output converted_data.json
+uv run python cli.py import-data your_data.csv --validate --batch-size 100
+
 # Basic evaluation with UV (recommended)
 uv run python cli.py evaluate evaluation_data
 uv run python cli.py evaluate evaluation_data.json
@@ -93,6 +98,27 @@ uv run python cli.py --help
 just eval evaluation_data
 just eval-llm evaluation_data gemini
 ```
+
+#### Excel/CSV Data Import
+The system supports importing evaluation data from Excel (.xlsx, .xls) and CSV files with automatic format detection and validation.
+
+**Required Columns:**
+- `question`: The question to be evaluated
+- `contexts`: Reference contexts (supports multiple formats)
+- `answer`: System-generated answer
+- `ground_truth`: Expected correct answer
+
+**Contexts Format Options:**
+1. **JSON Array** (recommended): `["context 1", "context 2", "context 3"]`
+2. **Semicolon separated**: `context 1;context 2;context 3`
+3. **Pipe separated**: `context 1|context 2|context 3`
+4. **Single context**: `single long context content`
+
+**Import Features:**
+- Automatic encoding detection (UTF-8, CP949, EUC-KR)
+- Data validation with detailed error reporting
+- Batch processing for large datasets
+- Support for various context formats
 
 ### Simple Evaluation (Basic)
 ```bash
