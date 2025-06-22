@@ -15,7 +15,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# Streamlit이 직접 실행할 때를 위한 호출
-main()
