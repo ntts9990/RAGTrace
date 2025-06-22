@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from src.infrastructure.repository import FileRepositoryFactory
 
 
-class RunEvaluationUseCase:
+class RunEvaluationUseCaseV2:
     """Command 패턴을 사용한 리팩토링된 평가 실행 유스케이스"""
 
     def __init__(
@@ -80,4 +80,3 @@ class RunEvaluationUseCase:
     def get_pipeline_info(self) -> str:
         """파이프라인 정보 반환"""
         return self.pipeline.get_pipeline_info()
-
