@@ -12,7 +12,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.container import container, get_evaluation_use_case_with_llm
+from src.container import container
+from src.container.factories.evaluation_use_case_factory import EvaluationRequest
 from src.domain.prompts import PromptType
 from src.presentation.web.components.prompt_selector import show_prompt_selector
 from src.presentation.web.components.llm_selector import show_llm_selector
@@ -430,7 +431,12 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
 
             # 선택된 LLM, 임베딩, 프롬프트로 유스케이스 가져오기
             st.info("🔧 평가 시스템 초기화 중...")
-            evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(llm_type, embedding_type, prompt_type)
+            request = EvaluationRequest(
+                llm_type=llm_type,
+                embedding_type=embedding_type,
+                prompt_type=prompt_type
+            )
+            evaluation_use_case, llm_adapter, embedding_adapter = container.create_evaluation_use_case(request)
             
             st.info("📊 데이터셋 로딩 및 검증 중...")
             

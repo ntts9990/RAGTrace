@@ -7,16 +7,16 @@ Historical View Component
 import streamlit as st
 import pandas as pd
 
+from ..models.session_model import SessionManager
 from ..services.database_service import DatabaseService
 from ..services.chart_service import ChartService
-from ..models.session_model import SessionModel
 
 
 def show_historical():
     """히스토리 페이지"""
     st.header("📈 평가 이력")
     
-    session = SessionModel()
+    session = SessionManager()
     database = DatabaseService()
 
     # 상세 분석으로 이동하는 안내
@@ -97,4 +97,4 @@ def show_historical():
                 st.plotly_chart(comparison_fig, use_container_width=True)
 
     else:
-        st.info("📝 아직 평가 이력이 없습니다.")
+        st.info("�� 아직 평가 이력이 없습니다.")

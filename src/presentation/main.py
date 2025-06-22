@@ -2,6 +2,7 @@ import logging
 import sys
 
 from src.container import container
+from src.container.factories.evaluation_use_case_factory import EvaluationRequest
 
 
 def main():
@@ -12,9 +13,9 @@ def main():
     print("RAGTrace 평가를 시작합니다...")
 
     try:
-        # 1. 컨테이너에서 유스케이스 가져오기 (기본 LLM 사용)
-        from src.container import get_evaluation_use_case_with_llm
-        evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm()
+        # 1. 컨테이너에서 유스케이스 가져오기 (기본 설정 사용)
+        request = EvaluationRequest()  # 기본값 사용
+        evaluation_use_case, llm_adapter, embedding_adapter = container.create_evaluation_use_case(request)
 
         # 1.1. 사용 중인 모델들 출력
         print(f"🤖 사용 중인 LLM: {type(llm_adapter).__name__}")

@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import settings, validate_settings, SUPPORTED_LLM_TYPES, SUPPORTED_EMBEDDING_TYPES
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets, get_evaluation_data_path
+from src.container import container
 
 
 class TestConfigAndEnvironment:
@@ -173,8 +174,6 @@ class TestConfigAndEnvironment:
 
     def test_container_initialization_with_different_settings(self):
         """다양한 설정으로 컨테이너 초기화 테스트"""
-        from src.container import container
-        
         # 컨테이너가 제대로 초기화되는지 확인
         assert container is not None
         

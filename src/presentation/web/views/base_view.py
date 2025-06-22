@@ -8,14 +8,14 @@ from abc import ABC, abstractmethod
 import streamlit as st
 from typing import Any, Dict, Optional
 
-from ..models.session_model import SessionModel
+from ..models.session_model import SessionManager
 
 
 class BaseView(ABC):
     """기본 뷰 클래스"""
     
     def __init__(self):
-        self.session = SessionModel()
+        self.session = SessionManager()
     
     @abstractmethod
     def render(self, **kwargs) -> None:

@@ -7,7 +7,8 @@ Evaluation Service
 import json
 from typing import Dict, Any
 
-from src.container import get_evaluation_use_case_with_llm
+from src.container import container
+from src.container.factories.evaluation_use_case_factory import EvaluationRequest
 from src.utils.paths import get_evaluation_data_path
 from ..models.evaluation_model import EvaluationConfig, EvaluationResult, EvaluationModel
 from .database_service import DatabaseService
@@ -19,12 +20,15 @@ class EvaluationService:
     @staticmethod
     def execute_evaluation(config: EvaluationConfig) -> EvaluationResult:
         """평가 실행"""
-        # 선택된 LLM, 임베딩, 프롬프트로 유스케이스 가져오기
-        evaluation_use_case, llm_adapter, embedding_adapter = get_evaluation_use_case_with_llm(
-            config.llm_type, 
-            config.embedding_type, 
-            config.prompt_type
+        # 평가 요청 생성
+        request = EvaluationRequest(
+            llm_type=config.llm_type,
+            embedding_type=config.embedding_type,
+            prompt_type=config.prompt_type
         )
+        
+        # 컨테이너에서 유스케이스 가져오기
+        evaluation_use_case, llm_adapter, embedding_adapter = container.create_evaluation_use_case(request)
         
         # 평가 실행
         evaluation_result = evaluation_use_case.execute(dataset_name=config.dataset_name)
