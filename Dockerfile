@@ -34,7 +34,15 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Set pip timeout and retry options for better network stability
 ENV UV_HTTP_TIMEOUT=300
 ENV UV_INDEX_STRATEGY=unsafe-best-match
+# Force torch-cpu instead of CUDA for smaller image size
+ENV UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
+
+# Clean up cache and unnecessary files to reduce image size
+RUN rm -rf /tmp/uv-build-cache && \
+    rm -rf /root/.cache && \
+    find /app/.venv -name "*.pyc" -delete && \
+    find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + || true
 
 # Create non-root user
 RUN useradd -m -u 1000 ragtrace

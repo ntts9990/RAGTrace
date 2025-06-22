@@ -47,7 +47,20 @@ uv sync --all-extras
 
 ## 💻 사용법
 
-### 웹 대시보드 (권장)
+### 🐳 Docker를 통한 배포 (가장 간단)
+
+```bash
+# Docker 이미지 실행 (1분 이내 시작)
+docker run -d -p 8501:8501 \
+  -e GEMINI_API_KEY="your-api-key" \
+  ghcr.io/ntts9990/ragtrace:latest
+
+# 브라우저에서 http://localhost:8501 접속
+```
+
+자세한 Docker 배포 방법은 [Docker 배포 가이드](docs/Docker_Deployment_Guide.md)를 참고하세요.
+
+### 웹 대시보드 (로컬 실행)
 
 ```bash
 # uv를 사용하여 대시보드 실행
