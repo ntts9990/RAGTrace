@@ -1,0 +1,32 @@
+{
+  "faithfulness": 0.5,
+  "answer_relevancy": 0.7211967514233618,
+  "context_recall": 0.5,
+  "context_precision": 0.49999999995,
+  "ragas_score": 0.5552991878433404,
+  "individual_scores": [
+    {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.5004149348271597,
+      "context_recall": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9419785680195639,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "6782bee7",
+    "timestamp": "2025-06-22T14:12:27.424958",
+    "model": "models/gemini-2.5-flash-preview-05-20",
+    "temperature": 1e-08,
+    "dataset_size": 2,
+    "strategy": "표준 RAGAS 평가 (영어)"
+  },
+  "generation_failures": 0,
+  "generation_successes": 2,
+  "api_failure_details": []
+}

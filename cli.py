@@ -236,8 +236,16 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
     
     # LLM 및 임베딩 어댑터 선택
     try:
-        llm_adapter = container.llm_providers()[llm]
-        embedding_adapter = container.embedding_providers()[embedding_choice]
+        # 팩토리를 통해 UseCase 생성
+        from src.container.factories.evaluation_use_case_factory import EvaluationRequest
+        
+        request = EvaluationRequest(
+            llm_type=llm,
+            embedding_type=embedding_choice,
+            prompt_type=PromptType(prompt_type) if prompt_type else settings.get_prompt_type()
+        )
+        
+        evaluation_use_case, _, _ = container.create_evaluation_use_case(request)
         
         if llm in ["hcx"] and not settings.CLOVA_STUDIO_API_KEY:
             print(f"❌ '{llm}' LLM을 사용하려면 .env 파일에 CLOVA_STUDIO_API_KEY를 설정해야 합니다.")
@@ -250,93 +258,59 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
         print(f"❌ '{llm}' LLM 또는 '{embedding_choice}' 임베딩 어댑터 초기화 중 오류 발생: {e}")
         return False
     
-    # 프롬프트 타입 설정
-    if prompt_type:
-        try:
-            selected_prompt_type = PromptType(prompt_type)
-        except ValueError:
-            print(f"❌ 잘못된 프롬프트 타입: {prompt_type}")
-            print(f"사용 가능한 타입: {[pt.value for pt in PromptType]}")
-            return False
-    else:
-        selected_prompt_type = None  # 기본 프롬프트 사용
-    
     print(f"🤖 LLM: {llm}")
     print(f"🌐 Embedding: {embedding_choice}")
-    print(f"🎯 프롬프트 타입: {selected_prompt_type.value if selected_prompt_type else 'DEFAULT'}")
-    print(f"📊 데이터셋: {dataset_name}")
-    
-    # 데이터셋 확인
-    dataset_path = get_evaluation_data_path(dataset_name)
-    if dataset_path is None:
-        print(f"❌ 데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
-        print("사용 가능한 데이터셋:")
-        available_datasets = get_available_datasets()
-        for ds in available_datasets:
-            print(f"  - {ds}")
-        return False
-    
+
+    # 프롬프트 타입 설정
+    prompt_type_enum = PromptType(prompt_type) if prompt_type else settings.get_prompt_type()
+    print(f"🎯 프롬프트 타입: {prompt_type_enum.value.upper()}")
+
     try:
-        # 평가 어댑터 생성 (LLM과 Embedding 주입)
-        ragas_adapter = container.ragas_eval_adapter(
-            llm=llm_adapter,
-            embeddings=embedding_adapter,
-            prompt_type=selected_prompt_type
+        data_path = get_evaluation_data_path(dataset_name)
+        if not data_path:
+            print(f"❌ 데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
+            available_datasets = get_available_datasets()
+            if available_datasets:
+                print("사용 가능한 데이터셋:")
+                for ds in available_datasets:
+                    print(f"  - {ds}")
+            return False
+            
+        print(f"📊 데이터셋: {dataset_name}")
+
+        result = evaluation_use_case.execute(
+            dataset_name=dataset_name,
         )
         
-        # GenerationService 생성
-        from src.application.services.generation_service import GenerationService
-        generation_service = GenerationService(answer_generator=llm_adapter)
-        
-        # 유스케이스 생성 (평가 어댑터 주입)
-        evaluation_use_case = container.run_evaluation_use_case(
-            llm_port=llm_adapter,
-            evaluation_runner_factory=ragas_adapter,
-            generation_service=generation_service,
-            # ... 기타 의존성 주입은 컨테이너가 처리 ...
-        )
-        
-        # 평가 실행
-        print("\n🚀 평가를 시작합니다...")
-        
-        if verbose:
-            print("📝 상세 로그가 활성화되었습니다.")
-        
-        result = evaluation_use_case.execute(dataset_name=dataset_name)
-        
-        # 결과 출력
-        print("\n✅ 평가가 완료되었습니다!")
-        print("=" * 50)
-        print("📊 평가 결과:")
-        print("-" * 30)
-        
-        result_dict = result.to_dict()
-        
-        # 메인 메트릭 출력
-        print(f"🏆 종합 점수 (RAGAS Score): {result_dict.get('ragas_score', 0):.3f}")
-        print(f"✅ Faithfulness:           {result_dict.get('faithfulness', 0):.3f}")
-        print(f"🎯 Answer Relevancy:        {result_dict.get('answer_relevancy', 0):.3f}")
-        print(f"🔄 Context Recall:          {result_dict.get('context_recall', 0):.3f}")
-        print(f"📍 Context Precision:       {result_dict.get('context_precision', 0):.3f}")
-        
-        # 메타데이터 출력
-        if verbose and 'metadata' in result_dict:
-            metadata = result_dict['metadata']
-            print("\n📋 평가 정보:")
-            print(f"  평가 ID: {metadata.get('evaluation_id', 'N/A')}")
-            print(f"  모델: {metadata.get('model', 'N/A')}")
-            print(f"  데이터셋 크기: {metadata.get('dataset_size', 'N/A')}")
-            print(f"  평가 시간: {metadata.get('timestamp', 'N/A')}")
-        
-        # 파일 저장
+        if not result:
+            print("❌ 평가 실행에 실패했습니다.")
+            return False
+
+        # 결과 요약 출력
+        print("\n" + "="*50)
+        print("📊 평가 결과 요약")
+        print("="*50)
+        print(f"ragas_score  : {result.ragas_score:.4f}")
+        print(f"answer_relevancy: {result.answer_relevancy:.4f}")
+        print(f"faithfulness   : {result.faithfulness:.4f}")
+        print(f"context_recall : {result.context_recall:.4f}")
+        print(f"context_precision: {result.context_precision:.4f}")
+        print("="*50)
+
         if output_file:
             import json
+            from dataclasses import asdict
+            
+            # 결과를 파일에 저장
             with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(result_dict, f, ensure_ascii=False, indent=2)
-            print(f"\n💾 결과가 {output_file}에 저장되었습니다.")
+                json.dump(asdict(result), f, ensure_ascii=False, indent=2)
+            
+            print(f"✅ 결과가 {output_file} 파일에 저장되었습니다.")
+        else:
+            print("✅ 평가 완료.")
         
         return True
-        
+
     except Exception as e:
         print(f"\n❌ 평가 중 오류가 발생했습니다: {str(e)}")
         if verbose:

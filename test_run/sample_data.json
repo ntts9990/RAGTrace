@@ -1,0 +1,18 @@
+[
+  {
+    "question": "What is RAG?",
+    "contexts": [
+      "RAG stands for Retrieval-Augmented Generation."
+    ],
+    "answer": "Retrieval-Augmented Generation is a technique...",
+    "ground_truth": "RAG combines a retriever and a generator."
+  },
+  {
+    "question": "What is the capital of Korea?",
+    "contexts": [
+      "Seoul is the capital of South Korea."
+    ],
+    "answer": "The capital is Seoul.",
+    "ground_truth": "Seoul"
+  }
+]
