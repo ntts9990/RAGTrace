@@ -31,6 +31,9 @@ ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install dependencies using UV as root with temporary cache
+# Set pip timeout and retry options for better network stability
+ENV UV_HTTP_TIMEOUT=300
+ENV UV_INDEX_STRATEGY=unsafe-best-match
 RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
 
 # Create non-root user
