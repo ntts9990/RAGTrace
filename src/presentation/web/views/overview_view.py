@@ -10,32 +10,47 @@ from typing import Optional, Dict, Any, List
 from .base_view import BaseView
 from ..models.evaluation_model import EvaluationResult, EvaluationModel
 from ..services.chart_service import ChartService
+from ..services import DatabaseService
 
 
 class OverviewView(BaseView):
     """메인 대시보드 뷰"""
     
-    def render(self, latest_result: Optional[Dict[str, Any]] = None, history: Optional[List[Dict[str, Any]]] = None) -> None:
-        """메인 오버뷰 렌더링"""
-        st.title("🔍 RAGTrace - RAG 성능 추적 대시보드")
-        st.markdown("---")
+    def __init__(self, session_manager):
+        super().__init__(session_manager)
+        self.db_service = DatabaseService()
+
+    def render(self):
+        st.title(f"🔍 Overview")
+        st.write("RAGTrace 시스템의 전반적인 평가 현황을 보여줍니다.")
+
+        # 데이터베이스에서 최신 데이터 로드
+        history = self.db_service.load_evaluation_history()
         
-        # 평가 완료 축하 메시지
-        if self.session.get_evaluation_completed():
-            self.show_success("🎉 새로운 평가가 방금 완료되었습니다!")
-            self.session.set_evaluation_completed(False)
+        if not history:
+            st.warning("아직 평가 이력이 없습니다. 'Run Evaluation' 페이지에서 새로운 평가를 시작하세요.")
+            return
+
+        latest_result = history[0]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                label="최신 RAGAS Score",
+                value=f"{latest_result['ragas_score']:.4f}",
+            )
         
-        self._render_header()
-        
-        if latest_result:
-            result = EvaluationModel.parse_result_dict(latest_result)
-            self._render_metric_cards(result)
-            self._render_metric_charts(result)
-            if history and len(history) > 1:
-                self._render_recent_trends(history)
-        else:
-            self._render_empty_state()
-    
+        with col2:
+            st.metric(
+                label="총 평가 횟수",
+                value=f"{len(history)} 회",
+            )
+            
+        st.subheader("최근 평가 요약")
+        # DataFrame을 사용하여 표 렌더링
+        # ... (이전 코드와 유사하게 구현)
+
     def _render_header(self) -> None:
         """헤더 영역 렌더링"""
         st.header("📊 평가 결과 개요")

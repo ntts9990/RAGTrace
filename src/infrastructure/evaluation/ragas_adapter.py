@@ -49,38 +49,16 @@ class RagasEvalAdapter:
     def evaluate(self, dataset: Dataset) -> dict[str, float]:
         """
         주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
+        (오류 처리는 상위 계층으로 위임)
         """
-        try:
-            # 단순화된 평가 실행: primary_strategy를 직접 호출
-            strategy = self.evaluation_context.primary_strategy
-            strategy.print_strategy_info()
-            
-            raw_result = strategy.run_evaluation(dataset)
-            
-            # 결과 파싱만 수행하고 그대로 반환
-            return self._parse_result(raw_result, dataset)
-            
-        except Exception as e:
-            print(f"❌ 평가 중 오류 발생: {str(e)}")
-            # 오류 발생 시 빈 결과 반환
-            return self._create_error_result()
-
+        strategy = self.evaluation_context.primary_strategy
+        raw_result = strategy.run_evaluation(dataset)
+        return self._parse_result(raw_result, dataset)
 
     def _parse_result(self, result, dataset: Dataset) -> dict:
-        """결과 파싱 - 전략 패턴을 통한 안정적인 파싱"""
-        try:
-            metrics = self.evaluation_context.get_metrics()
-            return self.result_parser.parse_result(result, dataset, metrics)
-        except Exception as e:
-            print(f"❌ 모든 파싱 전략 실패: {e}")
-            # 최후의 수단: 빈 결과 반환
-            metrics = self.evaluation_context.get_metrics()
-            result_dict = {metric.name: 0.0 for metric in metrics}
-            result_dict["individual_scores"] = [
-                {metric.name: 0.0 for metric in metrics} 
-                for _ in range(len(dataset))
-            ]
-            return result_dict
+        """결과 파싱 - 오류 처리는 상위 계층으로 위임"""
+        metrics = self.evaluation_context.get_metrics()
+        return self.result_parser.parse_result(result, dataset, metrics)
 
     def _create_error_result(self) -> dict:
         """오류 발생 시 기본 결과 생성"""

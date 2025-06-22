@@ -10,28 +10,70 @@ from typing import List
 
 from .base_view import BaseView
 from ..models.evaluation_model import EvaluationConfig, EvaluationModel
-from ..services.evaluation_service import EvaluationService
+from ..services import EvaluationService, DatabaseService
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets, get_evaluation_data_path
 from src.presentation.web.components.llm_selector import show_llm_selector
 from src.presentation.web.components.embedding_selector import show_embedding_selector
 from src.presentation.web.components.prompt_selector import show_prompt_selector
+from ..components import llm_selector, embedding_selector, prompt_selector
 
 
 class EvaluationView(BaseView):
     """새 평가 실행 뷰"""
     
+    def __init__(self, session_manager):
+        super().__init__(session_manager)
+        self.evaluation_service = EvaluationService()
+        self.db_service = DatabaseService()
+
     def render(self) -> None:
         """새 평가 실행 페이지 렌더링"""
-        st.title("🚀 새 평가 실행")
+        st.title("🚀 Run New Evaluation")
         st.markdown("---")
         
-        # 설정 수집
-        config = self._collect_configuration()
+        # 데이터셋 선택
+        available_datasets = self.db_service.get_available_datasets()
+        self.state.selected_dataset = st.selectbox(
+            "1. Select Dataset", available_datasets,
+            index=available_datasets.index(self.state.selected_dataset) if self.state.selected_dataset in available_datasets else 0
+        )
         
-        if config:
-            self._render_configuration_summary(config)
-            self._render_execution_buttons(config)
+        # 모델 및 프롬프트 선택
+        llm_type = llm_selector()
+        embedding_type = embedding_selector()
+        prompt_type = prompt_selector()
+
+        if st.button("Start Evaluation", type="primary"):
+            if self.state.selected_dataset:
+                with st.spinner("Evaluation in progress... Please wait."):
+                    result = self.evaluation_service.run_evaluation(
+                        dataset_name=self.state.selected_dataset,
+                        llm=llm_type,
+                        embedding=embedding_type,
+                        prompt_type=prompt_type.value
+                    )
+                    # 평가 결과와 완료 상태를 AppState에 저장
+                    self.state.evaluation.is_completed = True
+                    self.state.evaluation.result = result
+                    
+                    # 평가 이력에도 추가 (DB 저장 후)
+                    self.db_service.save_evaluation_result(result)
+                    
+                    st.success("Evaluation completed!")
+                    st.rerun() # UI를 즉시 새로고침하여 결과 표시
+            else:
+                st.error("Please select a dataset first.")
+
+        # 평가 완료 후 결과 표시
+        if self.state.evaluation.is_completed and self.state.evaluation.result:
+            st.subheader("Latest Evaluation Result")
+            st.json(self.state.evaluation.result)
+            
+            if st.button("View Detailed Analysis"):
+                # 상세 분석 페이지로 네비게이션
+                self.session_manager.state.selected_page = "📈 Historical Analysis"
+                st.rerun()
     
     def _collect_configuration(self) -> EvaluationConfig:
         """평가 설정 수집"""
