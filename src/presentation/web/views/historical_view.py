@@ -9,7 +9,6 @@ import pandas as pd
 from typing import List, Dict, Any
 
 from .base_view import BaseView
-from ..services import DatabaseService, ChartService
 
 
 class HistoricalView(BaseView):
@@ -17,8 +16,24 @@ class HistoricalView(BaseView):
     
     def __init__(self, session_manager):
         super().__init__(session_manager)
-        self.db_service = DatabaseService()
-        self.chart_service = ChartService()
+        self._db_service = None  # 지연 로딩
+        self._chart_service = None  # 지연 로딩
+
+    @property
+    def db_service(self):
+        """DatabaseService를 지연 로딩으로 가져옵니다."""
+        if self._db_service is None:
+            from ..services import DatabaseService
+            self._db_service = DatabaseService()
+        return self._db_service
+    
+    @property
+    def chart_service(self):
+        """ChartService를 지연 로딩으로 가져옵니다."""
+        if self._chart_service is None:
+            from ..services import ChartService
+            self._chart_service = ChartService()
+        return self._chart_service
 
     def render(self) -> None:
         """히스토리 페이지 렌더링"""

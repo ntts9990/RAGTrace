@@ -24,8 +24,24 @@ class EvaluationView(BaseView):
     
     def __init__(self, session_manager):
         super().__init__(session_manager)
-        self.evaluation_service = EvaluationService()
-        self.db_service = DatabaseService()
+        self._evaluation_service = None  # 지연 로딩
+        self._db_service = None  # 지연 로딩
+
+    @property
+    def evaluation_service(self):
+        """EvaluationService를 지연 로딩으로 가져옵니다."""
+        if self._evaluation_service is None:
+            from ..services import EvaluationService
+            self._evaluation_service = EvaluationService()
+        return self._evaluation_service
+    
+    @property
+    def db_service(self):
+        """DatabaseService를 지연 로딩으로 가져옵니다."""
+        if self._db_service is None:
+            from ..services import DatabaseService
+            self._db_service = DatabaseService()
+        return self._db_service
 
     def render(self) -> None:
         """새 평가 실행 페이지 렌더링"""

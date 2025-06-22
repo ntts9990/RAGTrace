@@ -9,10 +9,10 @@ from .service_registry import ServiceRegistry
 from .providers.llm_provider_factory import LlmProviderFactory
 from .providers.embedding_provider_factory import EmbeddingProviderFactory
 from .factories.evaluation_use_case_factory import EvaluationUseCaseFactory
-from .main_container import MainContainer
+from .main_container import MainContainer, get_container
 
-# 전역 컨테이너 인스턴스 및 함수 (backward compatibility)
-from .main_container import container
+# 전역 컨테이너 인스턴스 (지연 초기화)
+container = get_container()
 
 __all__ = [
     'ConfigurationContainer',
@@ -21,5 +21,6 @@ __all__ = [
     'EmbeddingProviderFactory',
     'EvaluationUseCaseFactory',
     'MainContainer',
-    'container'
+    'container',
+    'get_container'
 ]

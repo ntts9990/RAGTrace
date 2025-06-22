@@ -11,23 +11,40 @@ from ..models.navigation_model import NavigationModel
 from .page_controller import PageController
 
 
+@st.cache_resource
+def get_session_manager():
+    """SessionManager 싱글톤 인스턴스"""
+    print("🔧 SessionManager 생성")
+    return SessionManager()
+
+
+@st.cache_resource
+def get_navigation_model():
+    """NavigationModel 싱글톤 인스턴스"""
+    print("🔧 NavigationModel 생성")
+    return NavigationModel()
+
+
+@st.cache_resource
+def get_page_controller():
+    """PageController 싱글톤 인스턴스"""
+    print("🔧 PageController 생성")
+    session_manager = get_session_manager()
+    return PageController(session_manager)
+
+
 class MainController:
     """메인 애플리케이션 컨트롤러"""
     
     def __init__(self):
-        self.session_manager = SessionManager()
-        self.navigation = NavigationModel()
-        self.page_controller = PageController(self.session_manager)
+        self.session_manager = get_session_manager()
+        self.navigation = get_navigation_model()
+        self.page_controller = get_page_controller()
+        print("🔧 MainController 생성")
     
     def initialize_app(self) -> None:
         """애플리케이션 초기화"""
-        # 페이지 설정
-        st.set_page_config(
-            page_title="RAGTrace 대시보드",
-            page_icon="🔍",
-            layout="wide",
-            initial_sidebar_state="expanded",
-        )
+        # 페이지 설정은 main.py에서 이미 완료됨
         
         # 세션 상태 초기화 (SessionManager가 자동으로 처리)
         

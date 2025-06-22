@@ -14,8 +14,8 @@ from ..models.session_model import SessionManager
 class BaseView(ABC):
     """기본 뷰 클래스"""
     
-    def __init__(self):
-        self.session = SessionManager()
+    def __init__(self, session_manager: SessionManager):
+        self.session = session_manager
     
     @abstractmethod
     def render(self, **kwargs) -> None:

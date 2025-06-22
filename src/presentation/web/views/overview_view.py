@@ -10,7 +10,6 @@ from typing import Optional, Dict, Any, List
 from .base_view import BaseView
 from ..models.evaluation_model import EvaluationResult, EvaluationModel
 from ..services.chart_service import ChartService
-from ..services import DatabaseService
 
 
 class OverviewView(BaseView):
@@ -18,7 +17,15 @@ class OverviewView(BaseView):
     
     def __init__(self, session_manager):
         super().__init__(session_manager)
-        self.db_service = DatabaseService()
+        self._db_service = None  # 지연 로딩
+
+    @property
+    def db_service(self):
+        """DatabaseService를 지연 로딩으로 가져옵니다."""
+        if self._db_service is None:
+            from ..services import DatabaseService
+            self._db_service = DatabaseService()
+        return self._db_service
 
     def render(self):
         st.title(f"🔍 Overview")
