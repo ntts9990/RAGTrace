@@ -21,6 +21,3 @@ compile-bytecode = true
 # Force CPU-only PyTorch installation to prevent CUDA libraries
 find-links = ["https://download.pytorch.org/whl/cpu"]
 extra-index-url = ["https://download.pytorch.org/whl/cpu"]
-
-# Exclude CUDA packages explicitly
-no-deps = false
