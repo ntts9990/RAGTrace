@@ -1,5 +1,5 @@
 """
-Ragas Adapter using Strategy Pattern
+Refactored Ragas Adapter using Strategy Pattern
 
 Strategy 패턴을 적용한 리팩토링된 Ragas 어댑터입니다.
 """
@@ -17,7 +17,7 @@ from src.infrastructure.evaluation.parsing_strategies import ResultParser
 from src.infrastructure.evaluation.strategies import EvaluationContext
 
 
-class RagasEvalAdapter:
+class RagasEvalAdapterV2:
     """Strategy 패턴을 사용한 리팩토링된 Ragas 평가 어댑터"""
 
     def __init__(
@@ -45,7 +45,6 @@ class RagasEvalAdapter:
         # 결과 파서 초기화
         self.result_parser = ResultParser()
 
-
     def evaluate(self, dataset: Dataset) -> dict[str, float]:
         """
         주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
@@ -68,7 +67,6 @@ class RagasEvalAdapter:
             except Exception as fallback_error:
                 print(f"❌ 샘플 결과 생성도 실패: {str(fallback_error)}")
                 return self._create_error_result()
-
 
     def _parse_result(self, result, dataset: Dataset) -> dict:
         """결과 파싱 - 전략 패턴을 통한 안정적인 파싱"""
