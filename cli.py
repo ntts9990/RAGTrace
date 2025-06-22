@@ -18,7 +18,7 @@ from src.config import (
     SUPPORTED_LLM_TYPES, 
     SUPPORTED_EMBEDDING_TYPES
 )
-from src.container import container, get_evaluation_use_case_with_llm
+from src.container.main_container import container
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets, get_evaluation_data_path
 from src.infrastructure.data_import.importers import ImporterFactory

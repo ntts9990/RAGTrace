@@ -34,66 +34,10 @@ class MainContainer:
             self.service_registry
         )
     
-    def get_evaluation_use_case_with_llm(self, llm_type: str = None, embedding_type: str = None, 
-                                        prompt_type: PromptType = None) -> Tuple[RunEvaluationUseCase, LlmPort, Embeddings]:
-        """평가 유스케이스 생성 (backward compatibility)"""
-        return self.use_case_factory.create_use_case_with_types(llm_type, embedding_type, prompt_type)
-    
     def create_evaluation_use_case(self, request: EvaluationRequest) -> Tuple[RunEvaluationUseCase, LlmPort, Embeddings]:
-        """평가 유스케이스 생성 (새로운 인터페이스)"""
+        """평가 유스케이스 생성"""
         return self.use_case_factory.create_use_case(request)
-    
-    # Backward compatibility methods
-    def llm_providers(self):
-        """LLM 제공자 딕셔너리 반환 (backward compatibility)"""
-        providers = {}
-        for llm_type in self.llm_factory.get_supported_types():
-            try:
-                providers[llm_type] = self.llm_factory.create_provider(llm_type)
-            except ValueError:
-                # API 키가 없는 경우 등은 건너뛰기
-                continue
-        return providers
-    
-    def embedding_providers(self):
-        """임베딩 제공자 딕셔너리 반환 (backward compatibility)"""
-        providers = {}
-        for embedding_type in self.embedding_factory.get_supported_types():
-            try:
-                providers[embedding_type] = self.embedding_factory.create_provider(embedding_type)
-            except ValueError:
-                # API 키가 없는 경우 등은 건너뛰기
-                continue
-        return providers
-    
-    def repository_factory(self):
-        """리포지토리 팩토리 반환 (backward compatibility)"""
-        return self.service_registry.get_repository_factory()
-    
-    def data_validator(self):
-        """데이터 검증기 반환 (backward compatibility)"""
-        return self.service_registry.get_data_validator()
-    
-    def result_conversion_service(self):
-        """결과 변환 서비스 반환 (backward compatibility)"""
-        return self.service_registry.get_result_conversion_service()
-    
-    def ragas_eval_adapter(self, llm=None, embeddings=None, prompt_type=None):
-        """RAGAS 평가 어댑터 반환 (backward compatibility)"""
-        from src.infrastructure.evaluation import RagasEvalAdapter
-        return RagasEvalAdapter(llm=llm, embeddings=embeddings, prompt_type=prompt_type)
-    
-    def run_evaluation_use_case(self, **kwargs):
-        """평가 유스케이스 반환 (backward compatibility)"""
-        from src.application.use_cases import RunEvaluationUseCase
-        return RunEvaluationUseCase(**kwargs)
 
 
-# 전역 컨테이너 인스턴스 (backward compatibility)
+# 전역 컨테이너 인스턴스
 container = MainContainer()
-
-
-# Backward compatibility function
-def get_evaluation_use_case_with_llm(llm_type: str = None, embedding_type: str = None, prompt_type: PromptType = None):
-    """런타임에 특정 LLM과 Embedding을 선택하여 평가 유스케이스를 생성 (backward compatibility)"""
-    return container.get_evaluation_use_case_with_llm(llm_type, embedding_type, prompt_type)

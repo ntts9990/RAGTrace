@@ -1,7 +1,7 @@
 """
-Container 패키지
+Dependency Injection Container Package
 
-의존성 주입 컨테이너를 여러 개의 작은, 집중된 컴포넌트로 분해합니다.
+이 패키지는 RAGTrace 애플리케이션의 모든 의존성을 관리합니다.
 """
 
 from .configuration_container import ConfigurationContainer
@@ -12,7 +12,7 @@ from .factories.evaluation_use_case_factory import EvaluationUseCaseFactory
 from .main_container import MainContainer
 
 # 전역 컨테이너 인스턴스 및 함수 (backward compatibility)
-from .main_container import container, get_evaluation_use_case_with_llm
+from .main_container import container
 
 __all__ = [
     'ConfigurationContainer',
@@ -21,6 +21,5 @@ __all__ = [
     'EmbeddingProviderFactory',
     'EvaluationUseCaseFactory',
     'MainContainer',
-    'container',
-    'get_evaluation_use_case_with_llm'
+    'container'
 ]
