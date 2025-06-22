@@ -34,15 +34,35 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Set pip timeout and retry options for better network stability
 ENV UV_HTTP_TIMEOUT=300
 ENV UV_INDEX_STRATEGY=unsafe-best-match
-# Force torch-cpu instead of CUDA for smaller image size
+
+# Force CPU-only PyTorch installation (no CUDA libraries)
 ENV UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+ENV TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+
+# Install CPU-only torch first to prevent CUDA installation
+RUN UV_CACHE_DIR=/tmp/uv-build-cache uv pip install \
+    torch==2.1.* torchvision==0.16.* torchaudio==2.1.* \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --no-deps
+
+# Then install other dependencies
 RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
 
-# Clean up cache and unnecessary files to reduce image size
+# Aggressively remove CUDA libraries and large files
 RUN rm -rf /tmp/uv-build-cache && \
     rm -rf /root/.cache && \
     find /app/.venv -name "*.pyc" -delete && \
-    find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + || true
+    find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + || true && \
+    # Remove any CUDA libraries that might have been installed
+    find /app/.venv -name "*cuda*" -type f -delete || true && \
+    find /app/.venv -name "*cublas*" -type f -delete || true && \
+    find /app/.venv -name "*curand*" -type f -delete || true && \
+    find /app/.venv -name "*cusparse*" -type f -delete || true && \
+    find /app/.venv -name "*cufft*" -type f -delete || true && \
+    # Remove other large unnecessary files
+    find /app/.venv -name "*.so.*" -size +50M -delete || true && \
+    # Clean up build artifacts
+    find /app/.venv -name "*.whl" -delete || true
 
 # Create non-root user
 RUN useradd -m -u 1000 ragtrace

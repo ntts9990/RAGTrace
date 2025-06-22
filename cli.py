@@ -8,7 +8,9 @@ RAGAS 평가를 명령줄에서 실행할 수 있는 CLI 도구
 
 import argparse
 import sys
+import json
 from typing import Optional
+from pathlib import Path
 
 from src.config import (
     settings, 
@@ -19,6 +21,8 @@ from src.config import (
 from src.container import container, get_evaluation_use_case_with_llm
 from src.domain.prompts import PromptType
 from src.utils.paths import get_available_datasets, get_evaluation_data_path
+from src.infrastructure.data_import.importers import ImporterFactory
+from src.infrastructure.data_import.validators import ImportDataValidator
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -87,6 +91,28 @@ def create_parser() -> argparse.ArgumentParser:
     # list-prompts 서브커맨드
     prompts_parser = subparsers.add_parser("list-prompts", help="사용 가능한 프롬프트 타입 보기")
     
+    # import-data 서브커맨드 (새로 추가)
+    import_parser = subparsers.add_parser("import-data", help="Excel/CSV 파일을 JSON 형식으로 변환")
+    import_parser.add_argument(
+        "input_file",
+        help="변환할 Excel(.xlsx, .xls) 또는 CSV 파일 경로"
+    )
+    import_parser.add_argument(
+        "--output", "-o",
+        help="변환된 JSON 파일 저장 경로 (기본값: 입력파일명.json)"
+    )
+    import_parser.add_argument(
+        "--validate", "-v",
+        action="store_true",
+        help="변환된 데이터 검증 수행"
+    )
+    import_parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=50,
+        help="배치 처리 크기 (기본값: 50)"
+    )
+    
     return parser
 
 
@@ -123,6 +149,81 @@ def list_prompts():
         print("💡 커스텀 프롬프트가 기본값으로 설정되어 있습니다.")
     else:
         print("💡 --prompt-type 옵션으로 다른 프롬프트를 선택할 수 있습니다.")
+
+
+def import_data(input_file: str, output_file: Optional[str] = None, 
+               validate: bool = False, batch_size: int = 50):
+    """Excel/CSV 파일을 JSON 형식으로 변환"""
+    
+    try:
+        # Import 어댑터 생성
+        importer = ImporterFactory.create_importer(input_file)
+        
+        # 파일 형식 검증
+        if not importer.validate_format(input_file):
+            print(f"❌ 파일 형식이 올바르지 않습니다: {input_file}")
+            print(f"지원되는 형식: {ImporterFactory.get_supported_formats()}")
+            return False
+        
+        print(f"📂 파일 변환 시작: {input_file}")
+        
+        # 데이터 Import
+        evaluation_data_list = importer.import_data(input_file)
+        
+        if not evaluation_data_list:
+            print("❌ 변환할 데이터가 없습니다.")
+            return False
+        
+        print(f"✅ {len(evaluation_data_list)}개 항목 변환 완료")
+        
+        # 검증 수행 (옵션)
+        if validate:
+            validator = ImportDataValidator()
+            validation_result = validator.validate_data_list(evaluation_data_list)
+            
+            print("\n" + validator.get_validation_summary(validation_result))
+            
+            # 검증 실패 시 상세 정보 출력
+            if not validation_result.is_valid:
+                print("\n📋 오류 상세:")
+                for error in validation_result.errors[:10]:  # 최대 10개만 표시
+                    print(f"   {error}")
+                
+                if len(validation_result.errors) > 10:
+                    print(f"   ... 외 {len(validation_result.errors) - 10}개 오류")
+                
+                if validation_result.warnings:
+                    print("\n⚠️ 경고 상세:")
+                    for warning in validation_result.warnings[:5]:  # 최대 5개만 표시
+                        print(f"   {warning}")
+        
+        # 출력 파일 경로 결정
+        if not output_file:
+            input_path = Path(input_file)
+            output_file = str(input_path.with_suffix('.json'))
+        
+        # JSON 파일로 저장
+        from dataclasses import asdict
+        output_data = [asdict(data) for data in evaluation_data_list]
+        
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
+        
+        print(f"\n💾 변환 결과 저장: {output_file}")
+        
+        # 배치 처리 정보 출력
+        if len(evaluation_data_list) > batch_size:
+            estimated_batches = (len(evaluation_data_list) + batch_size - 1) // batch_size
+            print(f"\n🔄 배치 처리 정보:")
+            print(f"   배치 크기: {batch_size}")
+            print(f"   예상 배치 수: {estimated_batches}")
+            print(f"   대용량 처리 시 배치 처리를 권장합니다.")
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ 변환 중 오류가 발생했습니다: {str(e)}")
+        return False
 
 
 def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = None, 
@@ -277,6 +378,16 @@ def main():
             prompt_type=args.prompt_type,
             output_file=args.output,
             verbose=args.verbose
+        )
+        if not success:
+            sys.exit(1)
+    
+    elif args.command == "import-data":
+        success = import_data(
+            input_file=args.input_file,
+            output_file=args.output,
+            validate=args.validate,
+            batch_size=args.batch_size
         )
         if not success:
             sys.exit(1)

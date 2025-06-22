@@ -37,7 +37,7 @@ dependencies = [
     "datasets>=2.14.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
-    # Local Embeddings
+    # Local Embeddings (CPU-only PyTorch for smaller Docker images)
     "sentence-transformers>=2.2.2",
     "torch>=2.0.0",
     # Web Dashboard
