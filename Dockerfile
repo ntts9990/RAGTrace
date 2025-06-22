@@ -45,8 +45,13 @@ RUN UV_CACHE_DIR=/tmp/uv-build-cache uv pip install \
     --index-url https://download.pytorch.org/whl/cpu \
     --no-deps
 
-# Then install other dependencies
-RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
+# Force UV to use CPU-only packages and avoid CUDA
+ENV PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+ENV UV_CONSTRAINT_DEPENDENCIES="torch[cpu]"
+
+# Then install other dependencies with forced CPU constraint
+RUN UV_CACHE_DIR=/tmp/uv-build-cache UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv sync --no-dev --index-url https://download.pytorch.org/whl/cpu || \
+    UV_CACHE_DIR=/tmp/uv-build-cache UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv sync --index-url https://download.pytorch.org/whl/cpu
 
 # Aggressively remove CUDA libraries and large files
 RUN rm -rf /tmp/uv-build-cache && \
