@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Multi-LLM RAG system performance evaluation platform with HTTP-based API integration"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [
     { name = "ntts9990", email = "ntts.9990@gmail.com" },
 ]
@@ -37,6 +37,9 @@ dependencies = [
     "datasets>=2.14.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
+    # Excel file support (required for data import)
+    "openpyxl>=3.0.0",
+    "xlrd>=2.0.0",
     # Local Embeddings (CPU-only PyTorch for smaller Docker images)
     "sentence-transformers>=2.2.2",
     "torch>=2.0.0",
