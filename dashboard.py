@@ -9,7 +9,5 @@ To run the dashboard, execute from the project root:
 streamlit run dashboard.py
 """
 
-from src.presentation.web.main import main
-
-if __name__ == "__main__":
-    main() 
+# Streamlit 앱이므로 main.py의 내용을 직접 import
+from src.presentation.web.main import * 

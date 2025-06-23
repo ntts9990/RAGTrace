@@ -14,6 +14,7 @@ from ragas.metrics import (
     context_precision,
     context_recall,
     faithfulness,
+    answer_correctness,
 )
 from ragas.run_config import RunConfig
 
@@ -53,12 +54,13 @@ class RagasEvalAdapter:
 
         # 프롬프트 타입에 따른 메트릭 설정
         if self.prompt_type == PromptType.DEFAULT:
-            # 기본 RAGAS 메트릭 사용
+            # 기본 RAGAS 메트릭 사용 (answer_correctness 포함)
             self.metrics = [
                 faithfulness,
                 answer_relevancy,
                 context_recall,
                 context_precision,
+                answer_correctness,
             ]
             print("기본 RAGAS 프롬프트를 사용합니다 (영어)")
         else:
@@ -79,6 +81,8 @@ class RagasEvalAdapter:
         print("- Answer Relevancy: 질문과 답변의 연관성")
         print("- Context Recall: 관련 정보 검색 완성도")
         print("- Context Precision: 검색된 문맥의 정확성")
+        if self.prompt_type == PromptType.DEFAULT:
+            print("- Answer Correctness: 정답(ground truth)과의 일치도")
         print(f"⚙️  RAGAS 설정: 타임아웃={self.run_config.timeout}초, 워커={self.run_config.max_workers}개, 재시도={self.run_config.max_retries}회")
 
     def _combine_individual_results(self, individual_results: dict, dataset: Dataset):
@@ -130,10 +134,30 @@ class RagasEvalAdapter:
         
         return DummyResult(len(dataset))
 
-    def evaluate(self, dataset: Dataset) -> dict[str, float]:
+    def evaluate(self, dataset: Dataset, use_checkpoints: bool = False, batch_size: int = 10) -> dict[str, float]:
         """
         주어진 데이터셋과 LLM, Embedding을 사용하여 Ragas 평가를 수행합니다.
+        
+        Args:
+            dataset: 평가할 데이터셋
+            use_checkpoints: 체크포인트 사용 여부 (대량 데이터셋에 권장)
+            batch_size: 배치 처리 크기 (체크포인트 사용 시)
         """
+        import time
+        
+        # 데이터셋 크기에 따른 자동 체크포인트 결정
+        if len(dataset) >= 50 and not use_checkpoints:
+            print(f"📊 대량 데이터셋 감지 ({len(dataset)}개 항목)")
+            use_checkpoints = True
+            print("💾 자동으로 체크포인트 기능을 활성화합니다.")
+        
+        if use_checkpoints:
+            return self._evaluate_with_checkpoints(dataset, batch_size)
+        else:
+            return self._evaluate_standard(dataset)
+    
+    def _evaluate_standard(self, dataset: Dataset) -> dict[str, float]:
+        """표준 평가 (기존 방식)"""
         import time
         
         # 전체 평가 시간 측정 시작
@@ -168,6 +192,44 @@ class RagasEvalAdapter:
             except Exception as fallback_error:
                 print(f"❌ 샘플 결과 생성도 실패: {str(fallback_error)}")
                 return self._create_error_result()
+    
+    def _evaluate_with_checkpoints(self, dataset: Dataset, batch_size: int) -> dict[str, float]:
+        """체크포인트를 사용한 배치 평가"""
+        from src.application.services.evaluation_checkpoint import EvaluationCheckpoint, BatchEvaluationManager
+        
+        print(f"💾 체크포인트 배치 평가 시작 (배치 크기: {batch_size})")
+        
+        # 체크포인트 관리자 초기화
+        checkpoint_manager = EvaluationCheckpoint()
+        batch_manager = BatchEvaluationManager(checkpoint_manager, batch_size)
+        
+        # 평가 설정
+        config = {
+            'dataset_name': getattr(dataset, 'info', {}).get('dataset_name', 'unknown'),
+            'llm_type': getattr(self.llm, 'model', 'unknown'),
+            'embedding_type': type(self.embeddings).__name__,
+            'prompt_type': self.prompt_type,
+            'batch_size': batch_size
+        }
+        
+        # 배치 평가 함수 정의
+        def batch_eval_func(batch_dataset):
+            return self._run_evaluation_with_timeout(batch_dataset)
+        
+        try:
+            # 체크포인트와 함께 평가 실행
+            result = batch_manager.evaluate_with_checkpoints(dataset, batch_eval_func, config)
+            
+            print(f"✅ 체크포인트 배치 평가 완료!")
+            print(f"📊 성공률: {result['metadata'].get('success_rate', 0):.1f}%")
+            
+            return result
+            
+        except Exception as e:
+            print(f"❌ 배치 평가 실패: {e}")
+            # 표준 평가로 폴백
+            print("🔄 표준 평가로 폴백...")
+            return self._evaluate_standard(dataset)
 
     def _run_evaluation_with_timeout(self, dataset: Dataset):
         """RAGAS RunConfig를 사용한 안정적인 평가 실행"""
@@ -311,8 +373,12 @@ class RagasEvalAdapter:
         import datetime
         import uuid
         
-        # ragas_score 계산
-        metric_values = [v for k, v in result_dict.items() if k != "individual_scores" and v > 0]
+        # ragas_score 계산 - answer_correctness는 기본 전략에서만 포함
+        excluded_keys = ["individual_scores", "metadata"]
+        if self.prompt_type != PromptType.DEFAULT:
+            excluded_keys.append("answer_correctness")
+        
+        metric_values = [v for k, v in result_dict.items() if k not in excluded_keys and v > 0]
         result_dict["ragas_score"] = sum(metric_values) / len(metric_values) if metric_values else 0.0
         
         # 메타데이터 추가 (시간 정보 포함)

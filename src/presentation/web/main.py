@@ -148,6 +148,7 @@ def show_overview():
         show_evaluation_info(latest_result)
         show_metric_cards(latest_result)
         show_metric_charts(latest_result)
+        show_export_section(latest_result)
         show_recent_trends()
     else:
         st.info(
@@ -220,7 +221,14 @@ def show_metric_cards(result):
     """메트릭 카드 표시"""
     st.subheader("🎯 핵심 지표")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # answer_correctness가 있는지 확인
+    has_answer_correctness = "answer_correctness" in result
+
+    # 컬럼 수 동적 설정
+    if has_answer_correctness:
+        cols = st.columns(6)
+    else:
+        cols = st.columns(5)
 
     metrics = [
         ("종합 점수", result.get("ragas_score", 0), "🏆"),
@@ -229,19 +237,31 @@ def show_metric_cards(result):
         ("Context Recall", result.get("context_recall", 0), "🔄"),
         ("Context Precision", result.get("context_precision", 0), "📍"),
     ]
+    
+    # answer_correctness가 있으면 추가
+    if has_answer_correctness:
+        metrics.append(("Answer Correctness", result.get("answer_correctness", 0), "✔️"))
 
     for i, (name, value, icon) in enumerate(metrics):
-        with [col1, col2, col3, col4, col5][i]:
+        with cols[i]:
             # 이전 평가와의 비교를 위한 델타 계산
             previous_result = get_previous_result()
             delta_value = None
             if previous_result and name.lower().replace(" ", "_") in previous_result:
                 prev_value = previous_result[name.lower().replace(" ", "_")]
-                delta_value = value - prev_value
+                # 안전한 타입 체크 및 변환
+                if prev_value is not None and isinstance(prev_value, (int, float)) and isinstance(value, (int, float)):
+                    delta_value = value - prev_value
 
+            # 안전한 value 표시
+            try:
+                value_str = f"{float(value):.3f}" if value is not None else "0.000"
+            except (ValueError, TypeError):
+                value_str = "0.000"
+            
             st.metric(
                 label=f"{icon} {name}",
-                value=f"{value:.3f}",
+                value=value_str,
                 delta=f"{delta_value:.3f}" if delta_value is not None else None,
             )
 
@@ -291,6 +311,135 @@ def show_metric_charts(result):
         show_bar_chart(result)
 
 
+def show_export_section(result):
+    """결과 내보내기 섹션"""
+    st.subheader("📥 결과 내보내기")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📊 CSV 다운로드", key="download_csv_btn", help="상세 평가 결과를 CSV 파일로 다운로드"):
+            try:
+                from src.application.services.result_exporter import ResultExporter
+                
+                exporter = ResultExporter()
+                csv_file = exporter.export_to_csv(result)
+                
+                # 파일 읽기
+                with open(csv_file, 'rb') as f:
+                    csv_data = f.read()
+                
+                st.download_button(
+                    label="📄 CSV 파일 저장",
+                    data=csv_data,
+                    file_name=f"ragas_detailed_{result.get('metadata', {}).get('evaluation_id', 'unknown')}.csv",
+                    mime="text/csv",
+                    key="csv_download"
+                )
+                
+                st.success("✅ CSV 파일이 준비되었습니다!")
+                
+            except Exception as e:
+                st.error(f"❌ CSV 생성 실패: {str(e)}")
+    
+    with col2:
+        if st.button("📈 요약 통계 CSV", key="download_summary_btn", help="메트릭별 기초 통계를 CSV로 다운로드"):
+            try:
+                from src.application.services.result_exporter import ResultExporter
+                
+                exporter = ResultExporter()
+                summary_file = exporter.export_summary_csv(result)
+                
+                # 파일 읽기
+                with open(summary_file, 'rb') as f:
+                    summary_data = f.read()
+                
+                st.download_button(
+                    label="📊 요약 CSV 저장",
+                    data=summary_data,
+                    file_name=f"ragas_summary_{result.get('metadata', {}).get('evaluation_id', 'unknown')}.csv",
+                    mime="text/csv",
+                    key="summary_download"
+                )
+                
+                st.success("✅ 요약 통계 CSV가 준비되었습니다!")
+                
+            except Exception as e:
+                st.error(f"❌ 요약 CSV 생성 실패: {str(e)}")
+    
+    with col3:
+        if st.button("📋 분석 보고서", key="download_report_btn", help="상세 분석 보고서를 마크다운으로 다운로드"):
+            try:
+                from src.application.services.result_exporter import ResultExporter
+                
+                exporter = ResultExporter()
+                report_file = exporter.generate_analysis_report(result)
+                
+                # 파일 읽기
+                with open(report_file, 'r', encoding='utf-8') as f:
+                    report_data = f.read()
+                
+                st.download_button(
+                    label="📄 보고서 저장",
+                    data=report_data.encode('utf-8'),
+                    file_name=f"ragas_analysis_{result.get('metadata', {}).get('evaluation_id', 'unknown')}.md",
+                    mime="text/markdown",
+                    key="report_download"
+                )
+                
+                st.success("✅ 분석 보고서가 준비되었습니다!")
+                
+            except Exception as e:
+                st.error(f"❌ 보고서 생성 실패: {str(e)}")
+    
+    # 전체 패키지 다운로드
+    st.markdown("---")
+    
+    if st.button("📦 전체 패키지 다운로드", key="download_package_btn", help="CSV, 요약, 보고서를 모두 포함한 ZIP 파일"):
+        try:
+            import zipfile
+            import tempfile
+            from pathlib import Path
+            
+            from src.application.services.result_exporter import ResultExporter
+            
+            exporter = ResultExporter()
+            
+            # 임시 디렉토리에 모든 파일 생성
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                
+                # 모든 파일 생성
+                files = exporter.export_full_package(result)
+                
+                # ZIP 파일 생성
+                zip_path = temp_path / "ragas_evaluation_package.zip"
+                
+                with zipfile.ZipFile(zip_path, 'w') as zip_file:
+                    for file_type, file_path in files.items():
+                        zip_file.write(file_path, Path(file_path).name)
+                
+                # ZIP 파일 읽기
+                with open(zip_path, 'rb') as f:
+                    zip_data = f.read()
+                
+                st.download_button(
+                    label="📦 ZIP 패키지 저장",
+                    data=zip_data,
+                    file_name=f"ragas_package_{result.get('metadata', {}).get('evaluation_id', 'unknown')}.zip",
+                    mime="application/zip",
+                    key="package_download"
+                )
+                
+                st.success("✅ 전체 패키지가 준비되었습니다!")
+                st.info("📋 포함된 파일: 상세 CSV, 요약 CSV, 분석 보고서")
+                
+        except Exception as e:
+            st.error(f"❌ 패키지 생성 실패: {str(e)}")
+            import traceback
+            st.error(f"상세 오류: {traceback.format_exc()}")
+
+
 def show_radar_chart(result):
     """레이더 차트 생성"""
     metrics = [
@@ -299,14 +448,28 @@ def show_radar_chart(result):
         "context_recall",
         "context_precision",
     ]
-    values = [result.get(metric, 0) for metric in metrics]
     labels = ["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"]
+    
+    # answer_correctness가 있으면 추가
+    if "answer_correctness" in result:
+        metrics.append("answer_correctness")
+        labels.append("Answer Correctness")
+    
+    values = [result.get(metric, 0) for metric in metrics]
+    
+    # 안전한 값 변환
+    safe_values = []
+    for v in values:
+        try:
+            safe_values.append(float(v) if v is not None else 0.0)
+        except (ValueError, TypeError):
+            safe_values.append(0.0)
 
     fig = go.Figure()
 
     fig.add_trace(
         go.Scatterpolar(
-            r=values + [values[0]],  # 첫 번째 값을 마지막에 추가하여 차트를 닫음
+            r=safe_values + [safe_values[0]],  # 첫 번째 값을 마지막에 추가하여 차트를 닫음
             theta=labels + [labels[0]],
             fill="toself",
             name="RAGAS 점수",
@@ -332,13 +495,27 @@ def show_bar_chart(result):
         "context_recall",
         "context_precision",
     ]
-    values = [result.get(metric, 0) for metric in metrics]
     labels = ["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"]
+    
+    # answer_correctness가 있으면 추가
+    if "answer_correctness" in result:
+        metrics.append("answer_correctness")
+        labels.append("Answer Correctness")
+    
+    values = [result.get(metric, 0) for metric in metrics]
+    
+    # 안전한 값 변환
+    safe_values = []
+    for v in values:
+        try:
+            safe_values.append(float(v) if v is not None else 0.0)
+        except (ValueError, TypeError):
+            safe_values.append(0.0)
 
     # 색상 매핑
-    colors = ["green" if v >= 0.8 else "orange" if v >= 0.6 else "red" for v in values]
+    colors = ["green" if v >= 0.8 else "orange" if v >= 0.6 else "red" for v in safe_values]
 
-    fig = go.Figure(data=[go.Bar(x=labels, y=values, marker_color=colors)])
+    fig = go.Figure(data=[go.Bar(x=labels, y=safe_values, marker_color=colors)])
 
     fig.update_layout(
         title="📊 메트릭별 성능",
@@ -855,16 +1032,35 @@ def show_comparison_chart(eval1, eval2):
         "answer_relevancy",
         "context_recall",
         "context_precision",
-        "ragas_score",
     ]
+    
+    # answer_correctness가 두 평가 모두에 있으면 추가
+    if "answer_correctness" in eval1 and "answer_correctness" in eval2:
+        metrics.append("answer_correctness")
+    
+    metrics.append("ragas_score")
 
     fig = go.Figure()
+
+    # 안전한 값 변환
+    def safe_get_values(eval_dict, metric_list):
+        values = []
+        for m in metric_list:
+            v = eval_dict.get(m, 0)
+            try:
+                values.append(float(v) if v is not None else 0.0)
+            except (ValueError, TypeError):
+                values.append(0.0)
+        return values
+    
+    eval1_values = safe_get_values(eval1, metrics)
+    eval2_values = safe_get_values(eval2, metrics)
 
     fig.add_trace(
         go.Bar(
             name=f'평가 1 ({eval1["timestamp"]})',
             x=metrics,
-            y=[eval1.get(m, 0) for m in metrics],
+            y=eval1_values,
             marker_color="lightblue",
         )
     )
@@ -873,7 +1069,7 @@ def show_comparison_chart(eval1, eval2):
         go.Bar(
             name=f'평가 2 ({eval2["timestamp"]})',
             x=metrics,
-            y=[eval2.get(m, 0) for m in metrics],
+            y=eval2_values,
             marker_color="darkblue",
         )
     )
@@ -925,6 +1121,10 @@ def show_metrics_guide():
         
         **📍 Context Precision**: 컨텍스트 정밀도
         - 검색된 컨텍스트가 얼마나 관련성이 높은지 측정
+        
+        **✔️ Answer Correctness**: 답변의 정확도
+        - 생성된 답변이 정답(ground truth)과 얼마나 일치하는지 측정
+        - Semantic similarity와 factual similarity를 종합적으로 평가
         """)
 
 
@@ -957,15 +1157,20 @@ def init_db():
     # 새로운 컬럼들이 없으면 추가
     new_columns = [
         'qa_count', 'evaluation_id', 'llm_model', 'embedding_model', 'dataset_name',
-        'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds'
+        'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds',
+        'answer_correctness'
     ]
     
     for column in new_columns:
         if column not in columns:
-            if column in ['qa_count', 'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds']:
-                cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} REAL")
-            else:
-                cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} TEXT")
+            try:
+                if column in ['qa_count', 'total_duration_seconds', 'total_duration_minutes', 'avg_time_per_item_seconds', 'answer_correctness']:
+                    cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} REAL")
+                else:
+                    cursor.execute(f"ALTER TABLE evaluations ADD COLUMN {column} TEXT")
+                print(f"✅ 컬럼 '{column}' 추가됨")
+            except Exception as e:
+                print(f"⚠️ 컬럼 '{column}' 추가 실패: {e}")
 
     # 테이블이 없으면 생성
     cursor.execute(
@@ -977,6 +1182,7 @@ def init_db():
             answer_relevancy REAL,
             context_recall REAL,
             context_precision REAL,
+            answer_correctness REAL,
             ragas_score REAL,
             raw_data TEXT,
             qa_count INTEGER,
@@ -1009,10 +1215,10 @@ def save_evaluation_result(result):
         """
         INSERT INTO evaluations (
             timestamp, faithfulness, answer_relevancy, 
-            context_recall, context_precision, ragas_score, raw_data,
+            context_recall, context_precision, answer_correctness, ragas_score, raw_data,
             qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
             total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             datetime.now().isoformat(),
@@ -1020,6 +1226,7 @@ def save_evaluation_result(result):
             result.get("answer_relevancy", 0),
             result.get("context_recall", 0),
             result.get("context_precision", 0),
+            result.get("answer_correctness", 0),
             result.get("ragas_score", 0),
             json.dumps(result),
             result.get("qa_count", 0),
@@ -1048,15 +1255,32 @@ def load_evaluation_history(limit=None):
     init_db()
 
     conn = sqlite3.connect(str(DATABASE_PATH))
-
-    query = """
-        SELECT timestamp, faithfulness, answer_relevancy, 
-               context_recall, context_precision, ragas_score,
-               qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
-               total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
-        FROM evaluations 
-        ORDER BY timestamp DESC
-    """
+    
+    # 테이블 구조 확인
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(evaluations)")
+    columns = [row[1] for row in cursor.fetchall()]
+    
+    # answer_correctness 컬럼이 있는지 확인
+    if 'answer_correctness' in columns:
+        query = """
+            SELECT timestamp, faithfulness, answer_relevancy, 
+                   context_recall, context_precision, answer_correctness, ragas_score,
+                   qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
+                   total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
+            FROM evaluations 
+            ORDER BY timestamp DESC
+        """
+    else:
+        # answer_correctness 컬럼이 없는 경우 0으로 처리
+        query = """
+            SELECT timestamp, faithfulness, answer_relevancy, 
+                   context_recall, context_precision, 0 as answer_correctness, ragas_score,
+                   qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
+                   total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds
+            FROM evaluations 
+            ORDER BY timestamp DESC
+        """
 
     if limit:
         query += f" LIMIT {limit}"

@@ -41,14 +41,15 @@ class CustomPromptEvaluationStrategy(EvaluationStrategy):
         self.custom_metrics = CustomPromptFactory.create_custom_metrics(self.prompt_type)
     
     def get_metrics(self) -> List[Any]:
-        """커스텀 메트릭 반환 (Context Precision은 기본 메트릭 사용)"""
-        from ragas.metrics import context_precision
+        """커스텀 메트릭 반환 (Context Precision과 Answer Correctness는 기본 메트릭 사용)"""
+        from ragas.metrics import context_precision, answer_correctness
         
         return [
             self.custom_metrics['faithfulness'],
             self.custom_metrics['answer_relevancy'],
             self.custom_metrics['context_recall'],
             context_precision,  # 기본 메트릭 사용으로 안정성 확보
+            answer_correctness,  # 기본 메트릭 사용 (ground_truth 비교 필요)
         ]
     
     def run_evaluation(self, dataset: Dataset) -> Any:

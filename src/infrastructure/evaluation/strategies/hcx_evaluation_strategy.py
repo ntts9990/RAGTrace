@@ -7,7 +7,7 @@ HCX 모델 전용 평가 전략으로, HCX API의 응답 특성을 고려한 커
 from typing import Any, List
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision
+from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision, answer_correctness
 from ragas.run_config import RunConfig
 import os
 import json
@@ -43,19 +43,21 @@ class HcxEvaluationStrategy(EvaluationStrategy):
     def get_metrics(self) -> List[Any]:
         """HCX에 최적화된 메트릭 반환"""
         # 커스텀 메트릭 생성 (파싱 오류 처리 포함)
-        from ragas.metrics import Faithfulness, AnswerRelevancy, ContextRecall, ContextPrecision
+        from ragas.metrics import Faithfulness, AnswerRelevancy, ContextRecall, ContextPrecision, AnswerCorrectness
         
         # HCX 전용 파서를 가진 메트릭 생성
         custom_faithfulness = self._create_hcx_metric(Faithfulness())
         custom_answer_relevancy = self._create_hcx_metric(AnswerRelevancy())
         custom_context_recall = self._create_hcx_metric(ContextRecall())
         custom_context_precision = self._create_hcx_metric(ContextPrecision())
+        custom_answer_correctness = self._create_hcx_metric(AnswerCorrectness())
         
         return [
             custom_faithfulness,
             custom_answer_relevancy,
             custom_context_recall,
             custom_context_precision,
+            custom_answer_correctness,
         ]
     
     def _create_hcx_metric(self, base_metric):
@@ -102,15 +104,10 @@ class HcxEvaluationStrategy(EvaluationStrategy):
         print("🔧 HCX 전용 환경 설정 적용")
         
         try:
-            # 기본 메트릭 사용 (커스텀 파싱은 어댑터에서 처리)
+            # get_metrics()에서 정의한 메트릭 사용 (answer_correctness 포함)
             result = evaluate(
                 dataset=dataset,
-                metrics=[
-                    faithfulness,
-                    answer_relevancy,
-                    context_recall,
-                    context_precision,
-                ],
+                metrics=self.get_metrics(),
                 llm=self.llm,
                 embeddings=self.embeddings,
                 run_config=self.run_config,

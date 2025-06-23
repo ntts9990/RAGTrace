@@ -7,7 +7,13 @@ Standard Evaluation Strategy
 from typing import Any, List
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision
+from ragas.metrics import (
+    faithfulness, 
+    answer_relevancy, 
+    context_recall, 
+    context_precision, 
+    answer_correctness
+)
 from ragas.run_config import RunConfig
 
 from .base_strategy import EvaluationStrategy
@@ -50,6 +56,7 @@ class StandardEvaluationStrategy(EvaluationStrategy):
             answer_relevancy,
             context_recall,
             context_precision,
+            answer_correctness,
         ]
     
     def run_evaluation(self, dataset: Dataset) -> Any:
