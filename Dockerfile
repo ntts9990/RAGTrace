@@ -23,19 +23,22 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_HTTP_TIMEOUT=300
 ENV UV_INDEX_STRATEGY=unsafe-best-match
 
-# Copy only dependency-related files first to leverage Docker cache
+# Copy dependency-related files first to leverage Docker cache
 COPY pyproject.toml uv.toml .python-version uv.lock ./
 
+# Copy source code required for the local package build before installing dependencies
+COPY src/ ./src/
+COPY README.md ./
+
 # Install dependencies using UV as root with temporary cache
-# This layer will be cached as long as dependency files don't change
+# This layer will be cached as long as dependency and source files don't change
 RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
 
 # Clean up build cache immediately after installation
 RUN rm -rf /tmp/uv-build-cache
 
-# Now copy the rest of the application source code
-COPY src/ ./src/
-COPY README.md CLAUDE.md ./
+# Now copy the rest of the application assets
+COPY CLAUDE.md ./
 COPY cli.py hello.py ./
 COPY data/ ./data/
 
