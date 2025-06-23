@@ -1,0 +1,76 @@
+{
+  "faithfulness": 0.5104166666666666,
+  "answer_relevancy": 0.8011831206835305,
+  "context_recall": 0.8333333333333333,
+  "context_precision": 0.437499999975,
+  "ragas_score": 0.6227328022851302,
+  "individual_scores": [
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.870869586469358,
+      "context_recall": 1.0,
+      "context_precision": 0.49999999995,
+      "answer_correctness": 0.7368419135268421
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6274242404857888,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.8146331546246763
+    },
+    {
+      "faithfulness": 0.25,
+      "answer_relevancy": 0.7502686866811522,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.4261726483484466
+    },
+    {
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.847971970648102,
+      "context_recall": 0.6666666666666666,
+      "context_precision": 0.0,
+      "answer_correctness": 0.6460242987376396
+    },
+    {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.8809162779335346,
+      "context_recall": 1.0,
+      "context_precision": 0.0,
+      "answer_correctness": 0.20759903550617145
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8330191942587585,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.7145720468850463
+    },
+    {
+      "faithfulness": 0.3333333333333333,
+      "answer_relevancy": 0.8957997280312803,
+      "context_recall": 1.0,
+      "context_precision": 0.0,
+      "answer_correctness": 0.5457987205476684
+    },
+    {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.7031952809602696,
+      "context_recall": 0.0,
+      "context_precision": 0.0,
+      "answer_correctness": 0.1582053079604726
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "05b9bdc1",
+    "timestamp": "2025-06-24T08:26:37.480764",
+    "model": "models/gemini-2.5-flash-preview-05-20",
+    "temperature": 1e-08,
+    "dataset_size": 8,
+    "strategy": "표준 RAGAS 평가 (영어)"
+  },
+  "generation_failures": 0,
+  "generation_successes": 8,
+  "api_failure_details": []
+}

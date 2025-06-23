@@ -1,0 +1,42 @@
+{
+  "faithfulness": 0.7333333333333334,
+  "answer_relevancy": 0.7158957869506618,
+  "context_recall": 1.0,
+  "context_precision": 0.9999999999555556,
+  "ragas_score": 0.8510483659662201,
+  "answer_correctness": 0.8060127095915498,
+  "individual_scores": [
+    {
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.7095464707649294,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.95383223792559
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6878722034059042,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.5150302099067872
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7502686866811522,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999666667,
+      "answer_correctness": 0.9491756809422721
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "ff617b6f",
+    "timestamp": "2025-06-24T08:37:49.957041",
+    "model": "HCX-005",
+    "temperature": 0.0,
+    "dataset_size": 3,
+    "strategy": "HCX 전용 평가 (파싱 오류 허용)"
+  },
+  "generation_failures": 0,
+  "generation_successes": 3,
+  "api_failure_details": []
+}

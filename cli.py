@@ -32,6 +32,9 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 예시:
+  # 간단한 평가 실행 (HCX-005 + BGE-M3, 자동 결과 저장)
+  python cli.py quick-eval evaluation_data
+  
   # 기본 프롬프트로 평가 실행
   python cli.py evaluate evaluation_data.json
 
@@ -148,6 +151,23 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         default=7,
         help="보존할 일수 (기본값: 7일)"
+    )
+    
+    # quick-eval 서브커맨드 (새로 추가)
+    quick_parser = subparsers.add_parser("quick-eval", help="간단한 평가 실행 (HCX-005 + BGE-M3, 자동 결과 저장)")
+    quick_parser.add_argument(
+        "dataset",
+        help="평가할 데이터셋 이름 (확장자 제외)"
+    )
+    quick_parser.add_argument(
+        "--output-dir",
+        default="quick_results",
+        help="결과 저장 디렉토리 (기본값: quick_results)"
+    )
+    quick_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="상세한 로그 출력"
     )
     
     return parser
@@ -332,6 +352,11 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
         print(f"faithfulness   : {result.faithfulness:.4f}")
         print(f"context_recall : {result.context_recall:.4f}")
         print(f"context_precision: {result.context_precision:.4f}")
+        
+        # answer_correctness가 있으면 출력
+        if hasattr(result, 'answer_correctness') and result.answer_correctness is not None:
+            print(f"answer_correctness: {result.answer_correctness:.4f}")
+        
         print("="*50)
 
         if output_file:
@@ -617,6 +642,86 @@ def cleanup_checkpoints(args):
     return True
 
 
+def quick_eval(args):
+    """간단한 평가 실행 (HCX-005 + BGE-M3 + 자동 결과 저장)"""
+    import os
+    from datetime import datetime
+    from pathlib import Path
+    
+    print("🚀 RAGTrace 간단 평가 시작")
+    print("=" * 50)
+    print("🤖 LLM: HCX-005 (Naver)")
+    print("🌐 Embedding: BGE-M3 (Local)")
+    print("📁 데이터셋:", args.dataset)
+    print("=" * 50)
+    
+    # 결과 디렉토리 생성
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(exist_ok=True)
+    
+    # 타임스탬프 기반 파일명 생성
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_filename = f"{args.dataset}_{timestamp}.json"
+    result_path = output_dir / result_filename
+    
+    try:
+        # 1. 평가 실행
+        print("\n📊 1단계: 평가 실행 중...")
+        success = evaluate_dataset(
+            dataset_name=args.dataset,
+            llm="hcx",
+            embedding="bge_m3",
+            prompt_type=None,
+            output_file=str(result_path),
+            verbose=args.verbose
+        )
+        
+        if not success:
+            print("❌ 평가 실행 실패")
+            return False
+        
+        # 2. 결과 내보내기
+        print(f"\n📤 2단계: 결과 내보내기 중...")
+        
+        # export_results 함수를 직접 호출하기 위한 args 객체 생성
+        class ExportArgs:
+            def __init__(self, result_file, output_dir):
+                self.result_file = result_file
+                self.format = "all"
+                self.output_dir = output_dir
+        
+        export_args = ExportArgs(str(result_path), str(output_dir))
+        export_success = export_results(export_args)
+        
+        if not export_success:
+            print("⚠️ 결과 내보내기 실패 (평가는 완료)")
+        
+        # 3. 결과 요약
+        print("\n" + "=" * 50)
+        print("✅ 간단 평가 완료!")
+        print("=" * 50)
+        print(f"📄 평가 결과 파일: {result_path}")
+        
+        if export_success:
+            print(f"📁 분석 보고서 디렉토리: {output_dir}")
+            print("📋 생성된 파일:")
+            print("   - 상세 CSV: 개별 항목별 점수")
+            print("   - 요약 CSV: 메트릭별 기초 통계")
+            print("   - 분석 보고서: 상세 성능 분석 (Markdown)")
+        
+        print(f"\n💡 다음 명령어로 결과를 다시 내보낼 수 있습니다:")
+        print(f"   uv run python cli.py export-results {result_path} --format all --output-dir {output_dir}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ 간단 평가 중 오류 발생: {str(e)}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return False
+
+
 def main():
     """CLI 메인 함수"""
     parser = create_parser()
@@ -679,6 +784,11 @@ def main():
     
     elif args.command == "cleanup-checkpoints":
         success = cleanup_checkpoints(args)
+        if not success:
+            sys.exit(1)
+    
+    elif args.command == "quick-eval":
+        success = quick_eval(args)
         if not success:
             sys.exit(1)
     

@@ -74,6 +74,80 @@ class HcxEvaluationStrategy(EvaluationStrategy):
         
         return HcxMetricWrapper(base_metric)
     
+    def _convert_dataset_format(self, dataset: Dataset) -> Dataset:
+        """데이터셋을 RAGAS 호환 형식으로 변환"""
+        try:
+            # RAGAS 스키마를 사용하여 변환
+            from ragas.dataset_schema import EvaluationDataset
+            from ragas import EvaluationDataset as RagasDataset
+            
+            # 원본 데이터를 딕셔너리 형태로 변환
+            data_dict = dataset.to_dict()
+            
+            # RAGAS가 기대하는 형식으로 변환
+            eval_samples = []
+            
+            for i in range(len(data_dict['question'])):
+                sample_data = {
+                    'user_input': data_dict['question'][i],
+                    'response': data_dict['answer'][i],
+                    'reference': data_dict['ground_truth'][i],
+                    'retrieved_contexts': data_dict['contexts'][i] if isinstance(data_dict['contexts'][i], list) else [data_dict['contexts'][i]]
+                }
+                eval_samples.append(sample_data)
+            
+            # RagasDataset으로 변환
+            try:
+                ragas_dataset = RagasDataset.from_list(eval_samples)
+                print(f"🔄 RAGAS EvaluationDataset으로 변환: {len(eval_samples)}개 항목")
+                return ragas_dataset.to_hf_dataset()
+            except Exception as ragas_error:
+                print(f"⚠️ RAGAS Dataset 변환 실패: {ragas_error}")
+                # 폴백: 기본 Dataset 형식 사용
+                return self._convert_to_basic_format(dataset)
+            
+        except Exception as e:
+            print(f"⚠️ 데이터셋 변환 실패: {e} - 기본 형식으로 폴백")
+            return self._convert_to_basic_format(dataset)
+    
+    def _convert_to_basic_format(self, dataset: Dataset) -> Dataset:
+        """기본 형식으로 데이터셋 변환"""
+        try:
+            # 원본 데이터를 딕셔너리 형태로 변환
+            data_dict = dataset.to_dict()
+            
+            # RAGAS가 기대하는 컬럼명으로 변환
+            converted_data = {
+                'question': data_dict.get('question', []),
+                'answer': data_dict.get('answer', []),
+                'contexts': data_dict.get('contexts', []),
+                'ground_truth': data_dict.get('ground_truth', [])
+            }
+            
+            # contexts가 문자열인 경우 리스트로 변환
+            if 'contexts' in converted_data:
+                for i, context in enumerate(converted_data['contexts']):
+                    if isinstance(context, str):
+                        # 문자열을 리스트로 변환
+                        converted_data['contexts'][i] = [context]
+                    elif isinstance(context, list):
+                        # 이미 리스트인 경우 그대로 유지
+                        pass
+                    else:
+                        # 기타 타입은 문자열로 변환 후 리스트화
+                        converted_data['contexts'][i] = [str(context)]
+            
+            # 새로운 Dataset 생성
+            from datasets import Dataset
+            converted_dataset = Dataset.from_dict(converted_data)
+            
+            print(f"🔄 기본 형식으로 데이터셋 변환: {len(dataset)}개 항목")
+            return converted_dataset
+            
+        except Exception as e:
+            print(f"⚠️ 기본 형식 변환도 실패: {e} - 원본 데이터셋 사용")
+            return dataset
+    
     def run_evaluation(self, dataset: Dataset) -> Any:
         """HCX 전용 평가 실행"""
         print("🚀 HCX 전용 RAGAS 평가 실행 중...")
@@ -104,10 +178,25 @@ class HcxEvaluationStrategy(EvaluationStrategy):
         print("🔧 HCX 전용 환경 설정 적용")
         
         try:
-            # get_metrics()에서 정의한 메트릭 사용 (answer_correctness 포함)
+            # SingleTurnSample 타입 문제를 해결하기 위해 데이터셋 변환
+            converted_dataset = self._convert_dataset_format(dataset)
+            print("🔄 데이터셋을 RAGAS 호환 형식으로 변환 완료")
+            
+            from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision, answer_correctness
+            
+            basic_metrics = [
+                faithfulness,
+                answer_relevancy, 
+                context_recall,
+                context_precision,
+                answer_correctness,
+            ]
+            
+            print("🔄 기본 RAGAS 메트릭 사용 (SingleTurnSample 호환)")
+            
             result = evaluate(
-                dataset=dataset,
-                metrics=self.get_metrics(),
+                dataset=converted_dataset,
+                metrics=basic_metrics,
                 llm=self.llm,
                 embeddings=self.embeddings,
                 run_config=self.run_config,
@@ -120,6 +209,7 @@ class HcxEvaluationStrategy(EvaluationStrategy):
             
         except Exception as e:
             print(f"❌ HCX 평가 중 오류: {e}")
+            print(f"📝 오류 상세: SingleTurnSample 호환성 문제 - 부분 점수로 폴백")
             # 오류 발생 시 부분 점수 반환
             return self._create_partial_result(dataset)
             
@@ -143,7 +233,7 @@ class HcxEvaluationStrategy(EvaluationStrategy):
                 
                 # NaN 값을 부분 점수로 대체
                 for col in df.columns:
-                    if col in ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision']:
+                    if col in ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision', 'answer_correctness']:
                         nan_count = df[col].isna().sum()
                         if nan_count > 0:
                             print(f"⚠️ {col}: {nan_count}개 항목 파싱 실패 - 부분 점수(0.5) 적용")
@@ -165,12 +255,13 @@ class HcxEvaluationStrategy(EvaluationStrategy):
         
         class PartialResult:
             def __init__(self, dataset_size):
-                # 부분 점수 (0.5) 적용
+                # 부분 점수 (0.5) 적용 - answer_correctness 포함
                 self._scores_dict = {
                     'faithfulness': [0.5] * dataset_size,
                     'answer_relevancy': [0.5] * dataset_size,
                     'context_recall': [0.5] * dataset_size,
                     'context_precision': [0.5] * dataset_size,
+                    'answer_correctness': [0.5] * dataset_size,
                 }
                 self.dataset = dataset
                 

@@ -47,6 +47,7 @@ class ResultConversionService:
             context_recall=result_dict["context_recall"],
             context_precision=result_dict["context_precision"],
             ragas_score=result_dict.get("ragas_score", 0.0),
+            answer_correctness=result_dict.get("answer_correctness"),  # answer_correctness 추가
             individual_scores=result_dict.get("individual_scores"),
             metadata=result_dict.get("metadata", {}),
             generation_failures=generation_failures,
