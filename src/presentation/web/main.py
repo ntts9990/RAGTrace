@@ -596,44 +596,131 @@ def show_new_evaluation_page():
     
     # 데이터셋 선택
     st.markdown("### 📊 데이터셋 선택")
-    existing_datasets = get_available_datasets()
-    if not existing_datasets:
-        st.error("❌ 사용 가능한 평가 데이터셋이 없습니다.")
-        st.info("data/ 디렉토리에 JSON 형식의 평가 데이터를 추가하세요.")
-        return
     
-    # session_state에 선택된 데이터셋 저장
-    if "selected_dataset" not in st.session_state:
-        st.session_state.selected_dataset = existing_datasets[0]
+    # 탭으로 기존 파일 선택과 새 파일 업로드 구분
+    dataset_tab1, dataset_tab2 = st.tabs(["📁 파일 업로드", "📂 기존 데이터셋"])
     
-    # 현재 선택된 데이터셋의 인덱스 찾기
-    try:
-        current_index = existing_datasets.index(st.session_state.selected_dataset)
-    except (ValueError, IndexError):
-        current_index = 0
-        st.session_state.selected_dataset = existing_datasets[0] if existing_datasets else None
+    with dataset_tab1:
+        st.markdown("#### 새 데이터셋 업로드")
+        uploaded_file = st.file_uploader(
+            "평가 데이터 파일을 선택하세요",
+            type=["json", "xlsx", "xls", "csv"],
+            help="JSON, Excel(.xlsx, .xls), CSV 파일을 지원합니다.",
+            key="file_uploader"
+        )
+        
+        if uploaded_file is not None:
+            # 파일 타입에 따른 처리
+            file_extension = uploaded_file.name.split('.')[-1].lower()
+            
+            try:
+                if file_extension == 'json':
+                    # JSON 파일 직접 로드
+                    qa_data = json.load(uploaded_file)
+                    st.success(f"✅ JSON 파일 로드 완료: {uploaded_file.name} ({len(qa_data)}개 항목)")
+                    
+                elif file_extension in ['xlsx', 'xls', 'csv']:
+                    # Excel/CSV 파일은 변환 필요
+                    st.info("📄 Excel/CSV 파일을 JSON으로 변환 중...")
+                    
+                    # 임시 파일로 저장
+                    import tempfile
+                    import os
+                    from pathlib import Path
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as tmp_file:
+                        tmp_file.write(uploaded_file.read())
+                        tmp_file_path = tmp_file.name
+                    
+                    try:
+                        # data importer 사용
+                        from src.infrastructure.data_import.importers import ImporterFactory
+                        
+                        importer = ImporterFactory.create_importer(tmp_file_path)
+                        evaluation_data_list = importer.import_data(tmp_file_path)
+                        
+                        # EvaluationData 객체를 dict로 변환
+                        qa_data = [
+                            {
+                                "question": item.question,
+                                "contexts": item.contexts,
+                                "answer": item.answer,
+                                "ground_truth": item.ground_truth
+                            }
+                            for item in evaluation_data_list
+                        ]
+                        
+                        st.success(f"✅ {file_extension.upper()} 파일 변환 완료: {uploaded_file.name} ({len(qa_data)}개 항목)")
+                        
+                        # 변환된 데이터 미리보기
+                        with st.expander("📋 변환된 데이터 미리보기 (처음 3개)"):
+                            for i, item in enumerate(qa_data[:3]):
+                                st.markdown(f"**항목 {i+1}:**")
+                                st.json(item)
+                        
+                    finally:
+                        # 임시 파일 삭제
+                        os.unlink(tmp_file_path)
+                else:
+                    st.error(f"❌ 지원되지 않는 파일 형식: {file_extension}")
+                    qa_data = None
+                    
+                # 업로드된 데이터를 session_state에 저장
+                if qa_data:
+                    st.session_state.uploaded_data = qa_data
+                    st.session_state.uploaded_filename = uploaded_file.name
+                    st.session_state.use_uploaded_file = True
+                    
+            except Exception as e:
+                st.error(f"❌ 파일 로드 실패: {str(e)}")
+                st.info("파일 형식을 확인하고 다시 시도해주세요.")
     
-    # 데이터셋 선택 UI
-    selected_dataset = st.selectbox(
-        "평가할 데이터셋을 선택하세요:",
-        existing_datasets,
-        index=current_index,
-        key="dataset_selector_box",
-        help="평가에 사용할 QA 데이터셋을 선택합니다."
-    )
+    with dataset_tab2:
+        st.markdown("#### 기존 데이터셋 선택")
+        existing_datasets = get_available_datasets()
+        if not existing_datasets:
+            st.info("📝 기존 데이터셋이 없습니다. 파일을 업로드하거나 data/ 디렉토리에 추가하세요.")
+            selected_dataset = None
+        else:
+            # session_state에 선택된 데이터셋 저장
+            if "selected_dataset" not in st.session_state:
+                st.session_state.selected_dataset = existing_datasets[0]
+            
+            # 현재 선택된 데이터셋의 인덱스 찾기
+            try:
+                current_index = existing_datasets.index(st.session_state.selected_dataset)
+            except (ValueError, IndexError):
+                current_index = 0
+                st.session_state.selected_dataset = existing_datasets[0] if existing_datasets else None
+            
+            # 데이터셋 선택 UI
+            selected_dataset = st.selectbox(
+                "평가할 데이터셋을 선택하세요:",
+                existing_datasets,
+                index=current_index,
+                key="dataset_selector_box",
+                help="평가에 사용할 QA 데이터셋을 선택합니다."
+            )
+            
+            # 선택이 변경되면 session_state 업데이트
+            st.session_state.selected_dataset = selected_dataset
+            st.session_state.use_uploaded_file = False
+            
+            # 데이터셋 정보 표시
+            dataset_path = get_evaluation_data_path(selected_dataset)
+            if dataset_path:
+                try:
+                    with open(dataset_path, encoding="utf-8") as f:
+                        qa_data = json.load(f)
+                        st.info(f"📋 선택된 데이터셋: **{selected_dataset}** ({len(qa_data)}개 QA 쌍)")
+                except Exception as e:
+                    st.warning(f"데이터셋 정보 로드 실패: {e}")
     
-    # 선택이 변경되면 session_state 업데이트
-    st.session_state.selected_dataset = selected_dataset
-    
-    # 데이터셋 정보 표시
-    dataset_path = get_evaluation_data_path(selected_dataset)
-    if dataset_path:
-        try:
-            with open(dataset_path, encoding="utf-8") as f:
-                qa_data = json.load(f)
-                st.info(f"📋 선택된 데이터셋: **{selected_dataset}** ({len(qa_data)}개 QA 쌍)")
-        except Exception as e:
-            st.warning(f"데이터셋 정보 로드 실패: {e}")
+    # 최종 선택된 데이터셋 이름 결정
+    if st.session_state.get('use_uploaded_file', False) and st.session_state.get('uploaded_filename'):
+        selected_dataset = st.session_state.uploaded_filename
+    elif not st.session_state.get('use_uploaded_file', False) and dataset_tab2:
+        selected_dataset = st.session_state.get('selected_dataset', None)
     
     st.markdown("---")
     
@@ -741,6 +828,22 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
     """평가 실행 로직"""
     with st.spinner("🔄 평가를 실행 중입니다..."):
         try:
+            # 업로드된 파일을 사용하는 경우 특별 처리
+            if st.session_state.get('use_uploaded_file', False) and st.session_state.get('uploaded_data'):
+                # 업로드된 데이터를 임시 파일로 저장
+                import tempfile
+                import os
+                from pathlib import Path
+                
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', encoding='utf-8') as tmp_file:
+                    json.dump(st.session_state.uploaded_data, tmp_file, ensure_ascii=False, indent=2)
+                    temp_dataset_path = tmp_file.name
+                
+                # 임시 데이터셋 이름 설정
+                actual_dataset_name = f"uploaded_{dataset_name}"
+            else:
+                temp_dataset_path = None
+                actual_dataset_name = dataset_name
             # 평가 설정 정보 표시
             st.markdown("### 🔧 평가 설정")
             col1, col2 = st.columns(2)
@@ -812,9 +915,32 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
                 progress_text.text("평가 시작...")
                 progress_bar.progress(25)
                 
-                evaluation_result = evaluation_use_case.execute(
-                    dataset_name=dataset_name
-                )
+                # 업로드된 파일인 경우 경로 직접 전달
+                if temp_dataset_path:
+                    # 임시로 데이터를 data/ 디렉토리에 복사
+                    from pathlib import Path
+                    import shutil
+                    
+                    data_dir = Path("data")
+                    data_dir.mkdir(exist_ok=True)
+                    temp_data_file = data_dir / f"temp_{dataset_name}.json"
+                    
+                    shutil.copy(temp_dataset_path, temp_data_file)
+                    
+                    try:
+                        evaluation_result = evaluation_use_case.execute(
+                            dataset_name=f"temp_{dataset_name}"
+                        )
+                    finally:
+                        # 평가 후 임시 파일 삭제
+                        if temp_data_file.exists():
+                            temp_data_file.unlink()
+                        if temp_dataset_path and os.path.exists(temp_dataset_path):
+                            os.unlink(temp_dataset_path)
+                else:
+                    evaluation_result = evaluation_use_case.execute(
+                        dataset_name=dataset_name
+                    )
                 
                 progress_bar.progress(100)
                 progress_text.text("평가 완료!")
@@ -850,7 +976,7 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             result_dict["evaluation_id"] = evaluation_id
             result_dict["llm_model"] = llm_display_names.get(llm_type, llm_type)
             result_dict["embedding_model"] = embedding_display_names.get(embedding_type, embedding_type)
-            result_dict["dataset_name"] = dataset_name
+            result_dict["dataset_name"] = actual_dataset_name if 'actual_dataset_name' in locals() else dataset_name
 
             dataset_path = get_evaluation_data_path(dataset_name)
             if dataset_path:

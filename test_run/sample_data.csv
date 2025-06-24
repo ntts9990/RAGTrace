@@ -1,3 +1,0 @@
-question,contexts,answer,ground_truth
-"What is RAG?","RAG stands for Retrieval-Augmented Generation.","Retrieval-Augmented Generation is a technique...","RAG combines a retriever and a generator."
-"What is the capital of Korea?","Seoul is the capital of South Korea.","The capital is Seoul.","Seoul" 
