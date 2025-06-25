@@ -7,10 +7,13 @@
 ### 🚀 [배포 가이드](deployment/)
 - **Docker_Deployment_Guide.md** - Docker 환경 배포 가이드
 - **Air_Gapped_Enhancement_Plan.md** - 폐쇄망 환경 배포 계획
+- **Enterprise_Package_System.md** - 엔터프라이즈 패키지 시스템
+- **Windows_Complete_Guide.md** - Windows 완전 설치 가이드
 
 ### 🛠️ [개발 가이드](development/)  
 - **Development_Guide.md** - 프로젝트 개발 가이드
 - **Functional_Test_Plan.md** - 기능 테스트 계획
+- **UV_Setup_Guide.md** - UV 패키지 매니저 설정 가이드
 
 ### 📖 [사용자 가이드](user-guides/)
 - **Data_Import_Guide.md** - 데이터 임포트 가이드  

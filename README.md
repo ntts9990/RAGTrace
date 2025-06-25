@@ -536,7 +536,7 @@ uv sync --all-extras
 | 문제 유형 | 가이드 문서 |
 |----------|------------|
 | **Windows 완전 설치** | [Windows 완전 가이드](docs/deployment/Windows_Complete_Guide.md) |
-| **엔터프라이즈 배포** | [ENTERPRISE_패키지_시스템.md](ENTERPRISE_패키지_시스템.md) |
+| **엔터프라이즈 배포** | [엔터프라이즈 패키지 시스템](docs/deployment/Enterprise_Package_System.md) |
 | **Docker 배포** | [Docker 배포 가이드](docs/deployment/Docker_Deployment_Guide.md) |
 | **개발 환경 설정** | [개발 가이드](docs/development/Development_Guide.md) |
 
