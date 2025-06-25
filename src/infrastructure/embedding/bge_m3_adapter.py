@@ -25,7 +25,12 @@ class BgeM3EmbeddingAdapter(Embeddings):
             model_path: 로컬 모델 경로 (None이면 자동 다운로드)
             device: 실행 디바이스 (None이면 자동 감지, "cpu", "cuda", "mps")
         """
-        self.model_path = model_path or "BAAI/bge-m3"
+        # model_path가 None이거나 비어있으면 Hugging Face 기본값 사용
+        if not model_path or model_path.strip() == "":
+            self.model_path = "BAAI/bge-m3"
+        else:
+            self.model_path = model_path
+            
         self.device = device  # 지연 감지로 변경
         self.model = None
         self.device_info = {}

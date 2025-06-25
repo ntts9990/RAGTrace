@@ -66,7 +66,8 @@ class ConfigurationContainer:
             if embedding_type in ["gemini", "hcx"]:
                 return bool(config["api_key"])
             elif embedding_type == "bge_m3":
-                return bool(config["model_path"])
+                # BGE-M3는 model_path가 None이어도 기본값으로 자동 다운로드됨
+                return True
             return True
         except Exception:
             return False

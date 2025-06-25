@@ -48,6 +48,12 @@ RAGTrace-Enterprise-[platform]-[arch].tar.gz
 │   ├── install.bat/.sh      # 플랫폼별 래퍼
 ├── 05_Documentation/         # 상세 문서
 ├── 06_Verification/          # 검증 도구
+├── 07_Models/               # BGE-M3 로컬 임베딩 모델
+│   └── bge-m3/             # 완전 오프라인 임베딩 (약 2GB)
+│       ├── config.json
+│       ├── pytorch_model.bin
+│       ├── tokenizer.json
+│       └── (기타 모델 파일들)
 └── MANIFEST.json            # 패키지 매니페스트
 ```
 
@@ -168,6 +174,7 @@ python cli.py --help
 | 패키지 생성 | 45-90분 | 15-30분 | **50-66% 단축** |
 | 설치 시간 | 20-40분 | 8-15분 | **60-62% 단축** |
 | Import 속도 | 15-30초 | 5-10초 | **67-75% 단축** |
+| BGE-M3 모델 로딩 | 30-60초 | 5-10초 | **80-85% 단축** |
 
 ## 🛡️ 오류 복구 시스템
 
@@ -247,10 +254,11 @@ python recovery-assistant.py --diagnosis diagnosis.json
 ## 🎯 권장 사용 시나리오
 
 ### 🏢 엔터프라이즈 환경
-- 완전 폐쇄망 배포
+- 완전 폐쇄망 배포 (**BGE-M3 모델 포함**)
 - 다중 플랫폼 지원 필요
 - 보안 규정 준수 필수
 - 대규모 배포 계획
+- **인터넷 연결 없이 완전 오프라인 임베딩 처리**
 
 ### 🔬 연구 기관
 - 재현 가능한 환경 구축

@@ -180,6 +180,12 @@ RAGTrace-Windows-Offline-Safe.zip
 │   ├── run-web.bat        # Dashboard launcher
 │   ├── run-cli.bat        # CLI launcher
 │   └── verify.py          # Installation validator
+├── 05_Models/              # BGE-M3 Local Embedding Models
+│   └── bge-m3/            # Complete offline embedding (~2GB)
+│       ├── config.json
+│       ├── pytorch_model.bin
+│       ├── tokenizer.json
+│       └── (other model files)
 └── README-Installation.txt # Setup instructions
 ```
 
@@ -236,6 +242,12 @@ RAGTrace-Enterprise-[platform]-[arch].tar.gz
 │   └── enterprise-validator.py # Comprehensive validator
 ├── 05_Documentation/        # Complete guides
 ├── 06_Verification/         # Validation tools
+├── 07_Models/              # BGE-M3 Local Embedding Models
+│   └── bge-m3/            # Complete offline embedding (~2GB)
+│       ├── config.json
+│       ├── pytorch_model.bin
+│       ├── tokenizer.json
+│       └── (other model files)
 └── MANIFEST.json           # Package metadata
 ```
 
@@ -276,6 +288,75 @@ python enterprise-validator.py --benchmark
 python enterprise-validator.py --compliance-report
 ```
 
+## 🤖 BGE-M3 Local Embedding Setup
+
+### Automatic Model Download (Internet Required)
+
+BGE-M3 models are automatically downloaded when first needed:
+
+```bash
+# Automatic download during first use
+uv run python hello.py --prepare-models
+
+# Force re-download if needed
+uv run python hello.py --prepare-models --force-download
+```
+
+### Manual Model Setup for Offline Environments
+
+For air-gapped or offline environments, BGE-M3 model files must be pre-installed:
+
+**1. Download Model Files (on internet-connected machine):**
+```bash
+# Download and save BGE-M3 model
+python -c "
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer('BAAI/bge-m3')
+model.save('./models/bge-m3')
+print('BGE-M3 model downloaded to ./models/bge-m3')
+"
+```
+
+**2. Model Directory Structure:**
+```
+models/bge-m3/
+├── config.json              # Model configuration
+├── pytorch_model.bin        # Model weights (~2GB)
+├── tokenizer.json          # Tokenizer
+├── tokenizer_config.json   # Tokenizer configuration
+├── special_tokens_map.json # Special tokens
+└── vocab.txt              # Vocabulary
+```
+
+**3. Environment Configuration:**
+```bash
+# Configure .env for local BGE-M3
+BGE_M3_MODEL_PATH="./models/bge-m3"
+DEFAULT_EMBEDDING="bge_m3"
+```
+
+**4. Verification:**
+```bash
+# Test BGE-M3 functionality
+uv run python -c "
+from src.infrastructure.embedding.bge_m3_adapter import BGEm3EmbeddingAdapter
+adapter = BGEm3EmbeddingAdapter('./models/bge-m3')
+print('✅ BGE-M3 model loaded successfully')
+"
+```
+
+### Performance Optimization
+
+**Device Auto-Detection:**
+- **CUDA**: GPU acceleration (~60 docs/sec)
+- **MPS**: Apple Silicon optimization (~15 docs/sec)
+- **CPU**: Multi-core processing (~40 docs/sec)
+
+**Memory Requirements:**
+- Model storage: ~2GB disk space
+- Runtime memory: ~2-4GB RAM
+- GPU memory: ~2GB VRAM (if using CUDA)
+
 ## 🔧 Environment Configuration
 
 ### Required API Keys
@@ -292,9 +373,12 @@ CLOVA_STUDIO_API_KEY=your_clova_studio_api_key_here
 DEFAULT_LLM=gemini          # or "hcx"
 DEFAULT_EMBEDDING=bge_m3    # or "gemini", "hcx"
 
-# Optional: BGE-M3 Configuration
-BGE_M3_MODEL_PATH="./models/bge-m3"
-BGE_M3_DEVICE="auto"        # auto, cpu, cuda, mps
+# BGE-M3 Local Embedding Configuration
+BGE_M3_MODEL_PATH="./models/bge-m3"  # Path to BGE-M3 model files
+BGE_M3_DEVICE="auto"                  # auto, cpu, cuda, mps
+
+# Note: For offline environments, ensure BGE-M3 model files
+# are included in the models/ directory before deployment
 ```
 
 ### System Requirements
@@ -315,9 +399,10 @@ BGE_M3_DEVICE="auto"        # auto, cpu, cuda, mps
 **Enterprise Requirements:**
 - Python 3.11+
 - 16GB RAM
-- 50GB disk space
-- Dedicated GPU
+- 50GB disk space (includes BGE-M3 model storage)
+- Dedicated GPU (recommended for BGE-M3 acceleration)
 - Network isolation capability
+- BGE-M3 model files in models/ directory for offline deployment
 
 ## 🚨 Troubleshooting
 

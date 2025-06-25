@@ -36,13 +36,22 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 # 1. 의존성 설치
 uv sync --all-extras
 
-# 2. API 키 설정 (.env 파일)
+# 2. BGE-M3 모델 자동 다운로드 (최초 한 번만, 약 2GB)
+uv run python hello.py --prepare-models
+
+# 3. API 키 설정 (.env 파일)
 echo "GEMINI_API_KEY=your_key_here" > .env
 echo "CLOVA_STUDIO_API_KEY=your_hcx_key_here" >> .env
 
-# 3. 즉시 평가 실행 (HCX-005 + BGE-M3 + 자동 결과 저장)
+# 4. 즉시 평가 실행 (HCX-005 + BGE-M3 + 자동 결과 저장)
 uv run python cli.py quick-eval evaluation_data
 ```
+
+**🎯 자동 모델 다운로드**:
+- 🤖 **BGE-M3 자동 설치**: `models/` 폴더에 없으면 Hugging Face에서 자동 다운로드
+- 🔧 **디바이스 자동 감지**: CUDA/MPS/CPU 환경 자동 최적화
+- ⚙️ **설정 자동 업데이트**: .env 파일 자동 구성
+- 🌍 **완전 오프라인**: 한 번 다운로드 후 인터넷 없이 실행
 
 **🎯 한 줄 명령어로 완료**:
 - ✅ HCX-005 LLM + BGE-M3 로컬 임베딩 

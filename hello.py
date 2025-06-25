@@ -112,8 +112,105 @@ def test_data_files():
         else:
             print(f"⚠️  {file_path} 없음")
 
+def prepare_bge_m3_model(force_download=False):
+    """BGE-M3 모델 사전 다운로드"""
+    print("\n🤖 BGE-M3 모델 준비")
+    print("=" * 40)
+    
+    models_dir = Path("models")
+    bge_m3_dir = models_dir / "bge-m3"
+    
+    # 모델이 이미 존재하고 강제 다운로드가 아닌 경우
+    if bge_m3_dir.exists() and not force_download:
+        print(f"✅ BGE-M3 모델이 이미 존재: {bge_m3_dir}")
+        return True
+    
+    print("📥 BGE-M3 모델 다운로드 중...")
+    
+    try:
+        # sentence-transformers 확인
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            print("❌ sentence-transformers가 설치되지 않음")
+            print("💡 설치 명령어: uv pip install sentence-transformers")
+            return False
+        
+        # 모델 디렉토리 생성
+        models_dir.mkdir(exist_ok=True)
+        
+        # 디바이스 자동 감지
+        device = detect_best_device()
+        print(f"🔧 사용할 디바이스: {device}")
+        
+        # BGE-M3 모델 다운로드
+        print("⏳ Hugging Face에서 BGE-M3 모델 다운로드 중... (약 2GB)")
+        print("   첫 다운로드는 시간이 오래 걸릴 수 있습니다.")
+        
+        model = SentenceTransformer("BAAI/bge-m3", device=device)
+        
+        # 로컬 경로에 저장
+        if bge_m3_dir.exists():
+            import shutil
+            shutil.rmtree(bge_m3_dir)
+        
+        model.save(str(bge_m3_dir))
+        
+        print(f"✅ BGE-M3 모델 다운로드 완료: {bge_m3_dir}")
+        print(f"📊 모델 정보:")
+        print(f"   - 최대 시퀀스 길이: {model.max_seq_length}")
+        print(f"   - 디바이스: {device}")
+        
+        # 간단한 테스트
+        test_texts = ["Test embedding"]
+        embeddings = model.encode(test_texts)
+        print(f"   - 임베딩 차원: {len(embeddings[0])}")
+        print("✅ BGE-M3 모델 테스트 성공")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ BGE-M3 모델 다운로드 실패: {e}")
+        print("💡 해결 방법:")
+        print("   1. 인터넷 연결 확인")
+        print("   2. 디스크 공간 확인 (최소 3GB 필요)")
+        print("   3. sentence-transformers 설치: uv pip install sentence-transformers")
+        return False
+
+def detect_best_device():
+    """최적의 디바이스 자동 감지"""
+    try:
+        import torch
+        
+        # CUDA 지원 확인
+        if torch.cuda.is_available():
+            return "cuda"
+        
+        # Apple MPS 지원 확인 
+        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            return "mps"
+            
+    except ImportError:
+        pass
+    
+    # 기본값은 CPU
+    return "cpu"
+
 def main():
     """메인 테스트 함수"""
+    import argparse
+    
+    # 명령행 인수 처리
+    parser = argparse.ArgumentParser(description="RAGTrace 환경 테스트 및 모델 준비")
+    parser.add_argument("--prepare-models", action="store_true", 
+                       help="BGE-M3 모델 자동 다운로드")
+    parser.add_argument("--force-download", action="store_true",
+                       help="기존 모델이 있어도 강제로 다시 다운로드")
+    parser.add_argument("--skip-tests", action="store_true",
+                       help="환경 테스트 건너뛰고 모델만 다운로드")
+    
+    args = parser.parse_args()
+    
     try:
         # .env 파일 로드 시도
         try:
@@ -122,20 +219,79 @@ def main():
         except ImportError:
             print("⚠️  python-dotenv가 설치되지 않음")
         
-        test_environment()
-        test_imports()
-        test_container()
-        test_data_files()
+        # 환경 테스트 (건너뛰기 옵션이 없는 경우에만)
+        if not args.skip_tests:
+            test_environment()
+            test_imports()
+            test_container()
+            test_data_files()
         
-        print("\n🎉 테스트 완료!")
-        print("\n다음 단계:")
-        print("1. .env 파일에 API 키 설정")
-        print("2. 웹 대시보드 실행: uv run streamlit run src/presentation/web/main.py")
-        print("3. CLI 평가 실행: uv run python cli.py evaluate evaluation_data")
+        # BGE-M3 모델 준비
+        if args.prepare_models:
+            success = prepare_bge_m3_model(force_download=args.force_download)
+            if success:
+                # .env 파일 업데이트
+                update_env_for_local_bge_m3()
+            else:
+                print("❌ BGE-M3 모델 준비 실패")
+                sys.exit(1)
+        
+        if not args.skip_tests:
+            print("\n🎉 테스트 완료!")
+        
+        print("\n📋 다음 단계:")
+        if not args.prepare_models:
+            print("• BGE-M3 모델 준비: python hello.py --prepare-models")
+        print("• .env 파일에 API 키 설정")
+        print("• 웹 대시보드 실행: uv run streamlit run src/presentation/web/main.py")
+        print("• CLI 평가 실행: uv run python cli.py evaluate evaluation_data --embedding bge_m3")
         
     except Exception as e:
-        print(f"\n❌ 테스트 중 오류: {e}")
+        print(f"\n❌ 실행 중 오류: {e}")
         sys.exit(1)
+
+def update_env_for_local_bge_m3():
+    """BGE-M3 로컬 모델 사용을 위한 .env 파일 업데이트"""
+    print("\n⚙️  .env 파일 업데이트")
+    print("=" * 40)
+    
+    env_path = Path(".env")
+    models_path = "./models/bge-m3"
+    
+    if not env_path.exists():
+        print("❌ .env 파일이 없습니다. 먼저 .env 파일을 생성하세요.")
+        return
+    
+    # .env 파일 읽기
+    with open(env_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    
+    # BGE-M3 설정 업데이트
+    updated = False
+    new_lines = []
+    
+    for line in lines:
+        if line.startswith('# BGE_M3_MODEL_PATH=') or line.startswith('BGE_M3_MODEL_PATH='):
+            new_lines.append(f'BGE_M3_MODEL_PATH="{models_path}"\n')
+            updated = True
+        elif line.startswith('DEFAULT_EMBEDDING='):
+            new_lines.append('DEFAULT_EMBEDDING="bge_m3"\n')
+        else:
+            new_lines.append(line)
+    
+    # BGE-M3 설정이 없으면 추가
+    if not updated:
+        new_lines.append(f'\n# BGE-M3 로컬 모델 경로\n')
+        new_lines.append(f'BGE_M3_MODEL_PATH="{models_path}"\n')
+    
+    # .env 파일 쓰기
+    with open(env_path, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
+    
+    print(f"✅ .env 파일 업데이트 완료")
+    print(f"   BGE_M3_MODEL_PATH='{models_path}'")
+    print(f"   DEFAULT_EMBEDDING='bge_m3'")
+    print("💡 이제 BGE-M3 로컬 모델을 사용할 수 있습니다!")
 
 if __name__ == "__main__":
     main()
