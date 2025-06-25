@@ -573,7 +573,7 @@ def resume_evaluation(args):
         remaining_dataset = Dataset.from_list(remaining_data)
         
         # RAGAS 어댑터 직접 사용하여 평가 재개
-        from src.infrastructure.evaluation.ragas_adapter_legacy import RagasEvalAdapter
+        from src.infrastructure.evaluation.ragas_adapter import RagasEvalAdapter
         
         ragas_adapter = RagasEvalAdapter(
             llm=llm_adapter,

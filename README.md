@@ -6,6 +6,12 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 
 ## 🎉 v2.0 주요 신기능
 
+### 🧹 **프로젝트 구조 정리 및 최적화**
+- **중복 파일 완전 정리**: 4개 main 파일 → 1개로 통합, legacy 파일 제거
+- **Clean Architecture 강화**: MVC 시도 흔적 제거, 명확한 레이어 분리
+- **의존성 관리 단순화**: pyproject.toml 중심, 불필요한 requirements.txt 제거
+- **Git 기반 버전 관리**: 중복 버전 파일 제거로 Git 히스토리 활용 최적화
+
 ### 🛡️ **엔터프라이즈 오프라인 패키지 시스템**
 - **완전 폐쇄망 지원**: 인터넷 연결 없이 완전 설치 및 실행
 - **SHA-256 무결성 검증**: 모든 패키지 암호화 검증
@@ -52,7 +58,7 @@ uv run python cli.py quick-eval evaluation_data
 
 ## 📊 RAGAS 평가 메트릭 이해하기
 
-RAGTrace는 5가지 핵심 메트릭으로 RAG 시스템의 성능을 평가합니다:
+RAGTrace는 **5가지 핵심 RAGAS 메트릭**으로 RAG 시스템의 성능을 종합적으로 평가합니다:
 
 ### **평가 메트릭 설명**
 
@@ -189,7 +195,13 @@ uv run python cli.py export-results result.json --format report --output-dir rep
 
 ### **대시보드 실행**
 ```bash
+# 방법 1: 직접 실행 (권장)
 uv run streamlit run src/presentation/web/main.py
+
+# 방법 2: 런처 사용
+python run_dashboard.py
+
+# 접속: http://localhost:8501
 ```
 
 ### **주요 기능**
@@ -277,11 +289,14 @@ uv run python cli.py evaluate --help
 git clone https://github.com/your-username/RAGTrace.git
 cd RAGTrace
 
-# 2. 자동 설정 스크립트 실행 (권장)
-chmod +x uv-setup.sh
-./uv-setup.sh
+# 2. UV 패키지 매니저 설치 (필수)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
+# 또는 Windows: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# 3. API 키 설정
+# 3. 의존성 설치 (pyproject.toml 기반)
+uv sync --all-extras
+
+# 4. API 키 설정
 cp .env.example .env
 # .env 파일을 편집하여 API 키 입력
 ```
@@ -317,11 +332,35 @@ python enterprise-validator.py --output system_report.json
 | 구분 | 일반 설치 | 엔터프라이즈 오프라인 |
 |------|----------|------------------|
 | **Python** | 3.11+ | 3.11+ |
-| **패키지 매니저** | UV | UV (포함) |
+| **패키지 매니저** | UV (필수) | UV (포함) |
 | **디스크 공간** | 2GB+ | 5GB+ |
 | **메모리** | 4GB+ | 8GB+ |
 | **인터넷** | 필요 | 불필요 (설치 후) |
 | **권한** | 일반 사용자 | 관리자 (Windows) |
+
+### 💾 의존성 관리
+
+RAGTrace는 **UV 패키지 매니저**를 사용합니다:
+
+| 파일 | 용도 | 설명 |
+|------|------|------|
+| `pyproject.toml` | **메인 의존성 정의** | 모든 패키지와 설정을 관리하는 중앙 파일 |
+| `requirements-frozen.txt` | 개발 환경 고정 | 정확한 버전으로 재현 가능한 환경 |
+| `requirements-windows.txt` | Windows 특화 | Windows 환경에서 테스트된 안정 버전 |
+| `uv.lock` | UV 락 파일 | UV가 자동 생성하는 의존성 락 파일 |
+
+```bash
+# 의존성 설치 (권장)
+uv sync --all-extras
+
+# 특정 extras만 설치
+uv sync --extra dev        # 개발 도구
+uv sync --extra performance  # 성능 모니터링
+uv sync --extra analysis   # 데이터 분석
+
+# 프로덕션 설치 (dev 의존성 제외)
+uv sync --no-dev
+```
 
 ### 지원 모델 및 API 키
 
@@ -337,20 +376,49 @@ python enterprise-validator.py --output system_report.json
 
 ```
 RAGTrace/
-├── 📂 src/                          # 소스 코드
-│   ├── 📂 application/              # 비즈니스 로직
-│   ├── 📂 domain/                   # 도메인 모델
-│   ├── 📂 infrastructure/           # 외부 연동
-│   └── 📂 presentation/             # UI (CLI, Web)
-├── 📂 scripts/                      # 유틸리티 스크립트
-│   └── 📂 offline-packaging/        # 오프라인 패키지 생성 스크립트
-├── 📂 docs/                         # 프로젝트 문서
-├── 📂 data/                         # 샘플 데이터
-├── 📂 quick_results/                # quick-eval 결과
-├── cli.py                           # CLI 진입점
-├── enterprise-validator.py          # 엔터프라이즈 검증 도구
-└── README.md                        # 이 문서
+├── 📂 src/                          # 소스 코드 (Clean Architecture)
+│   ├── 📂 application/              # 비즈니스 로직 및 Use Cases
+│   │   ├── 📂 ports/                # 포트 인터페이스
+│   │   ├── 📂 services/             # 애플리케이션 서비스
+│   │   └── 📂 use_cases/            # 비즈니스 Use Cases
+│   ├── 📂 domain/                   # 도메인 모델 및 엔티티
+│   ├── 📂 infrastructure/           # 외부 시스템 연동
+│   │   ├── 📂 llm/                  # LLM 어댑터 (Gemini, HCX)
+│   │   ├── 📂 embedding/            # 임베딩 어댑터 (BGE-M3, Gemini, HCX)
+│   │   └── 📂 evaluation/           # RAGAS 평가 엔진
+│   └── 📂 presentation/             # UI 레이어
+│       ├── 📂 web/                  # Streamlit 웹 대시보드
+│       │   ├── 📂 components/       # UI 컴포넌트
+│       │   ├── 📂 models/           # 프레젠테이션 모델
+│       │   ├── 📂 services/         # 웹 서비스
+│       │   └── main.py              # 🎯 메인 웹 엔트리포인트
+│       └── main.py                  # 간단한 CLI 엔트리포인트
+├── 📂 scripts/                      # 유틸리티 및 배포 스크립트
+│   └── 📂 offline-packaging/        # 오프라인 패키지 생성
+├── 📂 docs/                         # 📚 종합 문서화
+│   ├── 📂 deployment/               # 배포 가이드
+│   ├── 📂 development/              # 개발 가이드
+│   └── 📂 user-guides/              # 사용자 가이드
+├── 📂 data/                         # 샘플 및 테스트 데이터
+├── 📂 quick_results/                # quick-eval 결과 저장소
+├── 📂 tests/                        # 종합 테스트 스위트
+├── 📄 cli.py                        # 🎯 고급 CLI 진입점
+├── 📄 run_dashboard.py              # 🎯 웹 대시보드 런처
+├── 📄 enterprise-validator.py       # 엔터프라이즈 검증 도구
+├── 📄 pyproject.toml                # 🎯 메인 의존성 및 설정
+├── 📄 requirements-frozen.txt       # 개발 환경 고정 버전
+├── 📄 requirements-windows.txt      # Windows 특화 요구사항
+└── 📄 README.md                     # 이 문서
 ```
+
+### 🎯 주요 엔트리 포인트
+
+| 파일 | 용도 | 실행 방법 |
+|------|------|-----------|
+| `src/presentation/web/main.py` | **메인 웹 대시보드** | `uv run streamlit run src/presentation/web/main.py` |
+| `run_dashboard.py` | 웹 대시보드 런처 | `python run_dashboard.py` |
+| `cli.py` | **고급 CLI 도구** | `uv run python cli.py evaluate data.json` |
+| `src/presentation/main.py` | 간단한 CLI | `uv run python src/presentation/main.py` |
 
 ## 🐳 Docker 배포 (선택사항)
 

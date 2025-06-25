@@ -54,6 +54,9 @@ def show_historical():
                     st.metric(
                         "Context Precision", f"{row.get('context_precision', 0):.3f}"
                     )
+                    st.metric(
+                        "Answer Correctness", f"{row.get('answer_correctness', 0):.3f}"
+                    )
 
                     # 상세 분석 페이지로 이동 버튼
                     if st.button("🔍 상세 분석", key=f"detail_btn_{i}"):

@@ -75,7 +75,7 @@ class ChartService:
         fig = go.Figure()
 
         metrics = EvaluationModel.get_metrics_list() + ["ragas_score"]
-        colors = ["blue", "green", "orange", "red", "purple"]
+        colors = ["blue", "green", "orange", "red", "purple", "darkgreen"]
 
         for metric, color in zip(metrics, colors, strict=False):
             if metric in df.columns:

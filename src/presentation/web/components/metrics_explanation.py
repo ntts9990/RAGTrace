@@ -16,10 +16,10 @@ def show_metrics_explanation():
 
     st.markdown(
         """
-    🎯 **RAG 시스템의 성능을 정확히 평가하는 4가지 핵심 지표**
+    🎯 **RAG 시스템의 성능을 정확히 평가하는 5가지 핵심 지표**
     
     RAG(Retrieval-Augmented Generation) 시스템이 얼마나 잘 작동하는지 측정하는 
-    네 가지 중요한 점수입니다. 각 지표는 서로 다른 측면을 평가합니다.
+    다섯 가지 중요한 점수입니다. 각 지표는 서로 다른 측면을 평가합니다.
     """
     )
 
@@ -27,12 +27,13 @@ def show_metrics_explanation():
     show_quick_summary()
 
     # 탭으로 구분된 상세 설명
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         [
             "✅ Faithfulness",
             "🎯 Answer Relevancy",
             "🔄 Context Recall",
             "📍 Context Precision",
+            "✔️ Answer Correctness",
             "💡 실전 가이드",
             "🔧 RAGAS 프롬프트",
         ]
@@ -51,9 +52,12 @@ def show_metrics_explanation():
         show_context_precision_explanation()
 
     with tab5:
-        show_practical_guide()
+        show_answer_correctness_explanation()
 
     with tab6:
+        show_practical_guide()
+
+    with tab7:
         show_ragas_prompts()
 
 
@@ -61,7 +65,7 @@ def show_quick_summary():
     """한눈에 보는 요약"""
     st.markdown("### 🚀 한눈에 보는 요약")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.markdown(
@@ -103,6 +107,17 @@ def show_quick_summary():
         **🗂️ 불필요한 정보는 없는가?**
         - 관련 있는 정보만 제공
         - 노이즈가 적은가
+        - **목표**: 0.8 이상
+        """
+        )
+
+    with col5:
+        st.markdown(
+            """
+        #### ✔️ **Answer Correctness**
+        **📝 답변이 정답과 일치하는가?**
+        - 정답과의 일치도
+        - 사실적 정확성
         - **목표**: 0.8 이상
         """
         )
@@ -152,6 +167,7 @@ def show_metrics_overview_chart():
             st.markdown("**평가되는 메트릭:**")
             st.markdown("🔴 **Faithfulness**: 답변이 문서 내용에 충실한가?")
             st.markdown("🟢 **Answer Relevancy**: 질문에 정확히 답했는가?")
+            st.markdown("🔵 **Answer Correctness**: 답변이 정답과 일치하는가?")
 
         # 화살표
         st.markdown(
@@ -178,15 +194,17 @@ def show_metrics_overview_chart():
                 "Context Recall",
                 "Answer Relevancy",
                 "Context Precision",
+                "Answer Correctness",
             ],
             "측정 방식": [
                 "LLM 기반 검증",
                 "정보 완성도",
                 "의미적 유사도",
                 "검색 정확도",
+                "정답 일치도",
             ],
-            "계산 복잡도": ["높음", "중간", "낮음", "낮음"],
-            "신뢰도": ["매우 높음", "높음", "중간", "높음"],
+            "계산 복잡도": ["높음", "중간", "낮음", "낮음", "중간"],
+            "신뢰도": ["매우 높음", "높음", "중간", "높음", "높음"],
         }
 
         df_characteristics = pd.DataFrame(ragas_characteristics)
@@ -199,6 +217,7 @@ def show_metrics_overview_chart():
         - Context Recall: 정보 누락 최소화
         - Answer Relevancy: 사용자 만족도 직결
         - Context Precision: 효율성과 속도 최적화
+        - Answer Correctness: 정답과의 정확한 일치도 측정
         """
         )
 
@@ -213,10 +232,11 @@ def show_metrics_overview_chart():
                     "Context Recall",
                     "Answer Relevancy",
                     "Context Precision",
+                    "Answer Correctness",
                 ],
-                "프로덕션 수준": ["0.9+", "0.9+", "0.8+", "0.8+"],
-                "개선 권장": ["0.8-0.9", "0.7-0.9", "0.6-0.8", "0.6-0.8"],
-                "즉시 개선 필요": ["<0.8", "<0.7", "<0.6", "<0.6"],
+                "프로덕션 수준": ["0.9+", "0.9+", "0.8+", "0.8+", "0.8+"],
+                "개선 권장": ["0.8-0.9", "0.7-0.9", "0.6-0.8", "0.6-0.8", "0.6-0.8"],
+                "즉시 개선 필요": ["<0.8", "<0.7", "<0.6", "<0.6", "<0.6"],
             }
         )
 
@@ -229,6 +249,7 @@ def show_metrics_overview_chart():
         - Context Precision은 상대적으로 빠른 개선 가능
         - Answer Relevancy는 프롬프트 개선으로 즉시 향상
         - Context Recall은 검색 시스템 아키텍처에 의존적
+        - Answer Correctness는 정답 데이터 품질에 크게 의존
         """
         )
 
@@ -599,6 +620,88 @@ def show_context_precision_explanation():
     )
 
 
+def show_answer_correctness_explanation():
+    """Answer Correctness 상세 설명"""
+    st.markdown("## ✔️ Answer Correctness (답변 정확도)")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown(
+            """
+        ### 🤔 **이게 뭔가요?**
+        
+        **"답변이 정답과 얼마나 일치하나요?"**를 측정하는 지표입니다.
+        
+        생성된 답변이 Ground Truth(정답)와 의미적으로, 사실적으로 
+        얼마나 일치하는지를 평가합니다. 답변의 전반적인 품질을 나타냅니다.
+        
+        ### 📝 **구체적인 예시**
+        
+        **질문**: "태양계에서 가장 큰 행성은?"
+        
+        **정답(Ground Truth)**: "목성은 태양계에서 가장 큰 행성이며, 
+        지름이 약 14만 km로 지구의 11배입니다."
+        
+        ✅ **높은 정확도 (Score = 0.95)**:
+        - 답변: "태양계에서 가장 큰 행성은 목성입니다. 목성은 지구보다 
+          약 11배 큰 거대한 가스 행성입니다."
+        - 평가: 핵심 사실이 모두 정확하고 추가 정보도 올바름
+        
+        ⚠️ **중간 정확도 (Score = 0.6)**:
+        - 답변: "목성이 가장 큽니다."
+        - 평가: 핵심은 맞지만 세부 정보가 부족함
+        
+        ❌ **낮은 정확도 (Score = 0.2)**:
+        - 답변: "토성이 가장 큰 행성입니다."
+        - 평가: 핵심 사실이 틀림
+        """
+        )
+
+    with col2:
+        st.info(
+            """
+        📊 **점수 기준**
+        - 0.9+ : 거의 완벽한 답변
+        - 0.8-0.9 : 높은 정확도
+        - 0.6-0.8 : 보통 정확도
+        - 0.4-0.6 : 낮은 정확도
+        - 0.4 미만 : 매우 부정확
+        
+        💡 **핵심 포인트**
+        - 의미적 일치도 평가
+        - 사실적 정확성 검증
+        - 핵심 정보 포함 여부
+        - 오류 정보 확인
+        """
+        )
+
+    st.markdown(
+        """
+    ### 🎯 **평가 기준**
+    
+    1. **의미적 일치도** (40%): 전달하려는 의미가 같은가?
+    2. **사실적 정확성** (30%): 제시된 사실이 정확한가?
+    3. **완전성** (20%): 중요한 정보가 빠지지 않았나?
+    4. **정밀성** (10%): 불필요한 오류나 추가 정보가 없나?
+    
+    ### 🔧 **개선 방법**
+    
+    1. **컨텍스트 활용도 강화**
+       - 제공된 정보를 정확히 이해하고 활용
+       - 핵심 정보 추출 능력 향상
+    
+    2. **답변 검증 강화**
+       - 생성된 답변의 사실 확인
+       - Ground Truth와 비교 검증
+    
+    3. **프롬프트 최적화**
+       - 정확한 정보 추출 지시
+       - 오류 방지 가이드라인 추가
+    """
+    )
+
+
 def show_practical_guide():
     """실전 가이드"""
     st.markdown("## 💡 실전 활용 가이드")
@@ -642,17 +745,22 @@ def show_practical_guide():
         - 신뢰할 수 없는 정보는 모든 것을 무의미하게 만듦
         - 목표: 0.9 이상 (프로덕션 최소 기준)
         
-        **2단계: Answer Relevancy 개선**
+        **2단계: Answer Correctness 개선**
+        - 정답과의 일치도가 시스템의 신뢰성을 결정
+        - 사실적 정확성 확보
+        - 목표: 0.8 이상
+        
+        **3단계: Answer Relevancy 개선**
         - 사용자 질문에 정확히 답하는 것이 핵심
         - 사용자 경험에 직접적 영향
         - 목표: 0.8 이상
         
-        **3단계: Context Recall 개선**
+        **4단계: Context Recall 개선**
         - 필요한 정보를 모두 찾아야 완전한 답변 가능
         - 검색 시스템의 완성도
         - 목표: 0.8 이상
         
-        **4단계: Context Precision 최적화**
+        **5단계: Context Precision 최적화**
         - 효율성과 속도 향상
         - 비용 최적화 효과
         - 목표: 0.7 이상
@@ -718,6 +826,11 @@ def show_practical_guide():
         - 🟢 0.8+ : 효율적인 처리 성능
         - 🟡 0.6+ : 적절한 수준
         - 🔴 <0.6 : 노이즈 제거 필요
+        
+        **Answer Correctness (정답 일치도):**
+        - 🟢 0.8+ : 정답과 높은 일치도
+        - 🟡 0.6+ : 기본적인 정확성 확보
+        - 🔴 <0.6 : 답변 품질 개선 필요
         """
         )
 
@@ -766,6 +879,11 @@ def show_practical_guide():
             "해결책": "1) '질문에 직접 답하세요' 프롬프트 추가 2) 답변 길이 제한 3) 질문 의도 파악 개선",
         },
         {
+            "문제": "Answer Correctness가 0.6 이하로 낮아요",
+            "원인": "생성된 답변이 정답(ground truth)과 차이가 큼",
+            "해결책": "1) 정답 데이터 품질 점검 2) 모델 파라미터 조정 3) 프롬프트 템플릿 개선 4) 더 정확한 LLM 모델 사용",
+        },
+        {
             "문제": "점수는 높은데 실제 답변이 이상해요",
             "원인": "평가 데이터와 실제 사용 패턴의 차이",
             "해결책": "1) 실제 사용자 질문으로 추가 평가 2) 도메인별 맞춤 평가 3) 사용자 피드백 수집",
@@ -792,7 +910,7 @@ def show_ragas_prompts():
 
     # 각 메트릭별 프롬프트
     prompt_tabs = st.tabs(
-        ["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision"]
+        ["Faithfulness", "Answer Relevancy", "Context Recall", "Context Precision", "Answer Correctness"]
     )
 
     with prompt_tabs[0]:
@@ -806,6 +924,9 @@ def show_ragas_prompts():
 
     with prompt_tabs[3]:
         show_context_precision_prompt()
+    
+    with prompt_tabs[4]:
+        show_answer_correctness_prompt()
 
 
 def show_faithfulness_prompt():
@@ -1063,5 +1184,71 @@ Output:
     4. **Few-shot 예시**: 더 정확한 평가를 위해 프롬프트에 예시를 추가할 수 있습니다
     
     **주의사항**: 프롬프트를 수정할 때는 평가의 일관성을 유지하기 위해 충분한 테스트가 필요합니다.
+    """
+    )
+
+
+def show_answer_correctness_prompt():
+    """Answer Correctness 평가 프롬프트"""
+    st.markdown("#### ✔️ Answer Correctness 평가 프롬프트 (실제 RAGAS 사용)")
+
+    st.markdown(
+        """
+    **Answer Correctness는 생성된 답변과 정답(Ground Truth)의 일치도를 평가합니다:**
+    - 의미적 유사성(Semantic Similarity)과 사실적 정확성(Factual Similarity)을 종합 평가
+    - 답변이 정답과 얼마나 정확히 일치하는지 측정
+    - F1 스코어 기반의 정밀한 평가 방식 사용
+    """
+    )
+
+    answer_correctness_prompt = """Extract the claims from the generated answer and ground truth answer. For each claim, classify them as facts based on the following guidelines:
+1. **Factual Information**: Information that can be objectively verified (dates, names, numbers, specific events)
+2. **Common Knowledge**: Widely accepted information that doesn't require source verification
+3. **Subjective Statements**: Opinions, interpretations, or subjective descriptions
+
+Generate fact scores for the generated answer and ground truth answer using the extracted facts. The fact score is calculated as F1-score between the claims in the generated answer and the ground truth answer.
+
+Example:
+Question: When was the first FIFA World Cup held and where?
+Generated Answer: The first FIFA World Cup was held in 1930 in Uruguay. It was a historic tournament with 13 teams participating.
+Ground Truth: The first FIFA World Cup took place in 1930 in Uruguay with 13 participating teams.
+
+Output:
+{
+  "generated_claims": [
+    {"claim": "The first FIFA World Cup was held in 1930", "type": "factual"},
+    {"claim": "The first FIFA World Cup was held in Uruguay", "type": "factual"},
+    {"claim": "13 teams participated", "type": "factual"},
+    {"claim": "It was a historic tournament", "type": "subjective"}
+  ],
+  "ground_truth_claims": [
+    {"claim": "The first FIFA World Cup took place in 1930", "type": "factual"},
+    {"claim": "The first FIFA World Cup took place in Uruguay", "type": "factual"},
+    {"claim": "13 teams participated", "type": "factual"}
+  ],
+  "fact_score": 1.0,
+  "reason": "All factual claims in the generated answer are supported by the ground truth. The subjective statement doesn't affect the fact score."
+}"""
+
+    st.code(answer_correctness_prompt, language="text")
+
+    st.markdown(
+        """
+    **실제 Answer Correctness 계산**:
+    1. 생성된 답변과 정답에서 사실적 주장(claims) 추출
+    2. 각 주장을 사실(factual), 일반상식(common knowledge), 주관적(subjective)으로 분류
+    3. 사실적 주장들에 대해서만 F1 스코어 계산
+    4. 의미적 유사성 점수와 사실적 유사성 점수를 가중 평균
+    
+    ```
+    Answer Correctness = (w1 × Factual Similarity) + (w2 × Semantic Similarity)
+    ```
+    여기서 w1 + w2 = 1 (기본값: w1=0.75, w2=0.25)
+    
+    **핵심 평가 원리**:
+    - 정답과의 사실적 일치도가 주요 평가 기준
+    - 의미적 유사성도 고려하여 표현 방식의 차이 허용
+    - 주관적 내용은 평가에서 제외하여 공정성 확보
+    - F1 스코어로 정밀도와 재현율의 균형 유지
     """
     )

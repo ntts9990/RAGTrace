@@ -29,7 +29,7 @@ def load_all_evaluations():
 
         query = """
             SELECT id, timestamp, faithfulness, answer_relevancy, 
-                   context_recall, context_precision, ragas_score, raw_data
+                   context_recall, context_precision, answer_correctness, ragas_score, raw_data
             FROM evaluations 
             ORDER BY timestamp DESC
         """
@@ -47,8 +47,9 @@ def load_all_evaluations():
                 "answer_relevancy": row[3],
                 "context_recall": row[4],
                 "context_precision": row[5],
-                "ragas_score": row[6],
-                "raw_data": json.loads(row[7]) if row[7] else None,
+                "answer_correctness": row[6],
+                "ragas_score": row[7],
+                "raw_data": json.loads(row[8]) if row[8] else None,
             }
             evaluations.append(evaluation)
 
@@ -305,11 +306,12 @@ def show_overall_metrics_only(evaluation_data):
         "answer_relevancy",
         "context_recall",
         "context_precision",
+        "answer_correctness",
     ]
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     for i, metric in enumerate(metrics):
-        with [col1, col2, col3, col4][i]:
+        with [col1, col2, col3, col4, col5][i]:
             score = evaluation_data.get(metric, 0)
             st.metric(label=metric.replace("_", " ").title(), value=f"{score:.3f}")
 
@@ -541,6 +543,13 @@ def show_evaluation_reasoning_actual(qa_number, scores, qa_content=None):
             "score": scores.get("context_precision", 0),
             "analysis": generate_precision_analysis_actual(
                 scores.get("context_precision", 0)
+            ),
+        },
+        "answer_correctness": {
+            "description": "답변이 정답(Ground Truth)과 얼마나 일치하는지 측정",
+            "score": scores.get("answer_correctness", 0),
+            "analysis": generate_correctness_analysis_actual(
+                scores.get("answer_correctness", 0)
             ),
         },
     }
@@ -925,6 +934,88 @@ def generate_precision_analysis_actual(score):
     return f"{base_analysis}\n\n{improvement_tips}\n\n**📊 기술적 분석:** {technical_details}"
 
 
+def generate_correctness_analysis_actual(score):
+    """Answer Correctness 점수 기반 상세 분석"""
+    base_analysis = ""
+    improvement_tips = ""
+    technical_details = ""
+
+    if score >= 0.9:
+        base_analysis = """
+        **🎯 탁월한 답변 정확도 (0.9+)**
+        - 답변이 정답(Ground Truth)과 거의 완벽하게 일치합니다
+        - 의미적, 사실적 정확도가 모두 매우 높습니다
+        - 신뢰할 수 있는 최고 수준의 답변입니다
+        """
+        improvement_tips = "✅ 완벽한 정확도입니다. 현재 성능을 유지하세요."
+        technical_details = f"정답 일치도: {score:.1%}. 거의 완벽한 답변입니다."
+
+    elif score >= 0.8:
+        base_analysis = """
+        **✅ 높은 답변 정확도 (0.8-0.9)**
+        - 답변이 정답과 대부분 일치합니다
+        - 핵심 내용은 정확하나 일부 세부사항에서 차이가 있습니다
+        - 실용적으로 충분한 수준의 정확도입니다
+        """
+        improvement_tips = """
+        💡 **정확도 향상 방안:**
+        - 세부사항 표현의 정밀도 개선
+        - 컨텍스트 이해도 강화
+        - 답변 생성 프롬프트 미세조정
+        """
+        technical_details = f"정답 일치도: {score:.1%}. 약 {(1-score)*100:.0f}%의 개선 여지가 있습니다."
+
+    elif score >= 0.6:
+        base_analysis = """
+        **⚠️ 보통 답변 정확도 (0.6-0.8)**
+        - 답변이 부분적으로만 정확합니다
+        - 핵심 내용은 포함하나 중요한 정보가 누락되거나 부정확합니다
+        - 보완이 필요한 수준입니다
+        """
+        improvement_tips = """
+        🔧 **정확도 개선 방안:**
+        - 컨텍스트 활용도 개선
+        - 답변 생성 로직 강화
+        - 중요 정보 추출 알고리즘 개선
+        - 프롬프트 엔지니어링 재검토
+        """
+        technical_details = f"정답 일치도: {score:.1%}. 주요 개선이 필요합니다."
+
+    elif score >= 0.4:
+        base_analysis = """
+        **❌ 낮은 답변 정확도 (0.4-0.6)**
+        - 답변이 정답과 상당히 다릅니다
+        - 핵심 정보가 누락되었거나 잘못되었습니다
+        - 신뢰하기 어려운 수준의 답변입니다
+        """
+        improvement_tips = """
+        🚨 **긴급 개선 필요:**
+        - RAG 파이프라인 전반 점검
+        - 컨텍스트 품질 개선
+        - 답변 생성 모델 교체 검토
+        - 전체 시스템 재평가
+        """
+        technical_details = f"정답 일치도: {score:.1%}. 심각한 정확도 문제가 있습니다."
+
+    else:
+        base_analysis = """
+        **🔴 매우 낮은 답변 정확도 (<0.4)**
+        - 답변이 정답과 거의 일치하지 않습니다
+        - 완전히 잘못된 정보를 제공하고 있습니다
+        - 사용할 수 없는 수준의 답변입니다
+        """
+        improvement_tips = """
+        🆘 **시스템 전면 재구축 필요:**
+        - RAG 시스템 아키텍처 재설계
+        - 모든 구성 요소 재검토
+        - 다른 접근 방식 고려
+        - 전문가 컨설팅 권장
+        """
+        technical_details = f"정답 일치도: {score:.1%}. 시스템이 제대로 작동하지 않습니다."
+
+    return f"{base_analysis}\n\n{improvement_tips}\n\n**📊 기술적 분석:** {technical_details}"
+
+
 def show_metric_distribution_actual(individual_scores, evaluation_data):
     """실제 평가된 데이터의 메트릭 분포"""
     st.subheader("📊 메트릭 분포 분석")
@@ -939,6 +1030,7 @@ def show_metric_distribution_actual(individual_scores, evaluation_data):
         "answer_relevancy",
         "context_recall",
         "context_precision",
+        "answer_correctness",
     ]
     data = {"QA": [f"Q{i+1}" for i in range(len(individual_scores))]}
 
@@ -1017,6 +1109,7 @@ def show_pattern_analysis_actual(individual_scores, evaluation_data):
             "answer_relevancy",
             "context_recall",
             "context_precision",
+            "answer_correctness",
         ]
         scores = {m: evaluation_data.get(m, 0) for m in metrics}
 
@@ -1054,6 +1147,11 @@ def show_pattern_analysis_actual(individual_scores, evaluation_data):
     if evaluation_data.get("context_precision", 0) < 0.7:
         suggestions.append(
             "🎯 Context Precision 개선: 무관한 컨텍스트 필터링, 검색 정확도 향상"
+        )
+    
+    if evaluation_data.get("answer_correctness", 0) < 0.7:
+        suggestions.append(
+            "🎯 Answer Correctness 개선: 정답 정확도 향상, 컨텍스트 활용도 강화"
         )
 
     if not suggestions:
