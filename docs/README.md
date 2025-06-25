@@ -1,135 +1,118 @@
-# RAGTrace Documentation
+# 📚 RAGTrace 문서 센터
 
-Welcome to the RAGTrace documentation! This folder contains comprehensive guides for installation, development, troubleshooting, and usage.
+RAGTrace 사용을 위한 종합 문서 모음입니다. 목적에 따라 적절한 가이드를 선택하세요.
 
-## 📚 Core Documentation
+## 🚀 빠른 시작
 
-### 🚀 Getting Started
-- **[INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Complete installation guide for all platforms and environments (English)
-  - Docker deployment (recommended)
-  - Local development setup
-  - Windows enterprise installation
-  - Offline/air-gapped deployment
-  - Environment configuration
-  - Verification steps
+| 목적 | 문서 | 설명 |
+|------|------|------|
+| **설치하기** | [📦 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | 모든 환경의 설치 방법 |
+| **Windows 설치** | [🪟 WINDOWS_SETUP.md](WINDOWS_SETUP.md) | Windows 특화 상세 가이드 |
+| **평가 이해하기** | [📊 RAGTRACE_METRICS.md](RAGTRACE_METRICS.md) | 평가 지표 완전 가이드 |
+| **문제 해결** | [🚨 TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 문제 해결 및 진단 |
 
-- **[Windows_설치_가이드.md](Windows_설치_가이드.md)** - 완전한 Windows 설치 가이드 (한국어)
-  - 빠른 설치 (인터넷 연결 환경)
-  - 완전 오프라인 설치 (폐쇄망 환경)
-  - Git 클론 후 프로젝트 내부 설치
-  - BGE-M3 로컬 모델 설정
-  - 단계별 문제 해결 방법
+## 📖 상세 가이드
 
-- **[Windows_Offline_Installation_Guide.md](Windows_Offline_Installation_Guide.md)** - Comprehensive guide for Windows air-gapped environments (English)
-  - Step-by-step offline package generation
-  - Detailed installation procedures
-  - BGE-M3 model setup for offline use
-  - Common issues and solutions
-  - Complete process from preparation to execution
+### 설치 및 환경 설정
+- **[설치 가이드](INSTALLATION_GUIDE.md)** - UV, Docker, 오프라인 설치
+- **[Windows 설치](WINDOWS_SETUP.md)** - Windows 환경 완전 가이드
+- **[문제 해결](TROUBLESHOOTING.md)** - 일반적인 설치/실행 문제
 
-### 🏗️ Development
-- **[ARCHITECTURE_AND_DEVELOPMENT.md](ARCHITECTURE_AND_DEVELOPMENT.md)** - Architecture overview and development guide
-  - Clean Architecture implementation
-  - Development environment setup
-  - Feature extension guide
-  - Adding new LLM providers
-  - Testing and quality assurance
-  - Best practices
+### 사용법 및 활용
+- **[데이터 가져오기](Data_Import_Guide.md)** - Excel/CSV 데이터 처리
+- **[메트릭 이해](RAGTRACE_METRICS.md)** - 5가지 RAGAS 메트릭 완전 분석
+- **[Docker 배포](Docker_Deployment_Guide.md)** - 컨테이너 기반 배포
 
-### 🆘 Support
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide (English)
-  - Common installation issues
-  - Platform-specific problems
-  - Performance optimization
-  - Debug techniques
-  - Emergency recovery
+### 개발 및 확장
+- **[아키텍처 가이드](ARCHITECTURE_AND_DEVELOPMENT.md)** - 시스템 구조 및 개발 가이드
 
-- **[문제해결_가이드.md](문제해결_가이드.md)** - 종합 문제해결 가이드 (한국어)
-  - 설치 관련 문제 해결
-  - 실행 및 성능 문제
-  - 웹 대시보드 문제
-  - API 및 연결 문제
-  - BGE-M3 모델 문제
-  - Windows 특화 문제
-  - 긴급 복구 방법
+## 🎯 사용자별 추천 경로
 
-## 📖 User Guides
+### 🔰 처음 사용하는 경우
+1. **[설치 가이드](INSTALLATION_GUIDE.md)** - 환경에 맞는 설치 방법 선택
+2. **[메트릭 가이드](RAGTRACE_METRICS.md)** - 평가 지표 이해
+3. **[데이터 가이드](Data_Import_Guide.md)** - 데이터 준비 방법
 
-### 📊 Core Features
-- **[RAGTRACE_METRICS.md](RAGTRACE_METRICS.md)** - Complete guide to RAGAS evaluation metrics
-  - All 5 core metrics: Faithfulness, Answer Relevancy, Context Recall, Context Precision, Answer Correctness
-  - Interpretation guidelines with practical examples
-  - Korean technical documentation
-  - Advanced analytics and statistical analysis
+### 🪟 Windows 사용자
+1. **[Windows 설치](WINDOWS_SETUP.md)** - Windows 특화 설치 가이드
+2. **[문제 해결](TROUBLESHOOTING.md)** - Windows 관련 문제 해결
 
-- **[Data_Import_Guide.md](Data_Import_Guide.md)** - Excel/CSV data import and conversion
-  - Supported formats
-  - Column requirements
-  - Validation procedures
-  - Batch processing
+### 🏢 엔터프라이즈 환경
+1. **[설치 가이드](INSTALLATION_GUIDE.md#-오프라인-설치-엔터프라이즈)** - 폐쇄망 설치
+2. **[Docker 가이드](Docker_Deployment_Guide.md)** - 컨테이너 배포
+3. **[아키텍처 가이드](ARCHITECTURE_AND_DEVELOPMENT.md)** - 시스템 확장
 
-### 🐳 Deployment
-- **[Docker_Deployment_Guide.md](Docker_Deployment_Guide.md)** - Docker containerization guide
-  - Production deployment
-  - Configuration management
-  - Scaling strategies
-  - Monitoring setup
+### 👨‍💻 개발자
+1. **[아키텍처 가이드](ARCHITECTURE_AND_DEVELOPMENT.md)** - 코드 구조 이해
+2. **[설치 가이드](INSTALLATION_GUIDE.md#⚡-uv-설치-권장)** - 개발 환경 설정
 
-## 📂 Archive
+## 📋 문서 구조
 
-The `archive/` directory contains historical documentation and files that have been consolidated:
-
-- Architecture analysis reports
-- Legacy development guides
-- Platform-specific guides (now consolidated)
-- Project planning documents
-- Completed enhancement plans
-
-## 🎯 Quick Navigation
-
-### New Users
-1. **한국어 사용자**: [Windows_설치_가이드.md](Windows_설치_가이드.md) 시작 (Korean Windows users)
-2. **English users**: Start with [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
-3. Review [RAGTRACE_METRICS.md](RAGTRACE_METRICS.md) to understand evaluation
-4. Import your data using [Data_Import_Guide.md](Data_Import_Guide.md)
-
-### Developers
-1. Read [ARCHITECTURE_AND_DEVELOPMENT.md](ARCHITECTURE_AND_DEVELOPMENT.md)
-2. Setup development environment
-3. Understand Clean Architecture principles
-4. Follow extension guidelines for new features
-
-### System Administrators
-1. Use [Docker_Deployment_Guide.md](Docker_Deployment_Guide.md) for production
-2. Review [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) for enterprise deployment
-3. Keep [TROUBLESHOOTING.md](TROUBLESHOOTING.md) handy for issues
-
-### Issues and Support
-1. **한국어**: [문제해결_가이드.md](문제해결_가이드.md) 먼저 확인 (Korean troubleshooting)
-2. **English**: Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) first
-3. Search [GitHub Issues](https://github.com/ntts9990/RAGTrace/issues)
-4. Create new issue with diagnostic information
-
-## 📝 Documentation Standards
-
-All documentation follows these principles:
-
-- **User-Centric**: Written from the user's perspective
-- **Actionable**: Clear steps with expected outcomes
-- **Comprehensive**: Covers common scenarios and edge cases
-- **Maintained**: Regularly updated with latest features
-- **Cross-Referenced**: Links to related documentation
-
-## 🔄 Updates
-
-Documentation is updated with each release. Check the git history for recent changes:
-
-```bash
-git log --oneline docs/
+```
+docs/
+├── README.md                           # 📚 이 파일 (문서 센터)
+├── INSTALLATION_GUIDE.md               # 📦 통합 설치 가이드
+├── WINDOWS_SETUP.md                    # 🪟 Windows 특화 가이드
+├── RAGTRACE_METRICS.md                 # 📊 메트릭 완전 분석
+├── TROUBLESHOOTING.md                  # 🚨 문제 해결
+├── Data_Import_Guide.md                # 📄 데이터 가져오기
+├── Docker_Deployment_Guide.md          # 🐳 Docker 배포
+├── ARCHITECTURE_AND_DEVELOPMENT.md     # 🏗️ 아키텍처 & 개발
+└── archive/                            # 📁 이전 버전 문서들
+    ├── Windows_설치_가이드.md           
+    ├── SETUP-WINDOWS.md
+    ├── UV_SETUP.md
+    └── ...
 ```
 
-For the most current information, always refer to the main branch documentation.
+## 🎨 문서 표기법
 
----
+문서에서 사용하는 표기법과 아이콘 의미:
 
-**Need help?** Check our [troubleshooting guide](TROUBLESHOOTING.md) or [create an issue](https://github.com/ntts9990/RAGTrace/issues) on GitHub.
+| 표기 | 의미 |
+|------|------|
+| 🎯 | 중요한 목표나 핵심 포인트 |
+| ⚡ | 빠른 방법이나 권장 사항 |
+| 🚨 | 주의사항이나 문제 상황 |
+| 💡 | 팁이나 추가 정보 |
+| ✅ | 성공 상태나 완료 |
+| ❌ | 실패 상태나 문제 |
+| 🔧 | 설정이나 구성 |
+| 📦 | 패키지나 설치 관련 |
+
+## 🔄 업데이트 정보
+
+### 최신 업데이트 (v2.1)
+- **Windows 자동 설치**: Python부터 완전 자동화
+- **PowerShell 호환성**: 5.1+ 완전 지원
+- **오프라인 패키지**: 엔터프라이즈급 폐쇄망 지원
+- **Answer Correctness**: 5번째 RAGAS 메트릭 완전 통합
+
+### 문서 변경사항
+- 통합 설치 가이드로 모든 플랫폼 지원
+- Windows 전용 상세 가이드 추가
+- 최신 UV 패키지 매니저 반영
+- 폐쇄망 설치 프로세스 완전 문서화
+
+## 📞 지원 및 문의
+
+### 일반 지원
+- **GitHub Issues**: https://github.com/ntts9990/RAGTrace/issues
+- **프로젝트 홈**: https://github.com/ntts9990/RAGTrace
+
+### 문서 개선 제안
+문서 개선이나 추가 요청이 있으시면:
+1. GitHub Issues에 `documentation` 라벨로 등록
+2. 구체적인 개선 사항이나 누락된 내용 명시
+3. 어떤 상황에서 필요한지 컨텍스트 제공
+
+## 🎯 다음 단계
+
+문서를 확인했다면:
+
+1. **환경에 맞는 설치 진행** - [설치 가이드](INSTALLATION_GUIDE.md) 참조
+2. **첫 번째 평가 실행** - 샘플 데이터로 테스트
+3. **실제 데이터 준비** - [데이터 가이드](Data_Import_Guide.md) 참조
+4. **결과 분석 및 활용** - [메트릭 가이드](RAGTRACE_METRICS.md) 참조
+
+RAGTrace로 효과적인 RAG 시스템 평가를 시작하세요! 🚀

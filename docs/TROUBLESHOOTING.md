@@ -48,10 +48,20 @@ brew install python@3.11
 brew link python@3.11
 
 # Update PATH
-echo 'export PATH="/opt/homebrew/opt/python@3.11/bin:$PATH"' >> ~/.zshrc
+export PATH="/opt/homebrew/bin/python3.11:$PATH"
 ```
 
 **Windows:**
+```powershell
+# Download and install Python 3.11
+# https://www.python.org/downloads/release/python-3119/
+
+# Or use automatic installer
+.\create-complete-offline.ps1 -Verbose
+
+# Manual PATH setup if needed
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Python311;C:\Python311\Scripts", "User")
+```
 1. Download Python 3.11 from https://python.org
 2. **IMPORTANT**: Check "Add Python to PATH" during installation
 3. Restart command prompt after installation
