@@ -163,17 +163,26 @@ class ResultExporter:
         # 성능 등급 계산
         performance_grades = self._calculate_performance_grades(result)
         
+        # 메타데이터 정보 추출 및 정리
+        evaluation_id = self._extract_evaluation_id(metadata)
+        timestamp = self._extract_timestamp(metadata)
+        llm_model = self._extract_llm_model(metadata)
+        dataset_size = self._extract_dataset_size(metadata, individual_scores)
+        duration_info = self._extract_duration_info(metadata, individual_scores)
+        
         # 보고서 템플릿
         content = f"""# RAGTrace 평가 결과 분석 보고서
 
 ## 📊 평가 개요
 
-**평가 ID**: {metadata.get('evaluation_id', 'N/A')}  
-**평가 일시**: {metadata.get('timestamp', 'N/A')}  
-**LLM 모델**: {metadata.get('model', 'N/A')}  
-**데이터셋 크기**: {metadata.get('dataset_size', 'N/A')}개 문항  
-**총 평가 시간**: {metadata.get('total_duration_minutes', 0):.1f}분  
-**평균 문항당 시간**: {metadata.get('avg_time_per_item_seconds', 0):.1f}초  
+**평가 ID**: {evaluation_id}  
+**평가 일시**: {timestamp}  
+**LLM 모델**: {llm_model}  
+**임베딩 모델**: {self._extract_embedding_model(metadata)}  
+**데이터셋**: {metadata.get('dataset', 'N/A')}  
+**데이터셋 크기**: {dataset_size}개 문항  
+**총 평가 시간**: {duration_info['total_minutes']:.1f}분  
+**평균 문항당 시간**: {duration_info['avg_seconds']:.1f}초  
 
 ## 🎯 전체 성능 요약
 
@@ -493,6 +502,142 @@ class ResultExporter:
             lines.append("- **데이터 완성도**: 모든 메트릭이 완전히 평가되었습니다.")
         
         return "\n".join(lines)
+    
+    def _extract_evaluation_id(self, metadata: Dict[str, Any]) -> str:
+        """평가 ID 추출"""
+        # 여러 가능한 키에서 평가 ID 찾기
+        possible_keys = ['evaluation_id', 'id', 'eval_id']
+        for key in possible_keys:
+            if key in metadata and metadata[key]:
+                return str(metadata[key])
+        
+        # 파일명에서 ID 추출 시도
+        if 'filename' in metadata:
+            filename = metadata['filename']
+            if '_' in filename:
+                parts = filename.split('_')
+                if len(parts) >= 2:
+                    return parts[1]  # eval_xxxxx_... 형태에서 추출
+        
+        # 생성일시 기반 ID 생성
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"eval_{timestamp}"
+    
+    def _extract_timestamp(self, metadata: Dict[str, Any]) -> str:
+        """평가 일시 추출"""
+        # 여러 가능한 키에서 타임스탬프 찾기
+        possible_keys = ['timestamp', 'created_at', 'evaluation_time', 'start_time']
+        for key in possible_keys:
+            if key in metadata and metadata[key]:
+                # 이미 포맷된 문자열인 경우
+                if isinstance(metadata[key], str):
+                    return metadata[key]
+                # datetime 객체인 경우
+                elif hasattr(metadata[key], 'strftime'):
+                    return metadata[key].strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 현재 시간 반환
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    def _extract_llm_model(self, metadata: Dict[str, Any]) -> str:
+        """LLM 모델 추출"""
+        # 여러 가능한 키에서 LLM 모델 찾기
+        possible_keys = ['llm_type', 'model', 'llm_model', 'llm']
+        for key in possible_keys:
+            if key in metadata and metadata[key]:
+                model_name = str(metadata[key]).upper()
+                # 모델 이름 정규화
+                if model_name in ['GEMINI', 'GEMINI-2.5-FLASH', 'GEMINI-2.5-FLASH-PREVIEW-05-20']:
+                    return 'Google Gemini 2.5 Flash'
+                elif model_name in ['HCX', 'HCX-005']:
+                    return 'Naver HCX-005'
+                return model_name
+        
+        return 'N/A'
+    
+    def _extract_embedding_model(self, metadata: Dict[str, Any]) -> str:
+        """임베딩 모델 추출"""
+        # 여러 가능한 키에서 임베딩 모델 찾기
+        possible_keys = ['embedding_type', 'embedding_model', 'embedding']
+        for key in possible_keys:
+            if key in metadata and metadata[key]:
+                model_name = str(metadata[key]).upper()
+                # 모델 이름 정규화
+                if model_name in ['GEMINI', 'GEMINI-EMBEDDING-EXP-03-07']:
+                    return 'Google Gemini Embedding'
+                elif model_name in ['HCX', 'HCX-EMBEDDING']:
+                    return 'Naver HCX Embedding'
+                elif model_name in ['BGE_M3', 'BGE-M3']:
+                    return 'BGE-M3 (로컬)'
+                return model_name
+        
+        return 'N/A'
+    
+    def _extract_dataset_size(self, metadata: Dict[str, Any], individual_scores: List[Dict]) -> int:
+        """데이터셋 크기 추출"""
+        # 메타데이터에서 크기 정보 찾기
+        possible_keys = ['dataset_size', 'total_items', 'item_count', 'size']
+        for key in possible_keys:
+            if key in metadata and isinstance(metadata[key], (int, float)):
+                return int(metadata[key])
+        
+        # individual_scores에서 크기 계산
+        if individual_scores:
+            return len(individual_scores)
+        
+        # QA 데이터에서 크기 계산
+        if 'qa_data' in metadata:
+            qa_data = metadata['qa_data']
+            if isinstance(qa_data, list):
+                return len(qa_data)
+        
+        return 0
+    
+    def _extract_duration_info(self, metadata: Dict[str, Any], individual_scores: List[Dict]) -> Dict[str, float]:
+        """평가 시간 정보 추출"""
+        # 기본값
+        duration_info = {
+            'total_minutes': 0.0,
+            'avg_seconds': 0.0
+        }
+        
+        # 메타데이터에서 시간 정보 찾기
+        total_duration = None
+        possible_duration_keys = ['total_duration_minutes', 'duration_minutes', 'elapsed_time']
+        for key in possible_duration_keys:
+            if key in metadata and isinstance(metadata[key], (int, float)):
+                total_duration = float(metadata[key])
+                break
+        
+        # start_time과 end_time에서 계산
+        if total_duration is None:
+            start_time = metadata.get('start_time')
+            end_time = metadata.get('end_time')
+            if start_time and end_time:
+                try:
+                    if isinstance(start_time, str):
+                        start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    if isinstance(end_time, str):
+                        end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    
+                    duration = end_time - start_time
+                    total_duration = duration.total_seconds() / 60.0  # 분 단위
+                except:
+                    pass
+        
+        # 개별 항목 시간에서 계산
+        if total_duration is None and individual_scores:
+            # 평균 추정 시간 사용 (항목당 8초 가정)
+            estimated_seconds_per_item = 8.0
+            total_duration = len(individual_scores) * estimated_seconds_per_item / 60.0
+        
+        if total_duration is not None:
+            duration_info['total_minutes'] = total_duration
+            dataset_size = self._extract_dataset_size(metadata, individual_scores)
+            if dataset_size > 0:
+                duration_info['avg_seconds'] = (total_duration * 60.0) / dataset_size
+        
+        return duration_info
     
     def export_full_package(self, result: Dict[str, Any], base_filename: Optional[str] = None) -> Dict[str, str]:
         """전체 패키지 내보내기 (CSV + 요약 + 보고서)"""

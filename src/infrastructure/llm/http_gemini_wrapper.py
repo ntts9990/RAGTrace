@@ -23,10 +23,8 @@ class HttpGeminiWrapper(LLM):
         object.__setattr__(self, 'timeout', 20)  # 20초 타임아웃
         object.__setattr__(self, 'max_retries', 2)
         
-        # 모델명 정리 (models/ 프리픽스 제거하고 표준 이름 사용)
+        # 모델명 정리 (models/ 프리픽스 제거)
         clean_model_name = model_name.replace("models/", "")
-        if "gemini-2.5-flash" in clean_model_name:
-            clean_model_name = "gemini-1.5-flash"  # 안정적인 모델로 변경
         
         # API URL 구성
         object.__setattr__(self, 'api_url', 
@@ -104,17 +102,33 @@ class HttpGeminiWrapper(LLM):
                 
                 if response.status_code == 200:
                     result = response.json()
-                    content = result["candidates"][0]["content"]["parts"][0]["text"]
-                    return content
+                    
+                    # 응답 구조 안전하게 확인
+                    if "candidates" not in result or not result["candidates"]:
+                        raise RuntimeError(f"Gemini API 응답에 candidates가 없습니다: {result}")
+                    
+                    candidate = result["candidates"][0]
+                    if "content" not in candidate:
+                        raise RuntimeError(f"Candidate에 content가 없습니다: {candidate}")
+                    
+                    content = candidate["content"]
+                    if "parts" not in content or not content["parts"]:
+                        raise RuntimeError(f"Content에 parts가 없습니다: {content}")
+                    
+                    if "text" not in content["parts"][0]:
+                        raise RuntimeError(f"Parts에 text가 없습니다: {content['parts'][0]}")
+                    
+                    return content["parts"][0]["text"]
                 else:
                     if attempt == self.max_retries - 1:
                         raise RuntimeError(f"HTTP {response.status_code}: {response.text}")
                     time.sleep(1)
                     
-            except requests.exceptions.RequestException as e:
+            except (requests.exceptions.RequestException, KeyError, RuntimeError) as e:
+                print(f"⚠️ Gemini API 호출 실패 (시도 {attempt + 1}/{self.max_retries}): {str(e)}")
                 if attempt == self.max_retries - 1:
-                    raise RuntimeError(f"HTTP 요청 실패: {str(e)}")
-                time.sleep(1)
+                    raise RuntimeError(f"Gemini API 호출 실패: {str(e)}")
+                time.sleep(2 ** attempt)  # 지수 백오프
                 
         raise RuntimeError("모든 재시도 실패")
 

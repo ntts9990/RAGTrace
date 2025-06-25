@@ -61,6 +61,14 @@ class SQLiteAdapter:
                         context_precision REAL,
                         answer_correctness REAL,
                         ragas_score REAL,
+                        qa_count INTEGER,
+                        evaluation_id TEXT,
+                        llm_model TEXT,
+                        embedding_model TEXT,
+                        dataset_name TEXT,
+                        total_duration_seconds REAL,
+                        total_duration_minutes REAL,
+                        avg_time_per_item_seconds REAL,
                         raw_data TEXT
                     )
                 """
@@ -86,12 +94,18 @@ class SQLiteAdapter:
                 # 현재 시간을 타임스탬프로 사용 (데이터에 없는 경우)
                 timestamp = evaluation_data.get("timestamp", datetime.now().isoformat())
                 
+                # 메타데이터에서 추가 정보 추출
+                metadata = evaluation_data.get("metadata", {})
+                individual_scores = evaluation_data.get("individual_scores", [])
+                
                 cursor.execute(
                     """
                     INSERT INTO evaluations 
                     (timestamp, faithfulness, answer_relevancy, context_recall, 
-                     context_precision, answer_correctness, ragas_score, raw_data)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     context_precision, answer_correctness, ragas_score, qa_count,
+                     evaluation_id, llm_model, embedding_model, dataset_name,
+                     total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds, raw_data)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         timestamp,
@@ -101,6 +115,14 @@ class SQLiteAdapter:
                         evaluation_data.get("context_precision"),
                         evaluation_data.get("answer_correctness"),
                         evaluation_data.get("ragas_score"),
+                        len(individual_scores),
+                        metadata.get("evaluation_id"),
+                        metadata.get("llm_type"),
+                        metadata.get("embedding_type"),
+                        metadata.get("dataset"),
+                        metadata.get("total_duration_minutes", 0) * 60 if metadata.get("total_duration_minutes") else None,
+                        metadata.get("total_duration_minutes"),
+                        metadata.get("avg_time_per_item_seconds"),
                         json.dumps(evaluation_data, ensure_ascii=False),
                     ),
                 )

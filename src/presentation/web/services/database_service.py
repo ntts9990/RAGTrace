@@ -36,7 +36,16 @@ class DatabaseService:
                 answer_relevancy REAL,
                 context_recall REAL,
                 context_precision REAL,
+                answer_correctness REAL,
                 ragas_score REAL,
+                qa_count INTEGER,
+                evaluation_id TEXT,
+                llm_model TEXT,
+                embedding_model TEXT,
+                dataset_name TEXT,
+                total_duration_seconds REAL,
+                total_duration_minutes REAL,
+                avg_time_per_item_seconds REAL,
                 raw_data TEXT
             )
         """
@@ -48,31 +57,58 @@ class DatabaseService:
     @staticmethod
     def save_evaluation_result(result_dict: Dict[str, Any]) -> None:
         """평가 결과 저장"""
-        DatabaseService.init_db()
+        try:
+            DatabaseService.init_db()
 
-        conn = sqlite3.connect(str(DATABASE_PATH))
-        cursor = conn.cursor()
+            conn = sqlite3.connect(str(DATABASE_PATH))
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO evaluations (
-                timestamp, faithfulness, answer_relevancy, 
-                context_recall, context_precision, ragas_score, raw_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                datetime.now().isoformat(),
-                result_dict.get("faithfulness", 0),
-                result_dict.get("answer_relevancy", 0),
-                result_dict.get("context_recall", 0),
-                result_dict.get("context_precision", 0),
-                result_dict.get("ragas_score", 0),
-                json.dumps(result_dict),
-            ),
-        )
+            # 메타데이터에서 추가 정보 추출
+            metadata = result_dict.get("metadata", {})
+            individual_scores = result_dict.get("individual_scores", [])
+        
+            cursor.execute(
+                """
+                INSERT INTO evaluations (
+                    timestamp, faithfulness, answer_relevancy, 
+                    context_recall, context_precision, answer_correctness, ragas_score,
+                    qa_count, evaluation_id, llm_model, embedding_model, dataset_name,
+                    total_duration_seconds, total_duration_minutes, avg_time_per_item_seconds, raw_data
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    datetime.now().isoformat(),
+                    result_dict.get("faithfulness", 0),
+                    result_dict.get("answer_relevancy", 0),
+                    result_dict.get("context_recall", 0),
+                    result_dict.get("context_precision", 0),
+                    result_dict.get("answer_correctness", 0),
+                    result_dict.get("ragas_score", 0),
+                    len(individual_scores),
+                    metadata.get("evaluation_id"),
+                    metadata.get("llm_type"),
+                    metadata.get("embedding_type"),
+                    metadata.get("dataset"),
+                    metadata.get("total_duration_minutes", 0) * 60 if metadata.get("total_duration_minutes") else None,
+                    metadata.get("total_duration_minutes"),
+                    metadata.get("avg_time_per_item_seconds"),
+                    json.dumps(result_dict),
+                ),
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
+            print("✅ 평가 결과 저장 완료")
+        except sqlite3.Error as e:
+            print(f"❌ 데이터베이스 저장 실패: {e}")
+            if 'conn' in locals():
+                conn.close()
+            raise
+        except Exception as e:
+            print(f"❌ 예상치 못한 오류: {e}")
+            if 'conn' in locals():
+                conn.close()
+            raise
     
     @staticmethod
     def load_evaluation_history(limit: Optional[int] = None) -> List[Dict[str, Any]]:

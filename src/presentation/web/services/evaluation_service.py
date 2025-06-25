@@ -6,6 +6,7 @@ Evaluation Service
 
 import json
 from typing import Dict, Any
+from datetime import datetime
 
 from src.container import container
 from src.container.factories.evaluation_use_case_factory import EvaluationRequest
@@ -27,20 +28,45 @@ class EvaluationService:
             prompt_type=config.prompt_type
         )
         
+        # 평가 시작 시간 기록
+        import time
+        start_time = time.time()
+        evaluation_start = datetime.now()
+        
         # 컨테이너에서 유스케이스 가져오기
         evaluation_use_case, llm_adapter, embedding_adapter = container.create_evaluation_use_case(request)
         
         # 평가 실행
         evaluation_result = evaluation_use_case.execute(dataset_name=config.dataset_name)
         
+        # 평가 종료 시간 기록
+        end_time = time.time()
+        evaluation_end = datetime.now()
+        duration_seconds = end_time - start_time
+        duration_minutes = duration_seconds / 60.0
+        
         # 결과 딕셔너리 변환
         result_dict = evaluation_result.to_dict()
+        
+        # 데이터셋 크기 계산
+        dataset_size = len(result_dict.get("individual_scores", []))
+        avg_time_per_item = duration_seconds / dataset_size if dataset_size > 0 else 0
+        
+        # 평가 ID 생성
+        evaluation_id = f"eval_{evaluation_start.strftime('%Y%m%d_%H%M%S')}_{hash(str(result_dict)) % 100000:05d}"
         
         # 메타데이터 추가
         if "metadata" not in result_dict:
             result_dict["metadata"] = {}
         
         result_dict["metadata"].update({
+            "evaluation_id": evaluation_id,
+            "timestamp": evaluation_start.strftime('%Y-%m-%d %H:%M:%S'),
+            "start_time": evaluation_start.isoformat(),
+            "end_time": evaluation_end.isoformat(),
+            "total_duration_minutes": duration_minutes,
+            "avg_time_per_item_seconds": avg_time_per_item,
+            "dataset_size": dataset_size,
             "llm_type": config.llm_type,
             "embedding_type": config.embedding_type,
             "dataset": config.dataset_name,
