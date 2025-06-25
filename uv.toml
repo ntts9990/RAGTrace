@@ -19,5 +19,5 @@ compile-bytecode = true
 # Note: dev-dependencies are defined in pyproject.toml [tool.uv] section
 
 # Force CPU-only PyTorch installation to prevent CUDA libraries
-find-links = ["https://download.pytorch.org/whl/cpu"]
-extra-index-url = ["https://download.pytorch.org/whl/cpu"]
+# find-links = ["https://download.pytorch.org/whl/cpu"]
+# extra-index-url = ["https://download.pytorch.org/whl/cpu"]

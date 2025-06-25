@@ -13,6 +13,7 @@ class EvaluationResult:
     context_recall: float
     context_precision: float
     ragas_score: float
+    answer_correctness: float | None = None  # answer_correctness 메트릭 추가
     individual_scores: list[dict[str, float]] | None = None
     metadata: dict[str, Any] | None = None
     generation_failures: int = 0
@@ -44,6 +45,10 @@ class EvaluationResult:
             "generation_failures": self.generation_failures,
             "generation_successes": self.generation_successes,
         }
+
+        # answer_correctness가 있으면 추가
+        if self.answer_correctness is not None:
+            result["answer_correctness"] = self.answer_correctness
 
         if self.individual_scores:
             result["individual_scores"] = self.individual_scores

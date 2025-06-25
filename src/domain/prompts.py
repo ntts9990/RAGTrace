@@ -199,29 +199,23 @@ class CustomPromptConfig:
         """Context Precision 메트릭용 커스텀 프롬프트"""
         if self.prompt_type == PromptType.NUCLEAR_HYDRO_TECH:
             return {
-                "instruction": """원자력/수력 기술 문서 컨텍스트가 질문에 대한 답변 도출에 얼마나 유용했는지 평가하세요.
+                "instruction": """주어진 컨텍스트가 질문 답변에 유용한지 평가하세요.
 
-**원자력/수력 기술 문서 유용성 평가 기준:**
-- 직접적 안전 정보 제공 (high precision)
-- 시스템 운영 매개변수 명시 (high precision)
-- 관련 규제 요구사항 포함 (medium precision)
-- 일반적 배경 지식만 제공 (low precision)  
-- 관련 없는 시스템 정보 (no precision)
-
-**추가 평가 요소:**
-- 정확성: 현행 규제 및 표준과의 일치도
-- 완전성: 안전 운영에 필요한 모든 정보 포함
-- 정밀성: 수치, 단위, 수식의 정확성
-- 일관성: 한영 혼용 용어의 표준 사용
-
-유용하면 "1", 그렇지 않으면 "0"으로 판정하고 JSON으로 출력하세요.""",
+컨텍스트가 질문에 직접적으로 관련되고 답변에 도움이 되면 "1", 그렇지 않으면 "0"으로 평가하세요.""",
                 "examples": [
                     {
-                        "question": "ECCS 작동 압력 설정점은?",
-                        "context": "Emergency Core Cooling System (ECCS)는 RCS 압력이 12.4 MPa 이하로 떨어질 때 자동으로 작동합니다. 이는 FSAR Chapter 6.3에 명시된 설계 기준입니다.",
-                        "answer": "ECCS는 RCS 압력 12.4 MPa에서 작동합니다.",
+                        "question": "클린 아키텍처의 핵심 원칙은 무엇인가요?",
+                        "context": "클린 아키텍처는 로버트 C. 마틴이 제안한 소프트웨어 설계 철학입니다.",
+                        "answer": "클린 아키텍처의 핵심은 의존성 규칙입니다.",
                         "verdict": 1,
-                        "reason": "컨텍스트가 질문에 대한 정확한 압력값과 규제 근거를 포함하고 있음"
+                        "reason": "컨텍스트가 클린 아키텍처에 대한 기본 정보를 제공함"
+                    },
+                    {
+                        "question": "데이터베이스 인덱스의 역할은?",
+                        "context": "파이썬은 동적 타이핑 언어입니다.",
+                        "answer": "인덱스는 검색 속도를 향상시킵니다.",
+                        "verdict": 0,
+                        "reason": "컨텍스트가 질문과 전혀 관련이 없음"
                     }
                 ],
                 "language": "korean"

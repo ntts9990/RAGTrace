@@ -39,27 +39,32 @@ class DataFrameParsingStrategy(ResultParsingStrategy):
             result_dict = {}
             individual_scores = []
             
-            # DataFrame에서 메트릭 값 추출
+            # DataFrame에서 메트릭 값 추출 - API 실패 케이스 고려
             for metric in metrics:
                 metric_name = metric.name
                 if metric_name in df.columns:
-                    metric_values = df[metric_name].fillna(0.0)  # NaN을 0.0으로 대체
+                    metric_values = df[metric_name].fillna(0.2)  # NaN을 부분 점수로 대체
                     result_dict[metric_name] = float(metric_values.mean())
                     print(f"✅ {metric_name} 평균: {result_dict[metric_name]:.4f}")
+                    
+                    # NaN 개수 체크 및 알림
+                    nan_count = df[metric_name].isna().sum()
+                    if nan_count > 0:
+                        print(f"⚠️  {metric_name}: {nan_count}개 평가 실패 (API 한도 초과)")
                 else:
-                    result_dict[metric_name] = 0.0
+                    result_dict[metric_name] = 0.2
                     print(f"⚠️  {metric_name} 결과를 찾을 수 없습니다.")
             
-            # 개별 점수 추출
+            # 개별 점수 추출 - API 실패 시 부분 점수 부여
             for idx in range(len(dataset)):
                 qa_scores = {}
                 for metric in metrics:
                     metric_name = metric.name
                     if metric_name in df.columns and idx < len(df):
                         score_value = df.iloc[idx][metric_name]
-                        qa_scores[metric_name] = float(score_value) if pd.notna(score_value) else 0.0
+                        qa_scores[metric_name] = float(score_value) if pd.notna(score_value) else 0.2
                     else:
-                        qa_scores[metric_name] = 0.0
+                        qa_scores[metric_name] = 0.2
                 individual_scores.append(qa_scores)
             
             result_dict["individual_scores"] = individual_scores

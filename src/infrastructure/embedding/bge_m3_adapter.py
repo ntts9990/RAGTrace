@@ -26,20 +26,35 @@ class BgeM3EmbeddingAdapter(Embeddings):
             device: 실행 디바이스 (None이면 자동 감지, "cpu", "cuda", "mps")
         """
         self.model_path = model_path or "BAAI/bge-m3"
-        self.device = self._detect_best_device(device)
+        self.device = device  # 지연 감지로 변경
         self.model = None
         self.device_info = {}
+        self._initialized = False
+        
+        print(f"🔧 BGE-M3 어댑터 초기화됨 (모델 로딩은 지연됨)")
+    
+    def _ensure_model_loaded(self):
+        """모델이 로딩되지 않았다면 로딩합니다."""
+        if not self._initialized:
+            self._initialize_model()
+            self._initialized = True
+    
+    def _initialize_model(self):
+        """실제 모델 초기화 및 로딩"""
+        # 디바이스 감지
+        if self.device is None:
+            self.device = self._detect_best_device()
         
         # 로컬 모델 경로 확인
-        if model_path and os.path.exists(model_path):
-            print(f"✅ 로컬 BGE-M3 모델 경로 확인: {model_path}")
-        elif model_path:
-            print(f"⚠️ 지정된 모델 경로가 존재하지 않음: {model_path}")
+        if self.model_path != "BAAI/bge-m3" and os.path.exists(self.model_path):
+            print(f"✅ 로컬 BGE-M3 모델 경로 확인: {self.model_path}")
+        elif self.model_path != "BAAI/bge-m3":
+            print(f"⚠️ 지정된 모델 경로가 존재하지 않음: {self.model_path}")
             print("📥 Hugging Face에서 모델을 다운로드합니다...")
         else:
             print("📥 BGE-M3 모델을 자동 다운로드합니다...")
         
-        # 모델 로드 (지연 로딩)
+        # 모델 로드
         self._load_model()
     
     def _detect_best_device(self, preferred_device: Optional[str] = None) -> str:
@@ -193,8 +208,7 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """문서들을 임베딩합니다. (GPU 최적화)"""
-        if not self.model:
-            raise RuntimeError("모델이 로드되지 않았습니다.")
+        self._ensure_model_loaded()
         
         try:
             print(f"🔄 {len(texts)}개 문서 임베딩 중...")
@@ -247,8 +261,7 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def embed_query(self, text: str) -> List[float]:
         """단일 쿼리를 임베딩합니다."""
-        if not self.model:
-            raise RuntimeError("모델이 로드되지 않았습니다.")
+        self._ensure_model_loaded()
         
         try:
             print(f"🔄 쿼리 임베딩 중: {text[:50]}...")
@@ -273,8 +286,7 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def similarity(self, embeddings1: List[List[float]], embeddings2: List[List[float]]) -> List[List[float]]:
         """임베딩 간 유사도를 계산합니다."""
-        if not self.model:
-            raise RuntimeError("모델이 로드되지 않았습니다.")
+        self._ensure_model_loaded()
         
         try:
             import numpy as np
@@ -307,8 +319,7 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def save_model_locally(self, save_path: str):
         """모델을 로컬에 저장합니다."""
-        if not self.model:
-            raise RuntimeError("모델이 로드되지 않았습니다.")
+        self._ensure_model_loaded()
         
         try:
             print(f"💾 BGE-M3 모델을 로컬에 저장 중: {save_path}")
@@ -321,8 +332,7 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def get_model_info(self) -> dict:
         """모델 정보를 반환합니다."""
-        if not self.model:
-            return {"status": "not_loaded"}
+        self._ensure_model_loaded()
         
         info = {
             "status": "loaded",
@@ -355,6 +365,8 @@ class BgeM3EmbeddingAdapter(Embeddings):
     
     def get_device_capabilities(self) -> dict:
         """현재 디바이스의 성능 정보를 반환합니다."""
+        self._ensure_model_loaded()
+        
         capabilities = {
             "device": self.device,
             "auto_detected": True,

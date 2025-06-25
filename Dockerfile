@@ -14,45 +14,42 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 # Set working directory
 WORKDIR /app
 
-# Copy project configuration and source code for package build
-COPY pyproject.toml ./
-COPY uv.toml ./
-COPY .python-version ./
-COPY uv.lock ./
-COPY src/ ./src/
-COPY README.md CLAUDE.md ./
-
-# Create LICENSE file for build
-RUN echo "Apache License 2.0" > LICENSE
-
 # Set up UV environment
 ENV UV_PYTHON=3.11
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Install dependencies using UV as root with temporary cache
 # Set pip timeout and retry options for better network stability
 ENV UV_HTTP_TIMEOUT=300
 ENV UV_INDEX_STRATEGY=unsafe-best-match
 
-# Install all dependencies (16-cores runner has 150GB disk space)
+# Copy dependency-related files first to leverage Docker cache
+COPY pyproject.toml uv.toml .python-version uv.lock ./
+
+# Copy source code required for the local package build before installing dependencies
+COPY src/ ./src/
+COPY README.md ./
+
+# Install dependencies using UV as root with temporary cache
+# This layer will be cached as long as dependency and source files don't change
 RUN UV_CACHE_DIR=/tmp/uv-build-cache uv sync --no-dev || UV_CACHE_DIR=/tmp/uv-build-cache uv sync
 
-# Clean up cache and build artifacts to reduce image size
-RUN rm -rf /tmp/uv-build-cache && \
-    rm -rf /root/.cache && \
-    find /app/.venv -name "*.pyc" -delete && \
-    find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + || true
+# Clean up build cache immediately after installation
+RUN rm -rf /tmp/uv-build-cache
+
+# Now copy the rest of the application assets
+COPY CLAUDE.md ./
+COPY cli.py hello.py ./
+COPY data/ ./data/
+
+# Create LICENSE file for build
+RUN echo "Apache License 2.0" > LICENSE
 
 # Create non-root user
 RUN useradd -m -u 1000 ragtrace
 
 # Set runtime cache directory for non-root user
 ENV UV_CACHE_DIR=/home/ragtrace/.cache/uv
-
-# Copy remaining application files with correct ownership
-COPY --chown=ragtrace:ragtrace data/ ./data/
-COPY --chown=ragtrace:ragtrace cli.py hello.py ./
 
 # Create data directories and fix ownership
 RUN mkdir -p /app/data/db /app/data/temp && \
