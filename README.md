@@ -1,10 +1,21 @@
-# 🔍 RAGTrace v2.0
+# 🔍 RAGTrace v2.1
 
 **엔터프라이즈급 Multi-LLM RAG 시스템 성능 평가 및 분석 플랫폼**
 
 RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지표를 신뢰성 있게 평가하고 분석하기 위한 엔터프라이즈급 종합 플랫폼입니다. [RAGAS](https://github.com/explodinggradients/ragas) 프레임워크를 기반으로 하며, Clean Architecture와 완전한 의존성 주입을 통해 확장 가능하고 유지보수성이 높은 구조를 제공합니다.
 
-## 🎉 v2.0 주요 신기능
+## 🎉 v2.1 최신 업데이트
+
+### 📊 **고급 분석 기능 대폭 강화**
+- **📈 EDA (탐색적 데이터 분석)**: 메트릭 분포, 상관관계 분석, 산점도 매트릭스
+- **🕒 시계열 분석**: 성능 트렌드, 이동평균, 변화율 추적, 주기성 분석
+- **🚨 이상치 탐지**: IQR, Z-Score, Isolation Forest를 통한 비정상 평가 식별
+- **🔬 고급 통계 분석**: 정규성 검정, 신뢰구간, 가설 검정, 효과 크기 분석
+
+### ✔️ **Answer Correctness 메트릭 완전 지원**
+- **5가지 핵심 RAGAS 메트릭**: Faithfulness, Answer Relevancy, Context Recall/Precision, **Answer Correctness**
+- **통합 UI/UX**: 메트릭 설명, 시각화, 내보내기에서 완전 지원
+- **정답 일치도 평가**: 사실적 정확성과 의미적 유사성 종합 분석
 
 ### 🛡️ **엔터프라이즈 오프라인 패키지 시스템**
 - **완전 폐쇄망 지원**: 인터넷 연결 없이 완전 설치 및 실행
@@ -264,6 +275,18 @@ uv run python cli.py evaluate --help
 - **Google Gemini 2.5 Flash**, **Naver HCX-005**, **BGE-M3 Local** 등 다양한 모델을 런타임에 선택
 - **독립적 모델 조합**: LLM과 임베딩 모델을 자유롭게 조합 가능
 - **HTTP 직접 호출**: LangChain 타임아웃 문제를 해결한 안정적인 API 호출
+
+### 📊 **고급 분석 및 시각화**
+- **📈 EDA (탐색적 데이터 분석)**: 메트릭 분포, 상관관계, 산점도 매트릭스
+- **🕒 시계열 분석**: 성능 트렌드, 이동평균, 변화율, 주기성 분석
+- **🚨 이상치 탐지**: IQR, Z-Score, Isolation Forest 등 다양한 탐지 방법
+- **🔬 고급 통계**: 정규성 검정, 신뢰구간, 가설 검정, 효과 크기 분석
+- **📋 자동 보고서**: CSV, 마크다운 형식의 종합 분석 보고서 자동 생성
+
+### ✔️ **완전한 RAGAS 메트릭 지원**
+- **5가지 핵심 메트릭**: Faithfulness, Answer Relevancy, Context Recall/Precision, **Answer Correctness**
+- **통합 UI/UX**: 모든 메트릭이 웹 UI, CLI, 내보내기에서 완전 지원
+- **한국어 설명**: 직관적이고 상세한 메트릭 설명 및 개선 가이드
 
 ### 🚀 **로컬 환경 최적화**
 - **BGE-M3 로컬 임베딩**: 완전한 오프라인 임베딩 처리 지원

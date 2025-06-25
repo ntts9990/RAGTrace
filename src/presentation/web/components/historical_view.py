@@ -38,7 +38,7 @@ def show_historical():
             with st.expander(
                 f"평가 #{i+1} - {row['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}"
             ):
-                col1, col2, col3 = st.columns([2, 2, 1])
+                col1, col2, col3, col4 = st.columns([1.8, 1.8, 1.8, 1])
 
                 with col1:
                     st.metric("RAGAS 점수", f"{row.get('ragas_score', 0):.3f}")
@@ -54,7 +54,11 @@ def show_historical():
                     st.metric(
                         "Context Precision", f"{row.get('context_precision', 0):.3f}"
                     )
+                    st.metric(
+                        "Answer Correctness", f"{row.get('answer_correctness', 0):.3f}"
+                    )
 
+                with col4:
                     # 상세 분석 페이지로 이동 버튼
                     if st.button("🔍 상세 분석", key=f"detail_btn_{i}"):
                         # 선택된 평가 인덱스를 세션 상태에 저장

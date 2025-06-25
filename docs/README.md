@@ -41,10 +41,10 @@ Welcome to the RAGTrace documentation! This folder contains comprehensive guides
 
 ### 📊 Core Features
 - **[RAGTRACE_METRICS.md](RAGTRACE_METRICS.md)** - Complete guide to RAGAS evaluation metrics
-  - Faithfulness, Answer Relevancy, Context Recall, Context Precision
-  - Interpretation guidelines
-  - Practical examples
+  - All 5 core metrics: Faithfulness, Answer Relevancy, Context Recall, Context Precision, Answer Correctness
+  - Interpretation guidelines with practical examples
   - Korean technical documentation
+  - Advanced analytics and statistical analysis
 
 - **[Data_Import_Guide.md](Data_Import_Guide.md)** - Excel/CSV data import and conversion
   - Supported formats

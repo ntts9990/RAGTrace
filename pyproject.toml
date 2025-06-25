@@ -50,6 +50,8 @@ dependencies = [
     "requests>=2.31.0",
     # System monitoring for checkpoint optimization
     "psutil>=5.9.0",
+    "scipy>=1.15.3",
+    "scikit-learn>=1.7.0",
 ]
 
 [project.optional-dependencies]

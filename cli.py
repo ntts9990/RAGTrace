@@ -359,17 +359,55 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
         
         print("="*50)
 
+        # 자동 보고서 생성
+        from src.application.services.result_exporter import ResultExporter
+        from dataclasses import asdict
+        
+        result_dict = asdict(result)
+        
+        # 메타데이터 추가
+        import uuid
+        evaluation_id = str(uuid.uuid4())[:8]
+        result_dict["metadata"] = {
+            "evaluation_id": evaluation_id,
+            "timestamp": result_dict.get("timestamp", ""),
+            "model": f"{llm.upper()}",
+            "embedding_model": f"{embedding_choice.upper()}",
+            "dataset": dataset_name,
+            "prompt_type": prompt_type_enum.value,
+        }
+        
+        print("\n📤 자동 보고서 생성 중...")
+        
+        # 출력 디렉토리 생성
+        output_dir = Path("exports")
+        output_dir.mkdir(exist_ok=True)
+        
+        exporter = ResultExporter(output_dir=str(output_dir))
+        
+        try:
+            # 전체 패키지 생성 (CSV + 요약 + 보고서)
+            files = exporter.export_full_package(result_dict, f"eval_{evaluation_id}")
+            
+            print(f"✅ 자동 보고서 생성 완료!")
+            print(f"📁 출력 디렉토리: {output_dir}")
+            print(f"📄 생성된 파일:")
+            for file_type, file_path in files.items():
+                file_name = Path(file_path).name
+                print(f"  - {file_name}")
+                
+        except Exception as e:
+            print(f"⚠️ 자동 보고서 생성 실패: {e}")
+            print("평가는 성공했지만 보고서 생성에 문제가 있었습니다.")
+
         if output_file:
-            import json
-            from dataclasses import asdict
-            
-            # 결과를 파일에 저장
+            # 결과를 사용자 지정 파일에도 저장
             with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(asdict(result), f, ensure_ascii=False, indent=2)
+                json.dump(result_dict, f, ensure_ascii=False, indent=2)
             
-            print(f"✅ 결과가 {output_file} 파일에 저장되었습니다.")
-        else:
-            print("✅ 평가 완료.")
+            print(f"✅ 결과가 {output_file} 파일에도 저장되었습니다.")
+        
+        print("✅ 평가 완료.")
         
         return True
 

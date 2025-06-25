@@ -1,0 +1,77 @@
+{
+  "faithfulness": 0.59375,
+  "answer_relevancy": 0.7708158335276056,
+  "context_recall": 0.8958333333333333,
+  "context_precision": 0.6979166666182292,
+  "ragas_score": 0.7128904054553183,
+  "answer_correctness": 0.6061361937974235,
+  "individual_scores": [
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8701633007003097,
+      "context_recall": 1.0,
+      "context_precision": 0.49999999995,
+      "answer_correctness": 0.8368419135268422
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6374797270834822,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999666667,
+      "answer_correctness": 0.5896331546246762
+    },
+    {
+      "faithfulness": 0.25,
+      "answer_relevancy": 0.753407315275893,
+      "context_recall": 1.0,
+      "context_precision": 0.5833333333041666,
+      "answer_correctness": 0.5118869340627323
+    },
+    {
+      "faithfulness": 0.3333333333333333,
+      "answer_relevancy": 0.847971970648102,
+      "context_recall": 0.6666666666666666,
+      "context_precision": 0.49999999995,
+      "answer_correctness": 0.7369333896467305
+    },
+    {
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.789879022275775,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999,
+      "answer_correctness": 0.37426570217283817
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7775651482918523,
+      "context_recall": 1.0,
+      "context_precision": 0.999999999975,
+      "answer_correctness": 0.7145720468850463
+    },
+    {
+      "faithfulness": 0.6666666666666666,
+      "answer_relevancy": 0.8763076762848231,
+      "context_recall": 0.5,
+      "context_precision": 0.0,
+      "answer_correctness": 0.7124653872143352
+    },
+    {
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.6137525076606076,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999,
+      "answer_correctness": 0.3724910222461869
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "cd9bb3d1",
+    "timestamp": "2025-06-26T04:49:39.738937",
+    "model": "HCX-005",
+    "temperature": 0.0,
+    "dataset_size": 8,
+    "strategy": "HCX 전용 평가 (파싱 오류 허용)"
+  },
+  "generation_failures": 0,
+  "generation_successes": 8,
+  "api_failure_details": []
+}

@@ -16,7 +16,8 @@ RAGTrace is a comprehensive RAG (Retrieval-Augmented Generation) evaluation fram
 - **Complete Dependency Injection**: Using dependency-injector framework
 - **Clean Architecture**: Domain, Application, Infrastructure, Presentation layers
 - **Flexible Data Handling**: Supports multiple datasets with automatic detection and batch processing
-- **Comprehensive Metrics**: Faithfulness, Answer Relevancy, Context Recall/Precision
+- **Comprehensive Metrics**: All 5 RAGAS metrics including Answer Correctness
+- **Advanced Analytics**: EDA, time series analysis, anomaly detection, statistical analysis
 - **Historical Tracking**: SQLite-based evaluation history with visualization
 - **Production Ready**: Error handling, timeout management, and user-friendly interfaces
 - **Centralized Configuration**: All default values managed in single config file
@@ -253,6 +254,7 @@ pydantic-settings>=2.0.0
 - **Answer Relevancy**: Question-answer alignment
 - **Context Recall**: Information retrieval completeness  
 - **Context Precision**: Retrieved context accuracy
+- **Answer Correctness**: Ground truth alignment and factual accuracy
 - **RAGAS Score**: Combined metric average
 
 ## Important Files
@@ -312,16 +314,43 @@ pydantic-settings>=2.0.0
 ### Analytics and Monitoring
 - **Historical Tracking**: SQLite-based evaluation history
 - **Performance Comparison**: Side-by-side LLM comparisons
-- **Detailed Analysis**: Individual QA pair examination
+- **Detailed Analysis**: Individual QA pair examination with 7 analysis tabs
 - **Metrics Visualization**: Interactive charts with Plotly
+- **EDA Analysis**: Exploratory data analysis with correlation matrices
+- **Time Series Analysis**: Performance trends and moving averages
+- **Anomaly Detection**: Automated outlier identification
+- **Advanced Statistics**: Normality tests, confidence intervals, hypothesis testing
 
 ### Advanced Features
 - **Streamlit State Management**: Persistent UI state across pages
 - **Error Recovery**: Graceful handling of API failures
-- **Export Capabilities**: JSON/CSV result export
+- **Export Capabilities**: JSON/CSV/Markdown result export with automatic report generation
 - **Responsive Design**: Mobile-friendly interface
 
 ## Recent Updates
+
+### ✅ Advanced Analytics and Answer Correctness Integration (December 2024)
+
+Added comprehensive advanced analytics and complete Answer Correctness support:
+
+**New Advanced Analytics Features**:
+- **EDA (Exploratory Data Analysis)**: Dataset overview, metric distributions, correlation analysis, scatter plot matrices
+- **Time Series Analysis**: Performance trends, moving averages, change rate analysis, periodicity detection
+- **Anomaly Detection**: IQR, Z-Score, and Isolation Forest methods for outlier identification
+- **Advanced Statistics**: Normality testing, confidence intervals, hypothesis testing, effect size analysis
+
+**Answer Correctness Integration**:
+- **Complete UI Support**: Added Answer Correctness to all web UI components and visualizations
+- **Metrics Explanation**: Comprehensive Korean explanations with practical examples
+- **Export Functionality**: Fixed summary CSV and package export to include Answer Correctness
+- **Database Schema**: Updated SQLite schema to store and retrieve Answer Correctness data
+
+**Implementation**:
+- `src/presentation/web/components/detailed_analysis.py` - 4 new analysis tabs with advanced features
+- `src/presentation/web/components/metrics_explanation.py` - Complete Answer Correctness explanation
+- `src/application/services/result_exporter.py` - Enhanced export functionality with Answer Correctness
+- `src/infrastructure/repository/sqlite_adapter.py` - Database schema updated for Answer Correctness
+- Added scipy and scikit-learn dependencies for advanced statistical analysis
 
 ### ✅ BGE-M3 Local Embedding Integration (2024)
 

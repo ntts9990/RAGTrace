@@ -1,0 +1,42 @@
+{
+  "faithfulness": 1.0,
+  "answer_relevancy": 0.6972841784492535,
+  "context_recall": 0.8333333333333334,
+  "context_precision": 0.6944444444069444,
+  "ragas_score": 0.7847863617276448,
+  "answer_correctness": 0.6988698524486927,
+  "individual_scores": [
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7193678260142047,
+      "context_recall": 1.0,
+      "context_precision": 0.49999999995,
+      "answer_correctness": 0.6324036664970186
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6329497312765165,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999666667,
+      "answer_correctness": 0.5150302099067872
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7395349780570394,
+      "context_recall": 0.5,
+      "context_precision": 0.5833333333041666,
+      "answer_correctness": 0.9491756809422721
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "966808c1",
+    "timestamp": "",
+    "model": "HCX",
+    "embedding_model": "BGE_M3",
+    "dataset": "evaluation_data_variant1",
+    "prompt_type": "nuclear_hydro_tech"
+  },
+  "generation_failures": 0,
+  "generation_successes": 3,
+  "api_failure_details": []
+}

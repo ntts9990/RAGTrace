@@ -1,0 +1,42 @@
+{
+  "faithfulness": 1.0,
+  "answer_relevancy": 0.6981311264593787,
+  "context_recall": 1.0,
+  "context_precision": 0.861111111073611,
+  "ragas_score": 0.7977955068965352,
+  "answer_correctness": 0.42973529694968643,
+  "individual_scores": [
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7459378641476686,
+      "context_recall": 1.0,
+      "context_precision": 0.99999999995,
+      "answer_correctness": 0.2
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.5981868285493156,
+      "context_recall": 1.0,
+      "context_precision": 0.9999999999666667,
+      "answer_correctness": 0.5150302099067872
+    },
+    {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7502686866811522,
+      "context_recall": 1.0,
+      "context_precision": 0.5833333333041666,
+      "answer_correctness": 0.5741756809422721
+    }
+  ],
+  "metadata": {
+    "evaluation_id": "45c51770",
+    "timestamp": "",
+    "model": "HCX",
+    "embedding_model": "BGE_M3",
+    "dataset": "evaluation_data_variant1",
+    "prompt_type": "default"
+  },
+  "generation_failures": 0,
+  "generation_successes": 3,
+  "api_failure_details": []
+}

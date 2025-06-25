@@ -59,6 +59,7 @@ class SQLiteAdapter:
                         answer_relevancy REAL,
                         context_recall REAL,
                         context_precision REAL,
+                        answer_correctness REAL,
                         ragas_score REAL,
                         raw_data TEXT
                     )
@@ -89,8 +90,8 @@ class SQLiteAdapter:
                     """
                     INSERT INTO evaluations 
                     (timestamp, faithfulness, answer_relevancy, context_recall, 
-                     context_precision, ragas_score, raw_data)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                     context_precision, answer_correctness, ragas_score, raw_data)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         timestamp,
@@ -98,6 +99,7 @@ class SQLiteAdapter:
                         evaluation_data.get("answer_relevancy"),
                         evaluation_data.get("context_recall"),
                         evaluation_data.get("context_precision"),
+                        evaluation_data.get("answer_correctness"),
                         evaluation_data.get("ragas_score"),
                         json.dumps(evaluation_data, ensure_ascii=False),
                     ),
@@ -125,7 +127,7 @@ class SQLiteAdapter:
                 cursor.execute(
                     """
                     SELECT id, timestamp, faithfulness, answer_relevancy, 
-                           context_recall, context_precision, ragas_score, raw_data
+                           context_recall, context_precision, answer_correctness, ragas_score, raw_data
                     FROM evaluations 
                     WHERE id = ?
                 """,
@@ -144,8 +146,9 @@ class SQLiteAdapter:
                     "answer_relevancy": row[3],
                     "context_recall": row[4],
                     "context_precision": row[5],
-                    "ragas_score": row[6],
-                    "raw_data": json.loads(row[7]) if row[7] else None,
+                    "answer_correctness": row[6],
+                    "ragas_score": row[7],
+                    "raw_data": json.loads(row[8]) if row[8] else None,
                 }
         except sqlite3.Error as e:
             print(f"❌ 평가 결과 조회 실패: {e}")
@@ -166,7 +169,7 @@ class SQLiteAdapter:
                 
                 query = """
                     SELECT id, timestamp, faithfulness, answer_relevancy, 
-                           context_recall, context_precision, ragas_score, raw_data
+                           context_recall, context_precision, answer_correctness, ragas_score, raw_data
                     FROM evaluations 
                     ORDER BY timestamp DESC
                 """
@@ -189,8 +192,9 @@ class SQLiteAdapter:
                             "answer_relevancy": row[3],
                             "context_recall": row[4],
                             "context_precision": row[5],
-                            "ragas_score": row[6],
-                            "raw_data": json.loads(row[7]) if row[7] else None,
+                            "answer_correctness": row[6],
+                            "ragas_score": row[7],
+                            "raw_data": json.loads(row[8]) if row[8] else None,
                         }
                     )
                 
@@ -240,6 +244,7 @@ class SQLiteAdapter:
                         AVG(answer_relevancy) as avg_answer_relevancy,
                         AVG(context_recall) as avg_context_recall,
                         AVG(context_precision) as avg_context_precision,
+                        AVG(answer_correctness) as avg_answer_correctness,
                         AVG(ragas_score) as avg_ragas_score
                     FROM evaluations 
                     WHERE faithfulness IS NOT NULL
@@ -265,7 +270,8 @@ class SQLiteAdapter:
                         "answer_relevancy": avg_row[1] if avg_row and avg_row[1] else 0,
                         "context_recall": avg_row[2] if avg_row and avg_row[2] else 0,
                         "context_precision": avg_row[3] if avg_row and avg_row[3] else 0,
-                        "ragas_score": avg_row[4] if avg_row and avg_row[4] else 0,
+                        "answer_correctness": avg_row[4] if avg_row and avg_row[4] else 0,
+                        "ragas_score": avg_row[5] if avg_row and avg_row[5] else 0,
                     },
                     "latest_evaluation": latest_row[0] if latest_row else None,
                 }
@@ -278,6 +284,7 @@ class SQLiteAdapter:
                     "answer_relevancy": 0,
                     "context_recall": 0,
                     "context_precision": 0,
+                    "answer_correctness": 0,
                     "ragas_score": 0,
                 },
                 "latest_evaluation": None,

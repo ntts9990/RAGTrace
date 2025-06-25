@@ -64,43 +64,67 @@ class ResultExporter:
         
         csv_path = self.output_dir / filename
         
+        summary_data = []
+        
         # 메트릭별 통계 계산
         individual_scores = result.get("individual_scores", [])
-        if not individual_scores:
-            return str(csv_path)
         
-        # 메트릭 이름 수집
-        metrics = list(individual_scores[0].keys())
-        
-        summary_data = []
-        for metric in metrics:
-            scores = [item[metric] for item in individual_scores if item[metric] is not None]
+        if individual_scores:
+            # individual_scores가 있는 경우: 상세 통계 계산
+            metrics = list(individual_scores[0].keys())
             
-            if scores:
-                summary_data.append({
-                    'metric': metric,
-                    'mean': statistics.mean(scores),
-                    'median': statistics.median(scores),
-                    'std_dev': statistics.stdev(scores) if len(scores) > 1 else 0.0,
-                    'min': min(scores),
-                    'max': max(scores),
-                    'count': len(scores),
-                    'q1': statistics.quantiles(scores, n=4)[0] if len(scores) >= 4 else min(scores),
-                    'q3': statistics.quantiles(scores, n=4)[2] if len(scores) >= 4 else max(scores),
-                })
+            for metric in metrics:
+                scores = [item[metric] for item in individual_scores if item[metric] is not None]
+                
+                if scores:
+                    summary_data.append({
+                        'metric': metric,
+                        'mean': statistics.mean(scores),
+                        'median': statistics.median(scores),
+                        'std_dev': statistics.stdev(scores) if len(scores) > 1 else 0.0,
+                        'min': min(scores),
+                        'max': max(scores),
+                        'count': len(scores),
+                        'q1': statistics.quantiles(scores, n=4)[0] if len(scores) >= 4 else min(scores),
+                        'q3': statistics.quantiles(scores, n=4)[2] if len(scores) >= 4 else max(scores),
+                    })
+        else:
+            # individual_scores가 없는 경우: 전체 메트릭으로 단일 값 통계 생성
+            metrics = ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision']
+            
+            # answer_correctness가 있으면 추가
+            if 'answer_correctness' in result:
+                metrics.append('answer_correctness')
+            
+            for metric in metrics:
+                value = result.get(metric, 0)
+                if value is not None:
+                    summary_data.append({
+                        'metric': metric,
+                        'mean': value,
+                        'median': value,
+                        'std_dev': 0.0,
+                        'min': value,
+                        'max': value,
+                        'count': 1,
+                        'q1': value,
+                        'q3': value,
+                    })
         
         # 전체 점수 추가
-        summary_data.append({
-            'metric': 'ragas_score',
-            'mean': result.get('ragas_score', 0),
-            'median': result.get('ragas_score', 0),
-            'std_dev': 0.0,
-            'min': result.get('ragas_score', 0),
-            'max': result.get('ragas_score', 0),
-            'count': 1,
-            'q1': result.get('ragas_score', 0),
-            'q3': result.get('ragas_score', 0),
-        })
+        ragas_score = result.get('ragas_score', 0)
+        if ragas_score is not None:
+            summary_data.append({
+                'metric': 'ragas_score',
+                'mean': ragas_score,
+                'median': ragas_score,
+                'std_dev': 0.0,
+                'min': ragas_score,
+                'max': ragas_score,
+                'count': 1,
+                'q1': ragas_score,
+                'q3': ragas_score,
+            })
         
         # CSV 작성
         with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:

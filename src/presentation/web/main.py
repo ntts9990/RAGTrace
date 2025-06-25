@@ -1096,7 +1096,7 @@ def show_historical():
                 
                 st.markdown("---")
                 
-                col1, col2, col3 = st.columns([2, 2, 1])
+                col1, col2, col3, col4 = st.columns([1.8, 1.8, 1.8, 1])
 
                 with col1:
                     st.metric("RAGAS 점수", f"{row.get('ragas_score', 0):.3f}")
@@ -1112,7 +1112,11 @@ def show_historical():
                     st.metric(
                         "Context Precision", f"{row.get('context_precision', 0):.3f}"
                     )
+                    st.metric(
+                        "Answer Correctness", f"{row.get('answer_correctness', 0):.3f}"
+                    )
 
+                with col4:
                     # 상세 분석 페이지로 이동 버튼
                     if st.button("🔍 상세 분석", key=f"detail_btn_{i}"):
                         st.session_state.selected_evaluation_index = i

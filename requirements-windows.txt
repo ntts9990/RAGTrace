@@ -17,3 +17,5 @@ streamlit==1.45.1
 plotly==6.1.2
 requests==2.32.4
 psutil==7.0.0
+scipy==1.15.0
+scikit-learn==1.6.0
