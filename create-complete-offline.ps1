@@ -1,6 +1,7 @@
 # RAGTrace 완전 오프라인 패키지 생성 스크립트
 # 폐쇄망에서 아무것도 설치되지 않은 Windows PC에서 바로 실행 가능한 패키지 생성
 # PowerShell 관리자 권한으로 실행 필요
+# PowerShell 5.1+ 호환
 
 param(
     [string]$OutputDir = "RAGTrace-Complete-Offline",
@@ -11,12 +12,38 @@ param(
 # 오류 발생 시 스크립트 중단
 $ErrorActionPreference = "Stop"
 
+# PowerShell 버전 확인
+if ($PSVersionTable.PSVersion.Major -lt 5) {
+    Write-Error "PowerShell 5.0 이상이 필요합니다. 현재 버전: $($PSVersionTable.PSVersion)"
+    exit 1
+}
+
 function Write-SafeHost {
     param([string]$Message, [string]$Color = "White")
     try {
         Write-Host $Message -ForegroundColor $Color
     } catch {
         Write-Output $Message
+    }
+}
+
+function Test-PowerShellCompatibility {
+    Write-SafeHost "🔍 PowerShell 호환성 확인 중..." -Color "Cyan"
+    
+    $psVersion = $PSVersionTable.PSVersion
+    Write-SafeHost "   PowerShell 버전: $psVersion" -Color "Yellow"
+    
+    if ($psVersion.Major -eq 5 -and $psVersion.Minor -eq 1) {
+        Write-SafeHost "   ✓ Windows PowerShell 5.1 감지됨" -Color "Green"
+        Write-SafeHost "   ℹ️ 최적의 호환성을 위해 PowerShell 7+을 권장합니다" -Color "Yellow"
+        return $true
+    } elseif ($psVersion.Major -ge 7) {
+        Write-SafeHost "   ✓ PowerShell Core 7+ 감지됨" -Color "Green"
+        return $true
+    } else {
+        Write-SafeHost "   ❌ 지원되지 않는 PowerShell 버전입니다" -Color "Red"
+        Write-SafeHost "   💡 대안: create-offline-simple.bat 스크립트를 사용해보세요" -Color "Yellow"
+        return $false
     }
 }
 
@@ -38,6 +65,16 @@ function Test-Prerequisites {
         exit 1
     }
     Write-SafeHost "✅ 관리자 권한 확인 완료" -Color "Green"
+    
+    # PowerShell 호환성 확인
+    if (-not (Test-PowerShellCompatibility)) {
+        Write-SafeHost ""
+        Write-SafeHost "❌ PowerShell 호환성 문제가 발견되었습니다." -Color "Red"
+        Write-SafeHost "💡 해결 방법:" -Color "Yellow"
+        Write-SafeHost "   1. PowerShell 7+ 설치: https://github.com/PowerShell/PowerShell/releases" -Color "Yellow"
+        Write-SafeHost "   2. 또는 간단한 배치 스크립트 사용: create-offline-simple.bat" -Color "Yellow"
+        exit 1
+    }
     
     # Python 확인
     try {
@@ -310,18 +347,27 @@ function Download-BGEModel {
     try {
         $modelPath = "$OutputDir\03_Models\bge-m3"
         
-        # Python으로 BGE-M3 모델 다운로드
-        $downloadScript = @"
-import os
-from sentence_transformers import SentenceTransformer
-
-print("BGE-M3 모델 다운로드 시작...")
-model = SentenceTransformer('BAAI/bge-m3')
-model.save('$modelPath')
-print("BGE-M3 모델 다운로드 완료")
-"@
+        # Python으로 BGE-M3 모델 다운로드 - 임시 파일 생성 방식
+        $tempPyFile = "$env:TEMP\download_bge_m3.py"
+        $modelPathEscaped = $modelPath -replace '\\', '\\'
+        $pythonCode = @(
+            "import os",
+            "from sentence_transformers import SentenceTransformer",
+            "",
+            "print('BGE-M3 모델 다운로드 시작...')",
+            "model = SentenceTransformer('BAAI/bge-m3')",
+            "model.save(r'$modelPathEscaped')",
+            "print('BGE-M3 모델 다운로드 완료')"
+        )
         
-        $downloadScript | python
+        # Python 파일 생성
+        $pythonCode | Out-File -FilePath $tempPyFile -Encoding UTF8
+        
+        # Python 실행
+        python $tempPyFile
+        
+        # 임시 파일 삭제
+        Remove-Item $tempPyFile -ErrorAction SilentlyContinue
         
         if (Test-Path "$modelPath\config.json") {
             Write-SafeHost "   ✓ BGE-M3 모델 다운로드 완료" -Color "Green"
