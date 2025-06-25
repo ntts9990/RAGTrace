@@ -342,9 +342,13 @@ RAGTrace/
 │   ├── 📂 domain/                   # 도메인 모델
 │   ├── 📂 infrastructure/           # 외부 연동
 │   └── 📂 presentation/             # UI (CLI, Web)
+├── 📂 scripts/                      # 유틸리티 스크립트
+│   └── 📂 offline-packaging/        # 오프라인 패키지 생성 스크립트
+├── 📂 docs/                         # 프로젝트 문서
 ├── 📂 data/                         # 샘플 데이터
 ├── 📂 quick_results/                # quick-eval 결과
 ├── cli.py                           # CLI 진입점
+├── enterprise-validator.py          # 엔터프라이즈 검증 도구
 └── README.md                        # 이 문서
 ```
 
@@ -359,14 +363,14 @@ docker run -d -p 8501:8501 \
   ghcr.io/ntts9990/ragtrace:latest
 ```
 
-자세한 내용은 [Docker 배포 가이드](docs/Docker_Deployment_Guide.md)를 참고하세요.
+자세한 내용은 [Docker 배포 가이드](docs/deployment/Docker_Deployment_Guide.md)를 참고하세요.
 
 ## 🏢 엔터프라이즈 기능
 
 ### 🛡️ 완전 오프라인 배포
 ```bash
 # 엔터프라이즈 패키지 생성
-python create-enterprise-offline.py --project-root . --output-dir ./enterprise-package
+python scripts/offline-packaging/create-enterprise-offline.py --project-root . --output-dir ./enterprise-package
 
 # 생성 결과
 RAGTrace-Enterprise-[platform]-[arch].tar.gz
@@ -531,13 +535,14 @@ uv sync --all-extras
 
 | 문제 유형 | 가이드 문서 |
 |----------|------------|
-| **Windows 설치 오류** | [WINDOWS_오류해결가이드.md](WINDOWS_오류해결가이드.md) |
+| **Windows 완전 설치** | [Windows 완전 가이드](docs/deployment/Windows_Complete_Guide.md) |
 | **엔터프라이즈 배포** | [ENTERPRISE_패키지_시스템.md](ENTERPRISE_패키지_시스템.md) |
-| **패키지 생성 문제** | [WINDOWS_패키지_총정리.md](WINDOWS_패키지_총정리.md) |
+| **Docker 배포** | [Docker 배포 가이드](docs/deployment/Docker_Deployment_Guide.md) |
+| **개발 환경 설정** | [개발 가이드](docs/development/Development_Guide.md) |
 
 ## 🤝 기여하기
 
-Pull Request는 언제나 환영합니다. 기여하기 전에 `docs/Development_Guide.md`를 참고해주세요.
+Pull Request는 언제나 환영합니다. 기여하기 전에 `docs/development/Development_Guide.md`를 참고해주세요.
 
 ## 📄 라이선스
 

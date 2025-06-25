@@ -24,7 +24,7 @@
 
 ### 1. 🏭 엔터프라이즈 패키지 빌더
 ```bash
-python create-enterprise-offline.py
+python scripts/offline-packaging/create-enterprise-offline.py
 ```
 
 **주요 기능:**
@@ -92,10 +92,10 @@ python enterprise-validator.py
 ### 1단계: 패키지 생성
 ```bash
 # 엔터프라이즈급 패키지 생성
-python create-enterprise-offline.py --project-root . --output-dir ./packages
+python scripts/offline-packaging/create-enterprise-offline.py --project-root . --output-dir ./packages
 
 # 상세 로그와 함께
-python create-enterprise-offline.py --verbose
+python scripts/offline-packaging/create-enterprise-offline.py --verbose
 ```
 
 ### 2단계: 검증 및 진단
