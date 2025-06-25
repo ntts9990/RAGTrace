@@ -1,0 +1,20 @@
+[
+  {
+    "question": "What is Clean Architecture?",
+    "contexts": [
+      "Clean Architecture is a software design philosophy developed by Robert C. Martin",
+      "It emphasizes separation of concerns and the dependency rule"
+    ],
+    "answer": "Clean Architecture is a software design philosophy that emphasizes separation of concerns.",
+    "ground_truth": "Clean Architecture is a software design philosophy that separates code into layers."
+  },
+  {
+    "question": "What is dependency injection?",
+    "contexts": [
+      "Dependency injection is a design pattern",
+      "It helps with inversion of control"
+    ],
+    "answer": "Dependency injection is a design pattern for managing dependencies.",
+    "ground_truth": "Dependency injection is a technique for achieving inversion of control."
+  }
+]

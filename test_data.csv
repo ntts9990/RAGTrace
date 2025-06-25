@@ -1,0 +1,3 @@
+question,contexts,answer,ground_truth
+What is Clean Architecture?,"[""Clean Architecture is a software design philosophy developed by Robert C. Martin"", ""It emphasizes separation of concerns and the dependency rule""]",Clean Architecture is a software design philosophy that emphasizes separation of concerns.,Clean Architecture is a software design philosophy that separates code into layers.
+What is dependency injection?,"[""Dependency injection is a design pattern"", ""It helps with inversion of control""]",Dependency injection is a design pattern for managing dependencies.,Dependency injection is a technique for achieving inversion of control.

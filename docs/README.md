@@ -13,6 +13,13 @@ Welcome to the RAGTrace documentation! This folder contains comprehensive guides
   - Environment configuration
   - Verification steps
 
+- **[Windows_Offline_Installation_Guide.md](Windows_Offline_Installation_Guide.md)** - Comprehensive guide for Windows air-gapped environments
+  - Step-by-step offline package generation
+  - Detailed installation procedures
+  - BGE-M3 model setup for offline use
+  - Common issues and solutions
+  - Complete process from preparation to execution
+
 ### 🏗️ Development
 - **[ARCHITECTURE_AND_DEVELOPMENT.md](ARCHITECTURE_AND_DEVELOPMENT.md)** - Architecture overview and development guide
   - Clean Architecture implementation

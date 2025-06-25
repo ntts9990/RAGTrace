@@ -155,38 +155,254 @@ uv run streamlit run src/presentation/web/main.py
 #### Windows Offline Package Generation
 
 **For Air-Gapped Environments:**
+
+##### Complete Process Overview
+
+1. **Preparation Phase** (Internet-connected PC)
+2. **Package Generation** (Internet-connected PC)
+3. **File Transfer** (To air-gapped environment)
+4. **Installation Phase** (Air-gapped PC)
+5. **Verification & Execution** (Air-gapped PC)
+
+##### Phase 1: Preparation (Internet-connected PC)
+
+**Download Required Software:**
 ```powershell
-# Test prerequisites
-.\scripts\offline-packaging\test-windows-package.ps1
+# 1. Python 3.11.9 (required)
+# https://www.python.org/downloads/release/python-3119/
+# → python-3.11.9-amd64.exe (30MB)
 
-# Generate complete offline package (2-3GB)
-.\scripts\offline-packaging\create-windows-offline-safe.ps1
+# 2. Visual C++ Redistributable (required)
+# https://aka.ms/vs/17/release/vc_redist.x64.exe
+# → vc_redist.x64.exe (14MB)
 
-# Generate simple package (50MB, requires internet during install)
-bash scripts\offline-packaging\create-simple-offline.sh
+# 3. Git for Windows (for source code)
+# https://git-scm.com/download/win
+```
+
+**Clone RAGTrace Repository:**
+```bash
+git clone https://github.com/ntts9990/RAGTrace.git
+cd RAGTrace
+git pull origin main
+```
+
+##### Phase 2: Package Generation (Internet-connected PC)
+
+**Generate Offline Package:**
+```powershell
+# Run PowerShell as Administrator
+
+# Navigate to RAGTrace directory
+cd C:\Users\[username]\RAGTrace
+
+# Verify Python and UV installation
+python --version  # Should show Python 3.11.x
+uv --version      # UV package manager
+
+# Create offline package
+.\create-windows-offline-safe.ps1
+
+# Duration: 15-45 minutes (depends on internet speed)
 ```
 
 **Generated Package Structure:**
 ```
-RAGTrace-Windows-Offline-Safe.zip
-├── 01_Prerequisites/          # Python installers (user-provided)
-├── 02_Dependencies/
+RAGTrace-Windows-Offline/
+├── 01_Prerequisites/          # Python installers (manual addition required)
+│   ├── README.txt            # Instructions for required files
+│   ├── python-3.11.9-amd64.exe  # Add manually
+│   └── vc_redist.x64.exe        # Add manually
+├── 02_Dependencies/           # Python packages
 │   ├── wheels/               # 200+ .whl files
 │   ├── requirements.txt      # Dependency list
 │   └── checksums.txt        # Integrity verification
-├── 03_Source/               # Complete RAGTrace source
-├── 04_Scripts/
-│   ├── install.bat         # Safe installation script
-│   ├── run-web.bat        # Dashboard launcher
-│   ├── run-cli.bat        # CLI launcher
-│   └── verify.py          # Installation validator
-├── 05_Models/              # BGE-M3 Local Embedding Models
-│   └── bge-m3/            # Complete offline embedding (~2GB)
-│       ├── config.json
-│       ├── pytorch_model.bin
-│       ├── tokenizer.json
-│       └── (other model files)
-└── README-Installation.txt # Setup instructions
+├── 03_Source/                # Complete RAGTrace source
+│   ├── src/                  # Main source code
+│   ├── data/                 # Sample datasets
+│   ├── cli.py               # CLI entry point
+│   ├── .env.example         # Environment template
+│   └── models/              # Create for BGE-M3 (optional)
+├── 04_Scripts/               # Installation scripts
+│   ├── install.bat          # Offline installation script
+│   ├── run-web.bat          # Web dashboard launcher
+│   ├── run-cli.bat          # CLI launcher
+│   ├── verify.bat           # Verification launcher
+│   └── verify.py            # Installation validator
+└── README-안전설치가이드.txt    # Korean setup guide
+```
+
+##### Phase 3: File Transfer
+
+**Files to Transfer to Air-gapped PC:**
+1. `RAGTrace-Windows-Offline.zip` (generated package)
+2. `python-3.11.9-amd64.exe` (Python installer)
+3. `vc_redist.x64.exe` (VC++ redistributable)
+4. BGE-M3 model folder (if using local embeddings, ~2GB)
+
+**Prepare on Air-gapped PC:**
+```powershell
+# Create working directory
+mkdir C:\RAGTrace-Install
+cd C:\RAGTrace-Install
+
+# Extract package
+# Extract RAGTrace-Windows-Offline.zip here
+
+# Copy prerequisites
+# Copy python-3.11.9-amd64.exe → 01_Prerequisites/
+# Copy vc_redist.x64.exe → 01_Prerequisites/
+```
+
+##### Phase 4: Installation (Air-gapped PC)
+
+**Step 1: Install Python 3.11**
+```powershell
+cd 01_Prerequisites
+.\python-3.11.9-amd64.exe
+
+# Installation options:
+# ✅ "Add Python 3.11 to PATH" - MUST CHECK
+# ✅ "Install for all users" - Recommended
+# Restart recommended after installation
+```
+
+**Step 2: Install Visual C++ Redistributable**
+```powershell
+.\vc_redist.x64.exe
+# Use default settings
+```
+
+**Step 3: Install RAGTrace**
+```powershell
+# Run PowerShell as Administrator
+cd C:\RAGTrace-Install\RAGTrace-Windows-Offline
+
+# Execute installation script
+.\04_Scripts\install.bat
+
+# Installation process:
+# - Creates Python virtual environment
+# - Installs offline packages (10-30 minutes)
+# - Shows completion message
+```
+
+**Step 4: Configure BGE-M3 Model (Optional)**
+```powershell
+# If using BGE-M3 local embeddings
+# Create model directory
+mkdir 03_Source\models
+
+# Copy BGE-M3 model files
+xcopy /E /I [BGE-M3_source_path] 03_Source\models\bge-m3
+
+# Verify model files
+dir 03_Source\models\bge-m3
+```
+
+**Step 5: Configure Environment**
+```powershell
+cd 03_Source
+
+# Create .env from template
+copy .env.example .env
+
+# Edit configuration
+notepad .env
+```
+
+**Example .env Configuration:**
+```ini
+# Google Gemini API Key (required)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Naver HCX API Key (optional)
+CLOVA_STUDIO_API_KEY=your_hcx_key_here
+
+# BGE-M3 Local Model Path (if using local embeddings)
+BGE_M3_MODEL_PATH="./models/bge-m3"
+
+# Default Settings
+DEFAULT_LLM="gemini"
+DEFAULT_EMBEDDING="bge_m3"  # or "gemini" for online embeddings
+```
+
+##### Phase 5: Verification & Execution
+
+**Verify Installation:**
+```powershell
+# Run verification script
+.\04_Scripts\verify.bat
+
+# Expected output:
+# ✅ Python version OK
+# ✅ Virtual environment activated
+# ✅ Core packages installed
+# ✅ PyTorch CPU only
+# ✅ .env file exists
+# ✅ Data files found
+```
+
+**Test BGE-M3 Model (if installed):**
+```powershell
+cd 03_Source
+.venv\Scripts\activate
+python
+
+# In Python shell:
+>>> from pathlib import Path
+>>> bge_path = Path("./models/bge-m3")
+>>> print(f"BGE-M3 exists: {bge_path.exists()}")
+>>> print(f"Model files: {list(bge_path.glob('*'))[:5]}")
+>>> exit()
+```
+
+**Launch RAGTrace:**
+```powershell
+# Web Dashboard (recommended)
+.\04_Scripts\run-web.bat
+# Access at: http://localhost:8501
+
+# CLI Mode
+.\04_Scripts\run-cli.bat
+# Example: python cli.py evaluate evaluation_data --llm gemini --embedding bge_m3
+```
+
+##### Common Issues & Solutions
+
+**Python PATH Issues:**
+```powershell
+# Add Python to PATH manually
+set PATH=%PATH%;C:\Program Files\Python311;C:\Program Files\Python311\Scripts
+
+# Or add to system environment variables permanently
+```
+
+**Virtual Environment Activation:**
+```powershell
+# If activation fails
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Manual activation
+cd 03_Source
+.venv\Scripts\activate.bat
+```
+
+**BGE-M3 Path Issues:**
+```powershell
+# Use absolute path in .env if relative path fails
+BGE_M3_MODEL_PATH="C:\RAGTrace-Install\RAGTrace-Windows-Offline\03_Source\models\bge-m3"
+```
+
+**Package Installation Failures:**
+```powershell
+# Manual package installation
+cd 03_Source
+.venv\Scripts\activate
+pip install --no-index --find-links ..\02_Dependencies\wheels [package_name]
+
+# Complete reinstallation
+pip install --no-index --find-links ..\02_Dependencies\wheels -r ..\02_Dependencies\requirements.txt --force-reinstall
 ```
 
 ### 4. 🏭 Enterprise Offline Deployment
