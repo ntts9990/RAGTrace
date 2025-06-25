@@ -5,7 +5,7 @@ Welcome to the RAGTrace documentation! This folder contains comprehensive guides
 ## 📚 Core Documentation
 
 ### 🚀 Getting Started
-- **[INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Complete installation guide for all platforms and environments
+- **[INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Complete installation guide for all platforms and environments (English)
   - Docker deployment (recommended)
   - Local development setup
   - Windows enterprise installation
@@ -13,7 +13,14 @@ Welcome to the RAGTrace documentation! This folder contains comprehensive guides
   - Environment configuration
   - Verification steps
 
-- **[Windows_Offline_Installation_Guide.md](Windows_Offline_Installation_Guide.md)** - Comprehensive guide for Windows air-gapped environments
+- **[Windows_설치_가이드.md](Windows_설치_가이드.md)** - 완전한 Windows 설치 가이드 (한국어)
+  - 빠른 설치 (인터넷 연결 환경)
+  - 완전 오프라인 설치 (폐쇄망 환경)
+  - Git 클론 후 프로젝트 내부 설치
+  - BGE-M3 로컬 모델 설정
+  - 단계별 문제 해결 방법
+
+- **[Windows_Offline_Installation_Guide.md](Windows_Offline_Installation_Guide.md)** - Comprehensive guide for Windows air-gapped environments (English)
   - Step-by-step offline package generation
   - Detailed installation procedures
   - BGE-M3 model setup for offline use
@@ -30,12 +37,21 @@ Welcome to the RAGTrace documentation! This folder contains comprehensive guides
   - Best practices
 
 ### 🆘 Support
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide (English)
   - Common installation issues
   - Platform-specific problems
   - Performance optimization
   - Debug techniques
   - Emergency recovery
+
+- **[문제해결_가이드.md](문제해결_가이드.md)** - 종합 문제해결 가이드 (한국어)
+  - 설치 관련 문제 해결
+  - 실행 및 성능 문제
+  - 웹 대시보드 문제
+  - API 및 연결 문제
+  - BGE-M3 모델 문제
+  - Windows 특화 문제
+  - 긴급 복구 방법
 
 ## 📖 User Guides
 
@@ -72,9 +88,10 @@ The `archive/` directory contains historical documentation and files that have b
 ## 🎯 Quick Navigation
 
 ### New Users
-1. Start with [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
-2. Review [RAGTRACE_METRICS.md](RAGTRACE_METRICS.md) to understand evaluation
-3. Import your data using [Data_Import_Guide.md](Data_Import_Guide.md)
+1. **한국어 사용자**: [Windows_설치_가이드.md](Windows_설치_가이드.md) 시작 (Korean Windows users)
+2. **English users**: Start with [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+3. Review [RAGTRACE_METRICS.md](RAGTRACE_METRICS.md) to understand evaluation
+4. Import your data using [Data_Import_Guide.md](Data_Import_Guide.md)
 
 ### Developers
 1. Read [ARCHITECTURE_AND_DEVELOPMENT.md](ARCHITECTURE_AND_DEVELOPMENT.md)
@@ -88,9 +105,10 @@ The `archive/` directory contains historical documentation and files that have b
 3. Keep [TROUBLESHOOTING.md](TROUBLESHOOTING.md) handy for issues
 
 ### Issues and Support
-1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) first
-2. Search [GitHub Issues](https://github.com/ntts9990/RAGTrace/issues)
-3. Create new issue with diagnostic information
+1. **한국어**: [문제해결_가이드.md](문제해결_가이드.md) 먼저 확인 (Korean troubleshooting)
+2. **English**: Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) first
+3. Search [GitHub Issues](https://github.com/ntts9990/RAGTrace/issues)
+4. Create new issue with diagnostic information
 
 ## 📝 Documentation Standards
 
