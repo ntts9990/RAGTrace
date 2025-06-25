@@ -41,6 +41,8 @@ RAGTrace는 RAG(Retrieval-Augmented Generation) 시스템의 핵심 품질 지�
 
 ## 🚀 빠른 시작
 
+> 💡 **Windows 사용자**: [📖 SETUP-WINDOWS.md](SETUP-WINDOWS.md)에서 자동 설치 가이드를 확인하세요!
+
 ### ⚡ **1분만에 시작하기** (추천)
 
 ```bash

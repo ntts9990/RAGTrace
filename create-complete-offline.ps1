@@ -47,6 +47,90 @@ function Test-PowerShellCompatibility {
     }
 }
 
+function Test-PythonInstallation {
+    try {
+        $pythonVersion = & python --version 2>$null
+        if ($pythonVersion -match "Python 3\.11") {
+            Write-SafeHost "✅ Python 3.11 확인: $pythonVersion" -Color "Green"
+            return $true
+        } elseif ($pythonVersion -match "Python 3\.1[2-9]") {
+            Write-SafeHost "✅ Python 확인: $pythonVersion (호환 가능)" -Color "Green"
+            return $true
+        } else {
+            Write-SafeHost "⚠️ Python 버전 확인: $pythonVersion" -Color "Yellow"
+            Write-SafeHost "   Python 3.11+ 권장, 하지만 계속 진행합니다..." -Color "Yellow"
+            return $true
+        }
+    } catch {
+        return $false
+    }
+}
+
+function Test-UVInstallation {
+    try {
+        $uvVersion = & uv --version 2>$null
+        if ($uvVersion) {
+            Write-SafeHost "✅ UV 확인: $uvVersion" -Color "Green"
+            return $true
+        }
+        return $false
+    } catch {
+        return $false
+    }
+}
+
+function Install-Python {
+    Write-SafeHost "🐍 Python 3.11.9 다운로드 및 설치 중..." -Color "Cyan"
+    
+    $pythonUrl = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+    $pythonInstaller = "$env:TEMP\python-3.11.9-amd64.exe"
+    
+    try {
+        # Python 설치파일 다운로드
+        Write-SafeHost "   📦 Python 설치파일 다운로드 중..." -Color "Yellow"
+        Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonInstaller -UseBasicParsing
+        
+        # 자동 설치 실행
+        Write-SafeHost "   🔧 Python 설치 중 (잠시 기다려주세요...)..." -Color "Yellow"
+        $installArgs = @(
+            "/quiet",
+            "InstallAllUsers=1",
+            "PrependPath=1",
+            "Include_test=0",
+            "Include_doc=0",
+            "Include_dev=0"
+        )
+        
+        Start-Process -FilePath $pythonInstaller -ArgumentList $installArgs -Wait -NoNewWindow
+        
+        # 설치파일 정리
+        Remove-Item $pythonInstaller -ErrorAction SilentlyContinue
+        
+        Write-SafeHost "   ✓ Python 설치 완료" -Color "Green"
+        
+    } catch {
+        Write-SafeHost "   ❌ Python 설치 실패: $_" -Color "Red"
+        throw
+    }
+}
+
+function Install-UV {
+    Write-SafeHost "⚡ UV 패키지 매니저 설치 중..." -Color "Cyan"
+    
+    try {
+        # pip로 UV 설치
+        Write-SafeHost "   📦 UV 설치 중..." -Color "Yellow"
+        & python -m pip install --upgrade pip >$null 2>&1
+        & python -m pip install uv >$null 2>&1
+        
+        Write-SafeHost "   ✓ UV 설치 완료" -Color "Green"
+        
+    } catch {
+        Write-SafeHost "   ❌ UV 설치 실패: $_" -Color "Red"
+        throw
+    }
+}
+
 function Test-Prerequisites {
     Write-SafeHost "============================================================" -Color "Green"
     Write-SafeHost "  RAGTrace 완전 오프라인 패키지 생성기" -Color "Green"
@@ -76,20 +160,37 @@ function Test-Prerequisites {
         exit 1
     }
     
-    # Python 확인
-    try {
-        $pythonVersion = python --version 2>$null
-        if ($pythonVersion -match "Python 3\.11") {
-            Write-SafeHost "✅ Python 3.11 확인: $pythonVersion" -Color "Green"
-        } else {
-            Write-SafeHost "❌ Python 3.11이 필요합니다. 현재: $pythonVersion" -Color "Red"
-            Write-SafeHost "   https://www.python.org/downloads/release/python-3119/ 에서 다운로드하세요." -Color "Yellow"
+    # Python 확인 및 자동 설치
+    $pythonInstalled = Test-PythonInstallation
+    if (-not $pythonInstalled) {
+        Write-SafeHost "🐍 Python이 설치되어 있지 않습니다. 자동 설치를 시작합니다..." -Color "Yellow"
+        Install-Python
+        
+        # PATH 새로고침 후 재확인
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        Start-Sleep 2
+        
+        $pythonInstalled = Test-PythonInstallation
+        if (-not $pythonInstalled) {
+            Write-SafeHost "❌ Python 자동 설치에 실패했습니다." -Color "Red"
+            Write-SafeHost "   수동으로 Python 3.11을 설치하고 다시 실행해주세요." -Color "Yellow"
+            Write-SafeHost "   다운로드: https://www.python.org/downloads/release/python-3119/" -Color "Yellow"
             exit 1
         }
-    } catch {
-        Write-SafeHost "❌ Python이 설치되어 있지 않거나 PATH에 없습니다." -Color "Red"
-        Write-SafeHost "   Python 3.11을 설치하고 PATH에 추가하세요." -Color "Yellow"
-        exit 1
+    }
+    
+    # UV 확인 및 자동 설치
+    $uvInstalled = Test-UVInstallation
+    if (-not $uvInstalled) {
+        Write-SafeHost "⚡ UV가 설치되어 있지 않습니다. 자동 설치를 시작합니다..." -Color "Yellow"
+        Install-UV
+        
+        $uvInstalled = Test-UVInstallation
+        if (-not $uvInstalled) {
+            Write-SafeHost "❌ UV 자동 설치에 실패했습니다." -Color "Red"
+            Write-SafeHost "   수동으로 설치: pip install uv" -Color "Yellow"
+            exit 1
+        }
     }
     
     # 인터넷 연결 확인
