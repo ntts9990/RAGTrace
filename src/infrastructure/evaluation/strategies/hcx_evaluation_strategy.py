@@ -211,15 +211,33 @@ class HcxEvaluationStrategy(EvaluationStrategy):
                 print("🔄 Faithfulness 제외하고 평가 진행")
             
             try:
-                result = evaluate(
-                    dataset=converted_dataset,
-                    metrics=basic_metrics,
-                    llm=self.llm,
-                    embeddings=self.embeddings,
-                    run_config=self.run_config,
-                    raise_exceptions=False,  # 예외 발생 방지
-                    show_progress=True,
-                )
+                # HCX용 run_config 설정 확인
+                try:
+                    # run_config가 있고 LLM이 set_run_config를 지원하는지 확인
+                    if self.run_config and hasattr(self.llm, 'set_run_config'):
+                        print("🔧 RunConfig를 LLM에 설정 중...")
+                        self.llm.set_run_config(self.run_config)
+                    
+                    result = evaluate(
+                        dataset=converted_dataset,
+                        metrics=basic_metrics,
+                        llm=self.llm,
+                        embeddings=self.embeddings,
+                        run_config=None,  # HCX는 자체 설정 사용
+                        raise_exceptions=False,  # 예외 발생 방지
+                        show_progress=True,
+                    )
+                except Exception as config_error:
+                    print(f"⚠️ RunConfig 설정 오류: {config_error}")
+                    # RunConfig 없이 평가 시도
+                    result = evaluate(
+                        dataset=converted_dataset,
+                        metrics=basic_metrics,
+                        llm=self.llm,
+                        embeddings=self.embeddings,
+                        raise_exceptions=False,  # 예외 발생 방지
+                        show_progress=True,
+                    )
                 
                 # 파싱 오류가 있어도 부분 결과 반환
                 return self._handle_partial_results(result, dataset)

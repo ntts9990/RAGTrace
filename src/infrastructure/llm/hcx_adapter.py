@@ -317,6 +317,11 @@ class HcxLangChainCompat(LLM):
     @property
     def _llm_type(self) -> str:
         return "hcx"
+    
+    def set_run_config(self, run_config):
+        """RAGAS RunConfig 설정 - HCX는 무시"""
+        # HCX는 자체 설정을 사용하므로 RunConfig는 무시
+        pass
 
     def _call(self, prompt: str, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
         # RAGAS 파싱 문제 디버깅을 위해 프롬프트 컨텍스트 저장
