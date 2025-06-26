@@ -324,6 +324,14 @@ class HcxLangChainCompat(LLM):
         pass
 
     def _call(self, prompt: str, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
+        # StringPromptValue 객체 처리
+        if hasattr(prompt, 'to_string'):
+            prompt = prompt.to_string()
+        elif hasattr(prompt, 'text'):
+            prompt = prompt.text
+        elif not isinstance(prompt, str):
+            prompt = str(prompt)
+            
         # RAGAS 파싱 문제 디버깅을 위해 프롬프트 컨텍스트 저장
         self.adapter._current_prompt_context = prompt[:100] if hasattr(prompt, '__len__') else str(prompt)[:100]
         
@@ -604,7 +612,17 @@ class HcxLangChainCompat(LLM):
     ) -> List[Generation]:
         generations = []
         for prompt in prompts:
-            text = self._call(prompt, stop, **kwargs)
+            # StringPromptValue 객체 처리
+            if hasattr(prompt, 'to_string'):
+                prompt_str = prompt.to_string()
+            elif hasattr(prompt, 'text'):
+                prompt_str = prompt.text
+            elif not isinstance(prompt, str):
+                prompt_str = str(prompt)
+            else:
+                prompt_str = prompt
+                
+            text = self._call(prompt_str, stop, **kwargs)
             generations.append(Generation(text=text))
         return generations
 
