@@ -4,10 +4,8 @@ import threading
 import time
 
 from src.application.ports.llm import LlmPort
-from langchain_core.language_models.llms import LLM, BaseLLM
+from langchain_core.language_models.llms import LLM
 from langchain_core.outputs import GenerationChunk, Generation, LLMResult
-from langchain_core.prompt_values import PromptValue, StringPromptValue
-from langchain_core.callbacks import CallbackManagerForLLMRun
 
 
 # 글로벌 HCX API 요청 제한을 위한 세마포어
@@ -308,7 +306,7 @@ class HcxAdapter(LlmPort):
         return HcxLangChainCompat(adapter=self)
 
 
-class HcxLangChainCompat(BaseLLM):
+class HcxLangChainCompat(LLM):
     """HcxAdapter를 LangChain LLM처럼 사용하기 위한 래퍼 클래스"""
     
     def __init__(self, adapter: HcxAdapter, **kwargs):
@@ -325,16 +323,7 @@ class HcxLangChainCompat(BaseLLM):
         # HCX는 자체 설정을 사용하므로 RunConfig는 무시
         pass
 
-    def _call(self, prompt: Any, stop: List[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any) -> str:
-        # PromptValue 객체 처리 (StringPromptValue 포함)
-        if isinstance(prompt, PromptValue):
-            prompt = prompt.to_string()
-        elif hasattr(prompt, 'to_string'):
-            prompt = prompt.to_string()
-        elif hasattr(prompt, 'text'):
-            prompt = prompt.text
-        elif not isinstance(prompt, str):
-            prompt = str(prompt)
+    def _call(self, prompt: str, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
             
         # RAGAS 파싱 문제 디버깅을 위해 프롬프트 컨텍스트 저장
         self.adapter._current_prompt_context = prompt[:100] if hasattr(prompt, '__len__') else str(prompt)[:100]
@@ -612,26 +601,13 @@ class HcxLangChainCompat(BaseLLM):
         return self.adapter._post_process_response(result)
         
     def _generate(
-        self, prompts: List[Any], stop: List[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any
-    ) -> LLMResult:
+        self, prompts: List[str], stop: List[str] | None = None, **kwargs: Any
+    ) -> List[Generation]:
         generations = []
         for prompt in prompts:
-            # PromptValue 객체 처리 (StringPromptValue 포함)  
-            if isinstance(prompt, (PromptValue, StringPromptValue)):
-                prompt_str = prompt.to_string()
-            elif hasattr(prompt, 'to_string'):
-                prompt_str = prompt.to_string()
-            elif hasattr(prompt, 'text'):
-                prompt_str = prompt.text
-            elif not isinstance(prompt, str):
-                prompt_str = str(prompt)
-            else:
-                prompt_str = prompt
-                
-            text = self._call(prompt_str, stop, run_manager, **kwargs)
-            generations.append([Generation(text=text)])
-        
-        return LLMResult(generations=generations)
+            text = self._call(prompt, stop, **kwargs)
+            generations.append(Generation(text=text))
+        return generations
 
     @property
     def _identifying_params(self) -> Dict[str, Any]:
