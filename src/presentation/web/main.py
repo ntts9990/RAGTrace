@@ -710,9 +710,29 @@ def show_new_evaluation_page():
             dataset_path = get_evaluation_data_path(selected_dataset)
             if dataset_path:
                 try:
-                    with open(dataset_path, encoding="utf-8") as f:
-                        qa_data = json.load(f)
-                        st.info(f"📋 선택된 데이터셋: **{selected_dataset}** ({len(qa_data)}개 QA 쌍)")
+                    from pathlib import Path
+                    from src.infrastructure.data_import.importers import ExcelImporter, CSVImporter
+                    
+                    file_path_obj = Path(dataset_path)
+                    file_extension = file_path_obj.suffix.lower()
+                    
+                    if file_extension in ['.xlsx', '.xls']:
+                        # Excel 파일 처리
+                        importer = ExcelImporter()
+                        evaluation_data_list = importer.import_data(file_path_obj)
+                        qa_count = len(evaluation_data_list)
+                    elif file_extension == '.csv':
+                        # CSV 파일 처리
+                        importer = CSVImporter()
+                        evaluation_data_list = importer.import_data(file_path_obj)
+                        qa_count = len(evaluation_data_list)
+                    else:
+                        # JSON 파일 처리 (기본)
+                        with open(dataset_path, encoding="utf-8") as f:
+                            qa_data = json.load(f)
+                            qa_count = len(qa_data)
+                    
+                    st.info(f"📋 선택된 데이터셋: **{selected_dataset}** ({qa_count}개 QA 쌍)")
                 except Exception as e:
                     st.warning(f"데이터셋 정보 로드 실패: {e}")
     
@@ -981,11 +1001,46 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
             dataset_path = get_evaluation_data_path(dataset_name)
             if dataset_path:
                 try:
-                    with open(dataset_path, encoding="utf-8") as f:
-                        qa_data = json.load(f)
-                        qa_count = len(result_dict.get("individual_scores", []))
-                        result_dict["qa_count"] = qa_count
-                        result_dict["qa_data"] = qa_data[:qa_count]
+                    from pathlib import Path
+                    from src.infrastructure.data_import.importers import ExcelImporter, CSVImporter
+                    
+                    file_path_obj = Path(dataset_path)
+                    file_extension = file_path_obj.suffix.lower()
+                    
+                    if file_extension in ['.xlsx', '.xls']:
+                        # Excel 파일 처리
+                        importer = ExcelImporter()
+                        evaluation_data_list = importer.import_data(file_path_obj)
+                        qa_data = [
+                            {
+                                "question": item.question,
+                                "contexts": item.contexts,
+                                "answer": item.answer,
+                                "ground_truth": item.ground_truth
+                            }
+                            for item in evaluation_data_list
+                        ]
+                    elif file_extension == '.csv':
+                        # CSV 파일 처리
+                        importer = CSVImporter()
+                        evaluation_data_list = importer.import_data(file_path_obj)
+                        qa_data = [
+                            {
+                                "question": item.question,
+                                "contexts": item.contexts,
+                                "answer": item.answer,
+                                "ground_truth": item.ground_truth
+                            }
+                            for item in evaluation_data_list
+                        ]
+                    else:
+                        # JSON 파일 처리 (기본)
+                        with open(dataset_path, encoding="utf-8") as f:
+                            qa_data = json.load(f)
+                    
+                    qa_count = len(result_dict.get("individual_scores", []))
+                    result_dict["qa_count"] = qa_count
+                    result_dict["qa_data"] = qa_data[:qa_count]
                 except Exception as e:
                     st.warning(f"QA 데이터 로드 실패: {e}")
                     result_dict["qa_count"] = len(result_dict.get("individual_scores", []))
