@@ -37,15 +37,15 @@ class FileRepositoryAdapter(EvaluationRepositoryPort):
         
         try:
             if file_extension in ['.xlsx', '.xls']:
-                # Excel 파일 처리
+                # Excel 파일 처리 - 이미 EvaluationData 객체 리스트를 반환
                 importer = ExcelImporter()
-                data = importer.import_data(file_path)
+                return importer.import_data(file_path)
             elif file_extension == '.csv':
-                # CSV 파일 처리
+                # CSV 파일 처리 - 이미 EvaluationData 객체 리스트를 반환
                 importer = CSVImporter()
-                data = importer.import_data(file_path)
+                return importer.import_data(file_path)
             else:
-                # JSON 파일 처리 (기본)
+                # JSON 파일 처리 (기본) - dict 리스트이므로 아래에서 변환 필요
                 try:
                     with open(self.file_path, encoding="utf-8") as f:
                         data = json.load(f)
