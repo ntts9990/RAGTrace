@@ -474,9 +474,12 @@ def show_individual_qa_details_actual(
 
     for i, metric in enumerate(metrics):
         with score_cols[i]:
-            score = qa_scores.get(metric, 0)
-            color = "green" if score >= 0.8 else "orange" if score >= 0.6 else "red"
-            st.metric(label=metric.replace("_", " ").title(), value=f"{score:.3f}")
+            score = qa_scores.get(metric, None)
+            if score is not None:
+                color = "green" if score >= 0.8 else "orange" if score >= 0.6 else "red"
+                st.metric(label=metric.replace("_", " ").title(), value=f"{score:.3f}")
+            else:
+                st.metric(label=metric.replace("_", " ").title(), value="실패", delta="파싱 오류")
 
     # 점수 시각화
     show_qa_score_chart_actual(qa_scores, qa_number)
@@ -492,9 +495,14 @@ def show_qa_score_chart_actual(scores, qa_number):
     col1, col2 = st.columns(2)
 
     with col1:
-        # 바 차트
-        metrics = list(scores.keys())
-        values = list(scores.values())
+        # 바 차트 (None 값 제외)
+        valid_scores = {k: v for k, v in scores.items() if v is not None}
+        metrics = list(valid_scores.keys())
+        values = list(valid_scores.values())
+        
+        if not metrics:
+            st.warning("⚠️ 유효한 점수가 없습니다 (모든 메트릭에서 파싱 실패)")
+            return
 
         fig = go.Figure(
             data=[
