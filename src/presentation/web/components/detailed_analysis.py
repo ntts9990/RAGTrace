@@ -101,6 +101,9 @@ def load_evaluation_by_id(evaluation_id):
 def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
     """간단한 버전 - 직접 파일 로드"""
     try:
+        from pathlib import Path
+        from src.infrastructure.data_import.importers import ExcelImporter, CSVImporter
+        
         # 하드코딩된 절대 경로 사용
         if "variant1" in dataset_name:
             file_path = get_evaluation_data_path("evaluation_data_variant1.json")
@@ -111,9 +114,41 @@ def load_actual_qa_data_from_dataset_simple(dataset_name, qa_count):
             st.error(f"데이터셋 '{dataset_name}'을 찾을 수 없습니다.")
             return None
 
-        with open(file_path, encoding="utf-8") as f:
-            data = json.load(f)
-            return data[:qa_count]
+        file_path_obj = Path(file_path)
+        file_extension = file_path_obj.suffix.lower()
+        
+        if file_extension in ['.xlsx', '.xls']:
+            # Excel 파일 처리
+            importer = ExcelImporter()
+            evaluation_data_list = importer.import_data(file_path_obj)
+            data = [
+                {
+                    "question": item.question,
+                    "contexts": item.contexts,
+                    "answer": item.answer,
+                    "ground_truth": item.ground_truth
+                }
+                for item in evaluation_data_list
+            ]
+        elif file_extension == '.csv':
+            # CSV 파일 처리
+            importer = CSVImporter()
+            evaluation_data_list = importer.import_data(file_path_obj)
+            data = [
+                {
+                    "question": item.question,
+                    "contexts": item.contexts,
+                    "answer": item.answer,
+                    "ground_truth": item.ground_truth
+                }
+                for item in evaluation_data_list
+            ]
+        else:
+            # JSON 파일 처리 (기본)
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+        
+        return data[:qa_count]
     except Exception as e:
         st.error(f"데이터 로드 실패: {e}")
         return None
@@ -134,8 +169,42 @@ def load_actual_qa_data_from_dataset(dataset_name, qa_count):
             return None
 
         # 파일 로드 및 파싱
-        with open(file_path, encoding="utf-8") as f:
-            all_qa_data = json.load(f)
+        from pathlib import Path
+        from src.infrastructure.data_import.importers import ExcelImporter, CSVImporter
+        
+        file_path_obj = Path(file_path)
+        file_extension = file_path_obj.suffix.lower()
+        
+        if file_extension in ['.xlsx', '.xls']:
+            # Excel 파일 처리
+            importer = ExcelImporter()
+            evaluation_data_list = importer.import_data(file_path_obj)
+            all_qa_data = [
+                {
+                    "question": item.question,
+                    "contexts": item.contexts,
+                    "answer": item.answer,
+                    "ground_truth": item.ground_truth
+                }
+                for item in evaluation_data_list
+            ]
+        elif file_extension == '.csv':
+            # CSV 파일 처리
+            importer = CSVImporter()
+            evaluation_data_list = importer.import_data(file_path_obj)
+            all_qa_data = [
+                {
+                    "question": item.question,
+                    "contexts": item.contexts,
+                    "answer": item.answer,
+                    "ground_truth": item.ground_truth
+                }
+                for item in evaluation_data_list
+            ]
+        else:
+            # JSON 파일 처리 (기본)
+            with open(file_path, encoding="utf-8") as f:
+                all_qa_data = json.load(f)
 
         if not isinstance(all_qa_data, list) or len(all_qa_data) == 0:
             st.error(

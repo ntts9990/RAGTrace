@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import List
 
 from pydantic import ValidationError
@@ -6,6 +7,7 @@ from pydantic import ValidationError
 from src.application.ports.repository import EvaluationRepositoryPort
 from src.domain import EvaluationData
 from src.domain.exceptions import InvalidDataFormatError
+from src.infrastructure.data_import.importers import ExcelImporter, CSVImporter
 
 
 class FileRepositoryAdapter(EvaluationRepositoryPort):
@@ -16,24 +18,49 @@ class FileRepositoryAdapter(EvaluationRepositoryPort):
 
     def load_data(self) -> List[EvaluationData]:
         """
-        지정된 경로의 JSON 파일을 읽어 EvaluationData 객체 리스트로 변환합니다.
+        지정된 경로의 파일을 읽어 EvaluationData 객체 리스트로 변환합니다.
+        JSON, Excel (.xlsx, .xls), CSV 파일을 지원합니다.
         
         Raises:
             InvalidDataFormatError: 파일 형식이나 데이터 구조에 문제가 있는 경우
         """
-        try:
-            with open(self.file_path, encoding="utf-8") as f:
-                data = json.load(f)
-        except FileNotFoundError:
+        file_path = Path(self.file_path)
+        
+        if not file_path.exists():
             raise InvalidDataFormatError(
                 f"평가 데이터 파일을 찾을 수 없습니다: {self.file_path}",
                 file_path=self.file_path
             )
-        except json.JSONDecodeError as e:
+        
+        # 파일 확장자에 따라 적절한 importer 사용
+        file_extension = file_path.suffix.lower()
+        
+        try:
+            if file_extension in ['.xlsx', '.xls']:
+                # Excel 파일 처리
+                importer = ExcelImporter()
+                data = importer.import_data(file_path)
+            elif file_extension == '.csv':
+                # CSV 파일 처리
+                importer = CSVImporter()
+                data = importer.import_data(file_path)
+            else:
+                # JSON 파일 처리 (기본)
+                try:
+                    with open(self.file_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                except json.JSONDecodeError as e:
+                    raise InvalidDataFormatError(
+                        f"JSON 파일 형식이 올바르지 않습니다: {str(e)}",
+                        file_path=self.file_path,
+                        line_number=getattr(e, 'lineno', None)
+                    )
+        except Exception as e:
+            if isinstance(e, InvalidDataFormatError):
+                raise
             raise InvalidDataFormatError(
-                f"JSON 파일 형식이 올바르지 않습니다: {str(e)}",
-                file_path=self.file_path,
-                line_number=getattr(e, 'lineno', None)
+                f"파일 읽기 실패: {str(e)}",
+                file_path=self.file_path
             )
         
         if not isinstance(data, list):
