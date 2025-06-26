@@ -183,6 +183,10 @@ class HcxAdapter(LlmPort):
         import re
         import json
         
+        # 디버그 로그 (RAGAS 파싱 문제 디버깅용)
+        if "fix_output_format" in str(self._current_prompt_context if hasattr(self, '_current_prompt_context') else ""):
+            print(f"[HCX] RAGAS 파싱 디버그 - 원본 응답: {content[:200]}...")
+        
         # RAGAS가 기대하는 JSON 형식 확인
         if content.startswith('{') and content.endswith('}'):
             try:
@@ -203,33 +207,58 @@ class HcxAdapter(LlmPort):
             except:
                 pass
         
-        # 중괄호로 둘러싸인 JSON 찾기
-        json_match = re.search(r'(\{[^{}]*\})', content, re.DOTALL)
-        if json_match:
+        # 중괄호로 둘러싸인 JSON 찾기 (중첩 가능)
+        json_matches = list(re.finditer(r'(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})', content, re.DOTALL))
+        for match in json_matches:
             try:
-                json_content = json_match.group(1)
+                json_content = match.group(1)
                 parsed = json.loads(json_content)
                 return json_content
             except:
-                pass
+                continue
         
         # RAGAS가 기대하는 특정 형식들 처리
         # 1. Yes/No 질문에 대한 응답을 JSON으로 변환
         content_lower = content.lower()
+        # 단독 yes/no 응답
+        if content_lower in ['yes', 'no', '예', '아니오', 'true', 'false']:
+            answer = 'Yes' if content_lower in ['yes', '예', 'true'] else 'No'
+            return f'{{"answer": "{answer}"}}'
+        
+        # 문장 속 yes/no 찾기
         if any(word in content_lower for word in ['yes', '예', '맞습니다', '그렇습니다']):
             if not any(word in content_lower for word in ['no', '아니', '아닙니다', '그렇지 않습니다']):
                 return '{"answer": "Yes"}'
         elif any(word in content_lower for word in ['no', '아니', '아닙니다', '그렇지 않습니다']):
             return '{"answer": "No"}'
         
-        # 2. 숫자/점수 응답을 JSON으로 변환
+        # 2. 숫자/점수 응답을 JSON으로 변환 (RAGAS는 0-1 또는 1-5 점수를 자주 사용)
+        # 단독 숫자 응답
+        if re.match(r'^[\d.]+$', content):
+            try:
+                score = float(content)
+                return f'{{"score": {score}}}'
+            except:
+                pass
+        
+        # 문장 속 숫자 찾기
         number_match = re.search(r'\b(\d+(?:\.\d+)?)\b', content)
-        if number_match and len(content.split()) <= 5:
+        if number_match and len(content.split()) <= 10:  # 짧은 응답에서만
             score = number_match.group(1)
-            return f'{{"score": {score}}}'
+            try:
+                score_float = float(score)
+                # RAGAS 점수 범위 정규화
+                if 0 <= score_float <= 10:
+                    if score_float > 5:
+                        score_float = score_float / 10  # 0-10을 0-1로
+                    elif score_float > 1 and '5' in content:  # 1-5 척도로 추정
+                        score_float = score_float / 5  # 1-5를 0-1로
+                    return f'{{"score": {score_float}}}'
+            except:
+                pass
         
         # 3. 리스트 형태 응답을 JSON 배열로 변환
-        if content.startswith('- ') or content.startswith('1. '):
+        if re.match(r'^[\s\-\*\•\d\.]+', content):
             lines = [line.strip() for line in content.split('\n') if line.strip()]
             items = []
             for line in lines:
@@ -240,9 +269,34 @@ class HcxAdapter(LlmPort):
             if items:
                 return json.dumps({"items": items}, ensure_ascii=False)
         
-        # 4. 일반 텍스트를 JSON으로 감싸기
-        # 특수문자 이스케이프 처리
-        escaped_content = content.replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+        # 4. 특정 키워드로 시작하는 응답 처리
+        # RAGAS는 종종 "answer:", "score:", "verdict:" 같은 형식 사용
+        keyword_patterns = [
+            (r'^(?:answer|답변|대답)[:：]\s*(.+)', 'answer'),
+            (r'^(?:score|점수|평점)[:：]\s*(.+)', 'score'),
+            (r'^(?:verdict|판정|결과)[:：]\s*(.+)', 'verdict'),
+            (r'^(?:rating|등급|평가)[:：]\s*(.+)', 'rating'),
+            (r'^(?:result|결과)[:：]\s*(.+)', 'result')
+        ]
+        
+        for pattern, key in keyword_patterns:
+            match = re.match(pattern, content, re.IGNORECASE | re.DOTALL)
+            if match:
+                value = match.group(1).strip()
+                # 값이 숫자인지 확인
+                try:
+                    float_value = float(value)
+                    return f'{{"{key}": {float_value}}}'
+                except:
+                    # 문자열로 처리
+                    escaped_value = value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+                    return f'{{"{key}": "{escaped_value}"}}'
+        
+        # 5. 일반 텍스트를 JSON으로 감싸기
+        # 특수문자 이스케이프 처리 (백슬래시 먼저 처리)
+        escaped_content = content.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+        
+        # RAGAS가 가장 자주 기대하는 형식으로 반환
         return f'{{"answer": "{escaped_content}"}}'
 
     def get_llm(self) -> Any:
@@ -265,9 +319,18 @@ class HcxLangChainCompat(LLM):
         return "hcx"
 
     def _call(self, prompt: str, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
+        # RAGAS 파싱 문제 디버깅을 위해 프롬프트 컨텍스트 저장
+        self.adapter._current_prompt_context = prompt[:100] if hasattr(prompt, '__len__') else str(prompt)[:100]
+        
         # Ragas는 주로 (question, contexts) 쌍으로 평가하지만,
         # 일부 메트릭은 단일 프롬프트(텍스트)를 사용하므로, 이를 question으로 간주합니다.
-        return self.adapter.generate_answer(question=prompt, contexts=[])
+        result = self.adapter.generate_answer(question=prompt, contexts=[])
+        
+        # 디버그: RAGAS 파싱 오류가 자주 발생하는 프롬프트 확인
+        if "fix_output_format" in prompt.lower():
+            print(f"[HCX] fix_output_format 프롬프트 감지 - 응답: {result[:200]}...")
+        
+        return result
         
     def _generate(
         self, prompts: List[str], stop: List[str] | None = None, **kwargs: Any
