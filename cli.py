@@ -9,6 +9,7 @@ RAGAS 평가를 명령줄에서 실행할 수 있는 CLI 도구
 import argparse
 import sys
 import json
+import statistics
 from typing import Optional
 from pathlib import Path
 from datetime import datetime
@@ -44,6 +45,12 @@ def create_parser() -> argparse.ArgumentParser:
   
   # 한국어 기술 문서 프롬프트로 평가
   python cli.py evaluate evaluation_data.json --prompt-type korean_tech
+  
+  # 평가 결과 고급 통계 분석
+  python cli.py analyze-results results.json --analysis-type all
+  
+  # 여러 평가 결과 비교 분석
+  python cli.py compare-results model1.json model2.json --labels "Model A" "Model B"
   
   # 사용 가능한 데이터셋 목록 보기
   python cli.py list-datasets
@@ -169,6 +176,47 @@ def create_parser() -> argparse.ArgumentParser:
         "--verbose", "-v",
         action="store_true",
         help="상세한 로그 출력"
+    )
+    
+    # analyze-results 서브커맨드 (새로 추가)
+    analyze_parser = subparsers.add_parser("analyze-results", help="평가 결과 고급 통계 분석")
+    analyze_parser.add_argument(
+        "result_file",
+        help="분석할 평가 결과 JSON 파일 경로"
+    )
+    analyze_parser.add_argument(
+        "--analysis-type",
+        choices=["basic", "eda", "advanced", "all"],
+        default="all", 
+        help="분석 유형 (기본값: all)"
+    )
+    analyze_parser.add_argument(
+        "--output-dir",
+        default="analysis_results",
+        help="분석 결과 저장 디렉토리 (기본값: analysis_results)"
+    )
+    analyze_parser.add_argument(
+        "--save-plots",
+        action="store_true",
+        help="차트를 이미지 파일로 저장"
+    )
+    
+    # compare-results 서브커맨드 (새로 추가)
+    compare_parser = subparsers.add_parser("compare-results", help="여러 평가 결과 비교 분석")
+    compare_parser.add_argument(
+        "result_files",
+        nargs="+",
+        help="비교할 평가 결과 JSON 파일들"
+    )
+    compare_parser.add_argument(
+        "--output-dir",
+        default="comparison_results",
+        help="비교 결과 저장 디렉토리 (기본값: comparison_results)"
+    )
+    compare_parser.add_argument(
+        "--labels",
+        nargs="*",
+        help="각 결과 파일의 라벨 (미지정 시 파일명 사용)"
     )
     
     return parser
@@ -937,10 +985,339 @@ def main():
         if not success:
             sys.exit(1)
     
+    elif args.command == "analyze-results":
+        success = analyze_results(args)
+        if not success:
+            sys.exit(1)
+    
+    elif args.command == "compare-results":
+        success = compare_results(args)
+        if not success:
+            sys.exit(1)
+    
     else:
         print(f"❌ 알 수 없는 명령어: {args.command}")
         parser.print_help()
         sys.exit(1)
+
+
+def analyze_results(args) -> bool:
+    """평가 결과 고급 통계 분석"""
+    try:
+        result_file = Path(args.result_file)
+        if not result_file.exists():
+            print(f"❌ 결과 파일을 찾을 수 없습니다: {result_file}")
+            return False
+        
+        # 결과 파일 로드
+        with open(result_file, 'r', encoding='utf-8') as f:
+            result_data = json.load(f)
+        
+        print(f"📊 결과 분석 시작: {result_file.name}")
+        print(f"🎯 분석 유형: {args.analysis_type}")
+        
+        # 출력 디렉토리 생성
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(exist_ok=True)
+        
+        # 개별 점수 추출
+        individual_scores = result_data.get("individual_scores", [])
+        if not individual_scores:
+            print("⚠️ 개별 점수 데이터가 없습니다. 기본 통계만 출력합니다.")
+            
+        # 분석 유형에 따른 처리
+        if args.analysis_type in ["basic", "all"]:
+            print("\n📈 기초 통계 분석")
+            basic_stats = perform_basic_analysis(result_data, individual_scores)
+            save_basic_analysis(basic_stats, output_dir)
+            
+        if args.analysis_type in ["eda", "all"]:
+            print("\n🔍 탐색적 데이터 분석 (EDA)")
+            eda_results = perform_eda_analysis(individual_scores)
+            save_eda_analysis(eda_results, output_dir)
+            
+        if args.analysis_type in ["advanced", "all"]:
+            print("\n🧮 고급 통계 분석")
+            advanced_stats = perform_advanced_analysis(individual_scores)
+            save_advanced_analysis(advanced_stats, output_dir)
+        
+        print(f"\n✅ 분석 완료! 결과가 {output_dir}에 저장되었습니다.")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 분석 중 오류 발생: {e}")
+        return False
+
+
+def compare_results(args) -> bool:
+    """여러 평가 결과 비교 분석"""
+    try:
+        result_files = [Path(f) for f in args.result_files]
+        
+        # 파일 존재 확인
+        for result_file in result_files:
+            if not result_file.exists():
+                print(f"❌ 결과 파일을 찾을 수 없습니다: {result_file}")
+                return False
+        
+        print(f"📊 {len(result_files)}개 결과 파일 비교 분석")
+        
+        # 라벨 설정
+        if args.labels and len(args.labels) == len(result_files):
+            labels = args.labels
+        else:
+            labels = [f.stem for f in result_files]
+        
+        # 출력 디렉토리 생성
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(exist_ok=True)
+        
+        # 결과 데이터 로드
+        results_data = []
+        for i, result_file in enumerate(result_files):
+            with open(result_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                data['label'] = labels[i]
+                results_data.append(data)
+        
+        # 비교 분석 수행
+        comparison_stats = perform_comparison_analysis(results_data)
+        save_comparison_analysis(comparison_stats, output_dir, labels)
+        
+        print(f"\n✅ 비교 분석 완료! 결과가 {output_dir}에 저장되었습니다.")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 비교 분석 중 오류 발생: {e}")
+        return False
+
+
+def perform_basic_analysis(result_data: dict, individual_scores: list) -> dict:
+    """기초 통계 분석 수행"""
+    print("  📋 메트릭별 기초 통계 계산 중...")
+    
+    metrics = ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision', 'answer_correctness']
+    basic_stats = {}
+    
+    for metric in metrics:
+        if metric in result_data:
+            # 전체 평균값
+            overall_mean = result_data[metric]
+            
+            # 개별 점수에서 통계 계산 (None 값 제외)
+            if individual_scores:
+                scores = [item.get(metric) for item in individual_scores if item.get(metric) is not None]
+                if scores:
+                    basic_stats[metric] = {
+                        'mean': statistics.mean(scores),
+                        'median': statistics.median(scores),
+                        'std_dev': statistics.stdev(scores) if len(scores) > 1 else 0.0,
+                        'min': min(scores),
+                        'max': max(scores),
+                        'count': len(scores),
+                        'success_rate': len(scores) / len(individual_scores) * 100
+                    }
+                else:
+                    basic_stats[metric] = {'error': 'No valid scores'}
+            else:
+                basic_stats[metric] = {'mean': overall_mean, 'count': 1}
+    
+    # 전체 성능 등급 계산
+    if 'ragas_score' in result_data:
+        ragas_score = result_data['ragas_score']
+        if ragas_score >= 0.8:
+            grade = "A (우수)"
+        elif ragas_score >= 0.6:
+            grade = "B (보통)"
+        elif ragas_score >= 0.4:
+            grade = "C (개선 필요)"
+        else:
+            grade = "D (크게 개선 필요)"
+        
+        basic_stats['overall'] = {
+            'ragas_score': ragas_score,
+            'grade': grade
+        }
+    
+    return basic_stats
+
+
+def perform_eda_analysis(individual_scores: list) -> dict:
+    """탐색적 데이터 분석 수행"""
+    if not individual_scores:
+        return {'error': 'No individual scores available'}
+    
+    print("  🔍 상관관계 및 분포 분석 중...")
+    
+    import pandas as pd
+    import numpy as np
+    
+    # DataFrame 생성 (None 값 제외)
+    df = pd.DataFrame(individual_scores)
+    
+    # 상관관계 매트릭스 계산
+    numeric_df = df.select_dtypes(include=[np.number])
+    correlation_matrix = numeric_df.corr()
+    
+    # 분포 특성 분석
+    distribution_stats = {}
+    for column in numeric_df.columns:
+        data = numeric_df[column].dropna()
+        if len(data) > 0:
+            distribution_stats[column] = {
+                'skewness': float(data.skew()),
+                'kurtosis': float(data.kurtosis()),
+                'quartiles': {
+                    'q1': float(data.quantile(0.25)),
+                    'q2': float(data.quantile(0.5)),
+                    'q3': float(data.quantile(0.75)),
+                    'iqr': float(data.quantile(0.75) - data.quantile(0.25))
+                }
+            }
+    
+    return {
+        'correlation_matrix': correlation_matrix.to_dict(),
+        'distribution_stats': distribution_stats,
+        'data_completeness': {
+            'total_samples': len(individual_scores),
+            'missing_data': df.isnull().sum().to_dict()
+        }
+    }
+
+
+def perform_advanced_analysis(individual_scores: list) -> dict:
+    """고급 통계 분석 수행"""
+    if not individual_scores or len(individual_scores) < 3:
+        return {'error': 'Insufficient data for advanced analysis (need at least 3 samples)'}
+    
+    print("  🧮 정규성 검정 및 신뢰구간 계산 중...")
+    
+    import pandas as pd
+    import numpy as np
+    from scipy import stats
+    
+    df = pd.DataFrame(individual_scores)
+    advanced_stats = {}
+    
+    for column in df.select_dtypes(include=[np.number]).columns:
+        data = df[column].dropna()
+        if len(data) >= 3:
+            # 정규성 검정
+            shapiro_stat, shapiro_p = stats.shapiro(data)
+            
+            # 신뢰구간 (95%)
+            mean_val = np.mean(data)
+            sem = stats.sem(data)
+            ci_95 = stats.t.interval(0.95, df=len(data)-1, loc=mean_val, scale=sem)
+            
+            advanced_stats[column] = {
+                'normality_test': {
+                    'shapiro_wilk_statistic': float(shapiro_stat),
+                    'shapiro_wilk_p_value': float(shapiro_p),
+                    'is_normal': shapiro_p > 0.05
+                },
+                'confidence_intervals': {
+                    'mean': float(mean_val),
+                    'ci_95_lower': float(ci_95[0]),
+                    'ci_95_upper': float(ci_95[1]),
+                    'margin_of_error': float(ci_95[1] - mean_val)
+                }
+            }
+    
+    return advanced_stats
+
+
+def perform_comparison_analysis(results_data: list) -> dict:
+    """여러 결과 비교 분석"""
+    print("  📊 모델 간 성능 비교 중...")
+    
+    metrics = ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision', 'answer_correctness', 'ragas_score']
+    comparison_stats = {}
+    
+    for metric in metrics:
+        metric_values = []
+        labels = []
+        
+        for result in results_data:
+            if metric in result:
+                metric_values.append(result[metric])
+                labels.append(result['label'])
+        
+        if metric_values:
+            comparison_stats[metric] = {
+                'values': dict(zip(labels, metric_values)),
+                'best_model': labels[metric_values.index(max(metric_values))],
+                'worst_model': labels[metric_values.index(min(metric_values))],
+                'range': max(metric_values) - min(metric_values),
+                'mean': statistics.mean(metric_values),
+                'std_dev': statistics.stdev(metric_values) if len(metric_values) > 1 else 0.0
+            }
+    
+    return comparison_stats
+
+
+def save_basic_analysis(stats: dict, output_dir: Path):
+    """기초 통계 분석 결과 저장"""
+    with open(output_dir / 'basic_analysis.json', 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
+    
+    # 텍스트 요약 저장
+    with open(output_dir / 'basic_analysis_summary.txt', 'w', encoding='utf-8') as f:
+        f.write("📈 기초 통계 분석 요약\n")
+        f.write("=" * 50 + "\n\n")
+        
+        for metric, data in stats.items():
+            if metric == 'overall':
+                f.write(f"🎯 전체 성능: {data.get('grade', 'N/A')} (점수: {data.get('ragas_score', 0):.3f})\n\n")
+            elif 'error' not in data:
+                f.write(f"{metric}:\n")
+                f.write(f"  평균: {data.get('mean', 0):.3f}\n")
+                f.write(f"  중앙값: {data.get('median', 0):.3f}\n")
+                f.write(f"  표준편차: {data.get('std_dev', 0):.3f}\n")
+                f.write(f"  범위: {data.get('min', 0):.3f} ~ {data.get('max', 0):.3f}\n")
+                if 'success_rate' in data:
+                    f.write(f"  성공률: {data['success_rate']:.1f}%\n")
+                f.write("\n")
+    
+    print(f"  ✅ 기초 분석 결과 저장: {output_dir}/basic_analysis.json")
+
+
+def save_eda_analysis(results: dict, output_dir: Path):
+    """EDA 분석 결과 저장"""
+    with open(output_dir / 'eda_analysis.json', 'w', encoding='utf-8') as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    
+    print(f"  ✅ EDA 분석 결과 저장: {output_dir}/eda_analysis.json")
+
+
+def save_advanced_analysis(stats: dict, output_dir: Path):
+    """고급 통계 분석 결과 저장"""
+    with open(output_dir / 'advanced_analysis.json', 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
+    
+    print(f"  ✅ 고급 분석 결과 저장: {output_dir}/advanced_analysis.json")
+
+
+def save_comparison_analysis(stats: dict, output_dir: Path, labels: list):
+    """비교 분석 결과 저장"""
+    with open(output_dir / 'comparison_analysis.json', 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=2, ensure_ascii=False)
+    
+    # 비교 요약 저장
+    with open(output_dir / 'comparison_summary.txt', 'w', encoding='utf-8') as f:
+        f.write("📊 모델 비교 분석 요약\n")
+        f.write("=" * 50 + "\n\n")
+        f.write(f"비교 대상: {', '.join(labels)}\n\n")
+        
+        for metric, data in stats.items():
+            if 'values' in data:
+                f.write(f"{metric}:\n")
+                f.write(f"  최고 성능: {data['best_model']} ({data['values'][data['best_model']]:.3f})\n")
+                f.write(f"  최저 성능: {data['worst_model']} ({data['values'][data['worst_model']]:.3f})\n")
+                f.write(f"  성능 차이: {data['range']:.3f}\n")
+                f.write(f"  평균: {data['mean']:.3f}\n\n")
+    
+    print(f"  ✅ 비교 분석 결과 저장: {output_dir}/comparison_analysis.json")
 
 
 if __name__ == "__main__":

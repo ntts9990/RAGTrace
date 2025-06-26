@@ -207,6 +207,58 @@ uv run python cli.py export-results result.json --format csv --output-dir csv_on
 uv run python cli.py export-results result.json --format report --output-dir reports
 ```
 
+### **5. 고급 통계 분석 (CLI)**
+
+평가 결과에 대한 심화 통계 분석을 CLI에서도 수행할 수 있습니다:
+
+```bash
+# 기본 통계 분석
+uv run python cli.py analyze-results evaluation_results.json --analysis-type basic
+
+# 탐색적 데이터 분석 (EDA)
+uv run python cli.py analyze-results evaluation_results.json --analysis-type eda
+
+# 고급 통계 분석 (정규성 검정, 신뢰구간)
+uv run python cli.py analyze-results evaluation_results.json --analysis-type advanced
+
+# 모든 분석 수행
+uv run python cli.py analyze-results evaluation_results.json --analysis-type all
+
+# 여러 모델 비교 분석
+uv run python cli.py compare-results model1_results.json model2_results.json \
+  --labels "Gemini 2.5" "HCX-005" --output-dir comparison_results
+```
+
+**생성되는 분석 파일들:**
+- `basic_analysis.json`: 기초 통계 (평균, 중앙값, 표준편차, 성공률)
+- `basic_analysis_summary.txt`: 기초 통계 텍스트 요약
+- `eda_analysis.json`: 상관관계 매트릭스, 분포 특성, 데이터 완성도
+- `advanced_analysis.json`: 정규성 검정 (Shapiro-Wilk), 95% 신뢰구간
+- `comparison_analysis.json`: 모델 간 성능 비교 통계
+- `comparison_summary.txt`: 비교 분석 텍스트 요약
+
+**분석 결과 예시:**
+```txt
+📈 기초 통계 분석 요약
+===================================
+
+🎯 전체 성능: B (보통) (점수: 0.723)
+
+faithfulness:
+  평균: 0.650
+  중앙값: 0.700
+  표준편차: 0.120
+  범위: 0.400 ~ 0.800
+  성공률: 85.0%
+
+answer_relevancy:
+  평균: 0.784
+  중앙값: 0.790
+  표준편차: 0.095
+  범위: 0.650 ~ 0.920
+  성공률: 90.0%
+```
+
 ## 🌐 웹 대시보드 사용법
 
 ### **대시보드 실행**
@@ -257,6 +309,24 @@ uv run python cli.py resume-evaluation dataset_20241224_143022_abc12345
 uv run python cli.py cleanup-checkpoints --days 7
 ```
 
+### **통계 분석 명령어**
+
+```bash
+# 평가 결과 심화 분석
+uv run python cli.py analyze-results evaluation_results.json --analysis-type all
+
+# 기초 통계만 분석
+uv run python cli.py analyze-results evaluation_results.json --analysis-type basic
+
+# 여러 모델 성능 비교
+uv run python cli.py compare-results gemini_results.json hcx_results.json \
+  --labels "Gemini 2.5" "HCX-005"
+
+# 분석 결과를 특정 폴더에 저장
+uv run python cli.py analyze-results evaluation_results.json \
+  --analysis-type all --output-dir detailed_analysis
+```
+
 ### **유용한 명령어**
 
 ```bash
@@ -269,6 +339,8 @@ uv run python cli.py list-prompts
 # 도움말
 uv run python cli.py --help
 uv run python cli.py evaluate --help
+uv run python cli.py analyze-results --help
+uv run python cli.py compare-results --help
 ```
 
 ## ✨ 주요 기능
