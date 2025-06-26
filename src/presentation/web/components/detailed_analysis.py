@@ -999,6 +999,13 @@ def generate_precision_analysis_actual(score):
     improvement_tips = ""
     technical_details = ""
 
+    # None 값 처리 (평가 실패 시)
+    if score is None:
+        base_analysis = "**❌ 평가 실패** - Context Precision 평가가 실패했습니다"
+        improvement_tips = "🔧 LLM 응답 형식을 확인하거나 다른 모델을 시도해보세요."
+        technical_details = "파싱 실패로 인해 분석할 수 없습니다."
+        return f"{base_analysis}\n\n{improvement_tips}\n\n**📊 기술적 분석:** {technical_details}"
+
     if score >= 0.9:
         base_analysis = """
         **🎯 탁월한 검색 정확도 (0.9+)**
