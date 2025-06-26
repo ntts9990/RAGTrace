@@ -335,14 +335,21 @@ class HcxLangChainCompat(LLM):
         # 일반 프롬프트 처리
         result = self.adapter.generate_answer(question=prompt, contexts=[])
         
+        # 모든 응답에 대해 TP/FP 형식 자동 변환 (포괄적 접근)
+        should_convert = (
+            ('"TP"' in result and '"statement"' in result) or
+            ('"text"' in result and '{"TP"' in result) or
+            ('"classification_with_reason"' in result and '"statement"' in result)
+        )
+        
+        if should_convert:
+            print(f"[HCX] TP/FP 형식 자동 감지 - 수정 중...")
+            result = self._fix_nli_statement_format(result)
+            print(f"   자동 수정된 응답: {result[:200]}...")
+        
         # 디버그: RAGAS 파싱 오류가 자주 발생하는 프롬프트 확인
         if "fix_output_format" in prompt.lower():
             print(f"[HCX] fix_output_format 프롬프트 감지 - 응답: {result[:200]}...")
-            # fix_output_format에서도 TP/FP 형식 변환 적용
-            if '"TP"' in result and '"statement"' in result:
-                print(f"[HCX] fix_output_format에서 NLI 형식 감지 - 수정 중...")
-                result = self._fix_nli_statement_format(result)
-                print(f"   fix_output_format 수정된 응답: {result[:200]}...")
         
         # Faithfulness 디버깅
         if "statements" in prompt.lower() or "faithfulness" in prompt.lower():
@@ -350,22 +357,12 @@ class HcxLangChainCompat(LLM):
             print(f"   프롬프트: {prompt[:150]}...")
             print(f"   응답: {result[:300]}...")
             
-            # NLI Statement 프롬프트 특별 처리 - TP/FP 형식 감지
-            if '"TP"' in result and '"statement"' in result:
-                print(f"[HCX] NLI Statement 잘못된 형식 감지 - 수정 중...")
-                result = self._fix_nli_statement_format(result)
-                print(f"   수정된 응답: {result[:300]}...")
         
         # Answer Correctness 및 기타 분류 문제 처리
         if "correctness" in prompt.lower() or "classifier" in prompt.lower():
             print(f"[HCX] Answer Correctness 프롬프트 감지:")
             print(f"   프롬프트: {prompt[:150]}...")
             print(f"   응답: {result[:300]}...")
-            # Answer Correctness도 TP/FP 형식 변환 필요할 수 있음
-            if '"TP"' in result and '"statement"' in result:
-                print(f"[HCX] Answer Correctness NLI 형식 감지 - 수정 중...")
-                result = self._fix_nli_statement_format(result)
-                print(f"   수정된 응답: {result[:300]}...")
         
         return result
     
@@ -634,47 +631,91 @@ class HcxLangChainCompat(LLM):
         import re
         
         try:
+            # 1. 중첩 JSON 처리 ({"text": "{\"TP\": ...}"})
+            if '"text"' in result and '{"TP"' in result:
+                parsed = json.loads(result)
+                if "text" in parsed:
+                    nested_json = parsed["text"]
+                    result = nested_json
+            
             # HCX 응답 파싱
             hcx_response = json.loads(result)
             
             # RAGAS 기대 형식으로 변환
             statements = []
             
-            # TP (True Positive) 처리 - verdict = 1
-            if "TP" in hcx_response:
-                for item in hcx_response["TP"]:
-                    statements.append({
-                        "statement": item.get("statement", ""),
-                        "reason": item.get("reason", ""),
-                        "verdict": 1
-                    })
-            
-            # FP (False Positive) 처리 - verdict = 0  
-            if "FP" in hcx_response:
-                for item in hcx_response["FP"]:
-                    statements.append({
-                        "statement": item.get("statement", ""),
-                        "reason": item.get("reason", ""),
-                        "verdict": 0
-                    })
-            
-            # TN (True Negative) 처리 - verdict = 0
-            if "TN" in hcx_response:
-                for item in hcx_response["TN"]:
-                    statements.append({
-                        "statement": item.get("statement", ""),
-                        "reason": item.get("reason", ""),
-                        "verdict": 0
-                    })
-            
-            # FN (False Negative) 처리 - verdict = 1
-            if "FN" in hcx_response:
-                for item in hcx_response["FN"]:
-                    statements.append({
-                        "statement": item.get("statement", ""),
-                        "reason": item.get("reason", ""),
-                        "verdict": 1
-                    })
+            # classification_with_reason 형식 처리
+            if "classification_with_reason" in hcx_response:
+                cls_data = hcx_response["classification_with_reason"]
+                # tp 처리
+                if "tp" in cls_data:
+                    for item in cls_data["tp"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 1
+                        })
+                # fp 처리
+                if "fp" in cls_data:
+                    for item in cls_data["fp"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 0
+                        })
+                # fn 처리
+                if "fn" in cls_data:
+                    for item in cls_data["fn"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 1
+                        })
+                # tn 처리
+                if "tn" in cls_data:
+                    for item in cls_data["tn"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 0
+                        })
+            else:
+                # 기존 TP/FP 형식 처리
+                # TP (True Positive) 처리 - verdict = 1
+                if "TP" in hcx_response:
+                    for item in hcx_response["TP"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 1
+                        })
+                
+                # FP (False Positive) 처리 - verdict = 0  
+                if "FP" in hcx_response:
+                    for item in hcx_response["FP"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 0
+                        })
+                
+                # TN (True Negative) 처리 - verdict = 0
+                if "TN" in hcx_response:
+                    for item in hcx_response["TN"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 0
+                        })
+                
+                # FN (False Negative) 처리 - verdict = 1
+                if "FN" in hcx_response:
+                    for item in hcx_response["FN"]:
+                        statements.append({
+                            "statement": item.get("statement", "").strip('"'),
+                            "reason": item.get("reason", ""),
+                            "verdict": 1
+                        })
             
             # RAGAS 기대 형식으로 반환
             ragas_format = {"statements": statements}
