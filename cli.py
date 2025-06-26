@@ -176,18 +176,45 @@ def create_parser() -> argparse.ArgumentParser:
 def list_datasets():
     """사용 가능한 데이터셋 목록 출력"""
     print("📊 사용 가능한 데이터셋:")
-    print("-" * 40)
+    print("-" * 60)
     
     datasets = get_available_datasets()
     if not datasets:
         print("❌ 사용 가능한 데이터셋이 없습니다.")
-        print("   data/ 디렉토리에 JSON 형식의 평가 데이터를 추가하세요.")
+        print("   data/ 디렉토리에 평가 데이터를 추가하세요.")
+        print("   지원 형식: JSON, CSV, Excel (.xlsx, .xls)")
         return
     
-    for i, dataset in enumerate(datasets, 1):
-        print(f"{i}. {dataset}")
+    # 파일 형식별로 그룹화
+    json_files = [d for d in datasets if d.endswith('.json')]
+    csv_files = [d for d in datasets if d.endswith('.csv')]
+    excel_files = [d for d in datasets if d.endswith(('.xlsx', '.xls'))]
+    
+    # 카테고리별 출력
+    file_num = 1
+    
+    if json_files:
+        print("\n📄 JSON 파일:")
+        for dataset in json_files:
+            print(f"  {file_num}. {dataset}")
+            file_num += 1
+    
+    if csv_files:
+        print("\n📊 CSV 파일:")
+        for dataset in csv_files:
+            print(f"  {file_num}. {dataset} (변환 필요)")
+            file_num += 1
+    
+    if excel_files:
+        print("\n📈 Excel 파일:")
+        for dataset in excel_files:
+            print(f"  {file_num}. {dataset} (변환 필요)")
+            file_num += 1
     
     print(f"\n총 {len(datasets)}개의 데이터셋이 있습니다.")
+    print("\n💡 사용 방법:")
+    print("  - JSON: python cli.py evaluate <filename>")
+    print("  - CSV/Excel: python cli.py import-data <filename> --output converted.json")
 
 
 def list_prompts():

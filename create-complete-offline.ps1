@@ -12,10 +12,16 @@ param(
 # 오류 발생 시 스크립트 중단
 $ErrorActionPreference = "Stop"
 
-# PowerShell 버전 확인
+# PowerShell 버전 확인 및 호환성 설정
 if ($PSVersionTable.PSVersion.Major -lt 5) {
     Write-Error "PowerShell 5.0 이상이 필요합니다. 현재 버전: $($PSVersionTable.PSVersion)"
     exit 1
+}
+
+# PowerShell 5.1 호환성을 위한 설정
+if ($PSVersionTable.PSVersion.Major -eq 5) {
+    # Windows PowerShell 5.1 특화 설정
+    $PSDefaultParameterValues['*:Encoding'] = 'UTF8'
 }
 
 function Write-SafeHost {
@@ -166,9 +172,16 @@ function Test-Prerequisites {
         Write-SafeHost "🐍 Python이 설치되어 있지 않습니다. 자동 설치를 시작합니다..." -Color "Yellow"
         Install-Python
         
-        # PATH 새로고침 후 재확인
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-        Start-Sleep 2
+        # PATH 새로고침 후 재확인 (PowerShell 5.1 호환)
+        try {
+            $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+            $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+            $env:Path = $machinePath + ";" + $userPath
+            Write-SafeHost "   PATH 환경변수 새로고침 완료" -Color "Green"
+        } catch {
+            Write-SafeHost "   ⚠️ PATH 새로고침 실패, 수동 확인이 필요할 수 있습니다" -Color "Yellow"
+        }
+        Start-Sleep 3
         
         $pythonInstalled = Test-PythonInstallation
         if (-not $pythonInstalled) {

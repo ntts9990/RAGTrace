@@ -122,18 +122,23 @@ def get_evaluation_data_path(dataset_name: str) -> Path | None:
 
 def get_available_datasets() -> list[str]:
     """사용 가능한 평가 데이터셋 목록을 반환합니다.
+    JSON, CSV, Excel 파일을 모두 포함합니다.
 
     Returns:
         list: 존재하는 데이터 파일명 목록
     """
     available = []
     
-    # data/ 디렉토리의 모든 JSON 파일 검색
+    # 지원하는 파일 확장자
+    supported_extensions = ['.json', '.csv', '.xlsx', '.xls']
+    
+    # data/ 디렉토리의 모든 지원 파일 검색
     if DATA_DIR.exists():
-        for json_file in DATA_DIR.glob("*.json"):
-            # .env.example.json 같은 파일 제외
-            if not json_file.name.startswith('.'):
-                available.append(json_file.name)
+        for extension in supported_extensions:
+            for data_file in DATA_DIR.glob(f"*{extension}"):
+                # 숨김 파일이나 임시 파일 제외
+                if not data_file.name.startswith('.') and not data_file.name.startswith('~'):
+                    available.append(data_file.name)
     
     # 정렬해서 반환
     return sorted(available)
