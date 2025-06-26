@@ -1069,7 +1069,15 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
                 st.warning(f"⚠️ **일부 평가 실패**: {total_count}개 중 {failed_count}개가 API 한도로 인해 부분 점수를 받았습니다.")
                 st.info("💡 **개선 방법**: Gemini 모델 사용 또는 잠시 후 재평가를 권장합니다.")
             
-            col1, col2, col3, col4 = st.columns(4)
+            # answer_correctness가 있는지 확인
+            has_answer_correctness = "answer_correctness" in result_dict
+            
+            # 컬럼 수 동적 설정
+            if has_answer_correctness:
+                col1, col2, col3, col4, col5, col6 = st.columns(6)
+            else:
+                col1, col2, col3, col4, col5 = st.columns(5)
+            
             with col1:
                 st.metric("🏆 RAGAS Score", f"{result_dict.get('ragas_score', 0):.3f}")
             with col2:
@@ -1078,6 +1086,13 @@ def execute_evaluation(prompt_type: PromptType, dataset_name: str, llm_type: str
                 st.metric("🎯 Answer Relevancy", f"{result_dict.get('answer_relevancy', 0):.3f}")
             with col4:
                 st.metric("🔄 Context Recall", f"{result_dict.get('context_recall', 0):.3f}")
+            with col5:
+                st.metric("📍 Context Precision", f"{result_dict.get('context_precision', 0):.3f}")
+            
+            # answer_correctness가 있으면 추가
+            if has_answer_correctness:
+                with col6:
+                    st.metric("✔️ Answer Correctness", f"{result_dict.get('answer_correctness', 0):.3f}")
             
             # 결과 페이지로 이동
             st.markdown("---")
