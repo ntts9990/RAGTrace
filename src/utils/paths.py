@@ -88,6 +88,10 @@ def get_evaluation_data_path(dataset_name: str) -> Path | None:
     if dataset_path.is_absolute() and dataset_path.exists():
         return dataset_path
     
+    # 1.5. 상대 경로지만 그대로 존재하는 경우 (quick-eval 변환 파일 등)
+    if dataset_path.exists():
+        return dataset_path
+    
     # 2. 정확한 파일명으로 먼저 확인 (기존 매핑)
     if dataset_name in EVALUATION_DATA_FILES:
         file_path = EVALUATION_DATA_FILES[dataset_name]

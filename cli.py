@@ -11,6 +11,7 @@ import sys
 import json
 from typing import Optional
 from pathlib import Path
+from datetime import datetime
 
 from src.config import (
     settings, 
@@ -314,6 +315,45 @@ def evaluate_dataset(dataset_name: str, llm: str, embedding: Optional[str] = Non
                     prompt_type: Optional[str] = None, output_file: Optional[str] = None, 
                     verbose: bool = False):
     """데이터셋 평가 실행"""
+    
+    # CSV/Excel 파일인 경우 자동 변환
+    if dataset_name.endswith(('.csv', '.xlsx', '.xls')):
+        print(f"\n📂 CSV/Excel 파일 감지 - JSON으로 자동 변환 중...")
+        
+        # 데이터 경로 확인 및 처리
+        from src.utils.paths import DATA_DIR
+        dataset_path = Path(dataset_name)
+        if not dataset_path.is_absolute():
+            # 상대 경로인 경우 data/ 디렉토리에서 찾기
+            dataset_path = DATA_DIR / dataset_name
+            if not dataset_path.exists():
+                # 현재 디렉토리에서도 찾기
+                dataset_path = Path(dataset_name)
+        
+        if not dataset_path.exists():
+            print(f"❌ 파일을 찾을 수 없습니다: {dataset_name}")
+            return False
+        
+        # 변환된 파일명 생성
+        base_name = dataset_path.stem
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        converted_filename = f"{base_name}_converted_{timestamp}.json"
+        converted_path = DATA_DIR / converted_filename
+        
+        # import_data 함수 호출
+        import_success = import_data(
+            input_file=str(dataset_path),
+            output_file=str(converted_path),
+            validate=True,
+            batch_size=50
+        )
+        
+        if not import_success:
+            print("❌ 데이터 변환 실패")
+            return False
+        
+        dataset_name = str(converted_path)
+        print(f"✅ 변환 완료: {converted_path}")
     
     # 임베딩 모델 선택 (미지정 시 기본 임베딩 사용)
     embedding_choice = embedding or settings.DEFAULT_EMBEDDING
@@ -724,16 +764,56 @@ def quick_eval(args):
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
     
+    # CSV/Excel 파일인 경우 자동 변환
+    dataset_to_use = args.dataset
+    if args.dataset.endswith(('.csv', '.xlsx', '.xls')):
+        print(f"\n📂 CSV/Excel 파일 감지 - JSON으로 자동 변환 중...")
+        
+        # 데이터 경로 확인 및 처리
+        from src.utils.paths import DATA_DIR
+        dataset_path = Path(args.dataset)
+        if not dataset_path.is_absolute():
+            # 상대 경로인 경우 data/ 디렉토리에서 찾기
+            dataset_path = DATA_DIR / args.dataset
+            if not dataset_path.exists():
+                # 현재 디렉토리에서도 찾기
+                dataset_path = Path(args.dataset)
+        
+        if not dataset_path.exists():
+            print(f"❌ 파일을 찾을 수 없습니다: {args.dataset}")
+            return False
+        
+        # 변환된 파일명 생성
+        base_name = dataset_path.stem
+        converted_filename = f"{base_name}_converted.json"
+        converted_path = output_dir / converted_filename
+        
+        # import_data 함수 호출
+        import_success = import_data(
+            input_file=str(dataset_path),
+            output_file=str(converted_path),
+            validate=True,
+            batch_size=50
+        )
+        
+        if not import_success:
+            print("❌ 데이터 변환 실패")
+            return False
+        
+        dataset_to_use = str(converted_path)
+        print(f"✅ 변환 완료: {converted_path}")
+    
     # 타임스탬프 기반 파일명 생성
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    result_filename = f"{args.dataset}_{timestamp}.json"
+    base_dataset_name = Path(dataset_to_use).stem
+    result_filename = f"{base_dataset_name}_{timestamp}.json"
     result_path = output_dir / result_filename
     
     try:
         # 1. 평가 실행
         print("\n📊 1단계: 평가 실행 중...")
         success = evaluate_dataset(
-            dataset_name=args.dataset,
+            dataset_name=dataset_to_use,
             llm="hcx",
             embedding="bge_m3",
             prompt_type=None,
