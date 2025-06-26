@@ -194,18 +194,31 @@ class HcxEvaluationStrategy(EvaluationStrategy):
             
             print("🔄 기본 RAGAS 메트릭 사용 (SingleTurnSample 호환)")
             
-            result = evaluate(
-                dataset=converted_dataset,
-                metrics=basic_metrics,
-                llm=self.llm,
-                embeddings=self.embeddings,
-                run_config=self.run_config,
-                raise_exceptions=False,  # 예외 발생 방지
-                show_progress=True,
-            )
-            
-            # 파싱 오류가 있어도 부분 결과 반환
-            return self._handle_partial_results(result, dataset)
+            try:
+                result = evaluate(
+                    dataset=converted_dataset,
+                    metrics=basic_metrics,
+                    llm=self.llm,
+                    embeddings=self.embeddings,
+                    run_config=self.run_config,
+                    raise_exceptions=False,  # 예외 발생 방지
+                    show_progress=True,
+                )
+                
+                # 파싱 오류가 있어도 부분 결과 반환
+                return self._handle_partial_results(result, dataset)
+                
+            except Exception as eval_error:
+                print(f"⚠️ RAGAS evaluate 호출 중 파싱 오류 발생: {eval_error}")
+                if "OutputParserException" in str(eval_error):
+                    print("🔧 OutputParserException 감지 - 부분 점수로 처리")
+                elif "StringIO" in str(eval_error):
+                    print("🔧 StringIO 파싱 오류 감지 - 부분 점수로 처리")
+                else:
+                    print(f"🔧 기타 평가 오류: {type(eval_error).__name__}")
+                
+                # 모든 파싱 오류를 부분 점수로 처리
+                return self._create_partial_result(dataset)
             
         except Exception as e:
             print(f"❌ HCX 평가 중 오류: {e}")
@@ -231,13 +244,13 @@ class HcxEvaluationStrategy(EvaluationStrategy):
             if hasattr(result, 'to_pandas'):
                 df = result.to_pandas()
                 
-                # NaN 값을 부분 점수로 대체
+                # NaN 값을 None으로 유지 (평균 계산에서 제외)
                 for col in df.columns:
                     if col in ['faithfulness', 'answer_relevancy', 'context_recall', 'context_precision', 'answer_correctness']:
                         nan_count = df[col].isna().sum()
                         if nan_count > 0:
-                            print(f"⚠️ {col}: {nan_count}개 항목 파싱 실패 - 부분 점수(0.5) 적용")
-                            df[col] = df[col].fillna(0.5)  # 부분 점수로 대체
+                            print(f"⚠️ {col}: {nan_count}개 항목 파싱 실패 - 평균 계산에서 제외")
+                            # NaN을 None으로 변환하지만 fillna는 하지 않음 (parsing_strategies.py에서 처리)
                 
                 # 수정된 DataFrame을 다시 result에 반영
                 if hasattr(result, '_scores_dict'):
@@ -251,17 +264,18 @@ class HcxEvaluationStrategy(EvaluationStrategy):
     
     def _create_partial_result(self, dataset):
         """평가 실패 시 부분 결과 생성"""
-        print("⚠️ HCX 평가 실패 - 부분 점수 생성")
+        print("⚠️ HCX 평가 실패 - 파싱 실패로 기록 (평균 계산에서 제외)")
         
         class PartialResult:
             def __init__(self, dataset_size):
-                # 부분 점수 (0.5) 적용 - answer_correctness 포함
+                # 파싱 실패는 None으로 처리 (평균 계산에서 제외)
+                import numpy as np
                 self._scores_dict = {
-                    'faithfulness': [0.5] * dataset_size,
-                    'answer_relevancy': [0.5] * dataset_size,
-                    'context_recall': [0.5] * dataset_size,
-                    'context_precision': [0.5] * dataset_size,
-                    'answer_correctness': [0.5] * dataset_size,
+                    'faithfulness': [np.nan] * dataset_size,
+                    'answer_relevancy': [np.nan] * dataset_size,
+                    'context_recall': [np.nan] * dataset_size,
+                    'context_precision': [np.nan] * dataset_size,
+                    'answer_correctness': [np.nan] * dataset_size,
                 }
                 self.dataset = dataset
                 
