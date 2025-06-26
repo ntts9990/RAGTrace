@@ -338,6 +338,11 @@ class HcxLangChainCompat(LLM):
         # 디버그: RAGAS 파싱 오류가 자주 발생하는 프롬프트 확인
         if "fix_output_format" in prompt.lower():
             print(f"[HCX] fix_output_format 프롬프트 감지 - 응답: {result[:200]}...")
+            # fix_output_format에서도 TP/FP 형식 변환 적용
+            if '"TP"' in result and '"statement"' in result:
+                print(f"[HCX] fix_output_format에서 NLI 형식 감지 - 수정 중...")
+                result = self._fix_nli_statement_format(result)
+                print(f"   fix_output_format 수정된 응답: {result[:200]}...")
         
         # Faithfulness 디버깅
         if "statements" in prompt.lower() or "faithfulness" in prompt.lower():
@@ -348,6 +353,17 @@ class HcxLangChainCompat(LLM):
             # NLI Statement 프롬프트 특별 처리 - TP/FP 형식 감지
             if '"TP"' in result and '"statement"' in result:
                 print(f"[HCX] NLI Statement 잘못된 형식 감지 - 수정 중...")
+                result = self._fix_nli_statement_format(result)
+                print(f"   수정된 응답: {result[:300]}...")
+        
+        # Answer Correctness 및 기타 분류 문제 처리
+        if "correctness" in prompt.lower() or "classifier" in prompt.lower():
+            print(f"[HCX] Answer Correctness 프롬프트 감지:")
+            print(f"   프롬프트: {prompt[:150]}...")
+            print(f"   응답: {result[:300]}...")
+            # Answer Correctness도 TP/FP 형식 변환 필요할 수 있음
+            if '"TP"' in result and '"statement"' in result:
+                print(f"[HCX] Answer Correctness NLI 형식 감지 - 수정 중...")
                 result = self._fix_nli_statement_format(result)
                 print(f"   수정된 응답: {result[:300]}...")
         
