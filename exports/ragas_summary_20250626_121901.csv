@@ -1,0 +1,7 @@
+metric,mean,median,std_dev,min,max,count,q1,q3
+faithfulness,0.8,0.8,0.0,0.8,0.8,1,0.8,0.8
+answer_relevancy,0.9,0.9,0.0,0.9,0.9,1,0.9,0.9
+context_recall,0.7,0.7,0.0,0.7,0.7,1,0.7,0.7
+context_precision,0.6,0.6,0.0,0.6,0.6,1,0.6,0.6
+answer_correctness,0.75,0.75,0.0,0.75,0.75,1,0.75,0.75
+ragas_score,0.76,0.76,0.0,0.76,0.76,1,0.76,0.76
