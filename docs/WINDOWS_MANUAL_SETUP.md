@@ -197,6 +197,50 @@ mkdir RAGTrace-Complete-Offline\04_Scripts
 mkdir RAGTrace-Complete-Offline\05_Installers
 ```
 
+#### 6-2. BGE-M3 모델 다운로드 (필수)
+```cmd
+cd RAGTrace-Complete-Offline\03_Models
+
+# Python으로 BGE-M3 모델 다운로드
+python -c "
+print('BGE-M3 모델 다운로드 시작...')
+from sentence_transformers import SentenceTransformer
+import os
+
+# 모델 다운로드 및 저장
+model = SentenceTransformer('BAAI/bge-m3')
+model.save('./bge-m3')
+print('✅ BGE-M3 모델 다운로드 완료')
+print('📁 저장 위치: ./bge-m3')
+
+# 모델 파일 확인
+model_files = []
+for root, dirs, files in os.walk('./bge-m3'):
+    for file in files:
+        file_path = os.path.join(root, file)
+        size = os.path.getsize(file_path)
+        model_files.append((file_path, size))
+
+total_size = sum(size for _, size in model_files)
+print(f'💾 모델 총 크기: {total_size / (1024*1024):.1f}MB')
+print(f'📄 모델 파일 개수: {len(model_files)}개')
+"
+```
+
+**예상 출력:**
+```
+BGE-M3 모델 다운로드 시작...
+✅ BGE-M3 모델 다운로드 완료
+📁 저장 위치: ./bge-m3
+💾 모델 총 크기: 2048.5MB
+📄 모델 파일 개수: 15개
+```
+
+**⚠️ 중요사항:**
+- 이 단계는 **약 2GB 다운로드**가 필요하므로 시간이 오래 걸립니다.
+- BGE-M3 모델이 없으면 폐쇄망에서 임베딩 관련 메트릭 평가가 실패합니다.
+- **Context Recall**, **Context Precision** 메트릭은 임베딩이 필요하므로 반드시 포함해야 합니다.
+
 #### 6-2. Requirements 파일 생성
 ```cmd
 # RAGTrace-Complete-Offline\01_Dependencies 폴더로 이동
@@ -349,10 +393,19 @@ dir /s
 RAGTrace-Complete-Offline\
 ├── 01_Dependencies\    (requirements.txt + .whl 파일들)
 ├── 02_Source\         (RAGTrace 소스코드)
-├── 03_Models\         (비어있음 - BGE-M3는 선택사항)
+├── 03_Models\         (BGE-M3 모델 파일들 - 필수!)
+│   └── bge-m3\        (약 2GB, 15개 파일)
 ├── 04_Scripts\        (설치/실행 스크립트들)
 └── 05_Installers\     (python-3.11.9-amd64.exe)
 ```
+
+**⚠️ 폐쇄망 배포 전 필수 확인:**
+```cmd
+# BGE-M3 모델 파일 존재 확인
+dir RAGTrace-Complete-Offline\03_Models\bge-m3
+```
+
+**예상 결과:** 15개 이상의 파일이 보여야 함 (config.json, pytorch_model.bin, tokenizer.json 등)
 
 ---
 
@@ -408,6 +461,29 @@ where python
 uv venv .venv --python "C:\Users\<user>\AppData\Local\Programs\Python\Python311\python.exe"
 .venv\Scripts\activate
 python --version   :: Python 3.11.9  ← 반드시 확인
+```
+
+### 폐쇄망 BGE-M3 모델 설정
+
+#### 1. BGE-M3 모델 복사
+```cmd
+# BGE-M3 모델 디렉토리 생성
+cd C:\RAGTrace-Complete-Offline\02_Source
+mkdir models
+
+# BGE-M3 모델 파일 복사
+xcopy ..\03_Models\bge-m3 models\bge-m3\ /E /I /Y
+
+# 모델 파일 확인
+dir models\bge-m3
+```
+
+**예상 결과:** 15개 이상의 파일이 복사되어야 함
+
+#### 2. 환경 변수 설정 (선택사항)
+```cmd
+# .env 파일에 BGE-M3 모델 경로 추가
+echo BGE_M3_MODEL_PATH=./models/bge-m3 >> .env
 ```
 
 ### 폐쇄망 RAGTrace 설치
@@ -523,6 +599,35 @@ netsh advfirewall firewall add rule name="RAGTrace" dir=in action=allow protocol
 python -m streamlit run src/presentation/web/main.py --server.port 8502
 ```
 
+### BGE-M3 모델 문제
+
+**문제:** 평가 중 임베딩 오류 발생
+
+**원인:** BGE-M3 모델 파일이 누락되거나 손상됨
+
+**해결:**
+```cmd
+# 모델 파일 존재 확인
+dir C:\RAGTrace-Complete-Offline\02_Source\models\bge-m3
+
+# 모델 파일이 없는 경우 다시 복사
+cd C:\RAGTrace-Complete-Offline\02_Source
+xcopy ..\03_Models\bge-m3 models\bge-m3\ /E /I /Y
+
+# BGE-M3 모델 테스트
+python -c "
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer('./models/bge-m3')
+print('✅ BGE-M3 모델 로딩 성공')
+"
+```
+
+**문제:** 임베딩 관련 메트릭 실패 (Context Recall, Context Precision)
+
+**원인:** BGE-M3 모델이 없어서 임베딩 생성 실패
+
+**해결:** 위의 BGE-M3 모델 설치 단계 다시 실행
+
 ---
 
 ## 📝 설치 체크리스트
@@ -534,24 +639,28 @@ python -m streamlit run src/presentation/web/main.py --server.port 8502
 - [ ] UV 설치 및 확인
 - [ ] RAGTrace 소스코드 다운로드
 - [ ] 패키지 디렉토리 구조 생성
+- [ ] **BGE-M3 모델 다운로드 (약 2GB, 필수!)**
 - [ ] requirements.txt 생성
 - [ ] Python 패키지 다운로드 (200+ 개)
 - [ ] 소스코드 복사
 - [ ] 설치파일 복사 (Python)
 - [ ] 설치/실행 스크립트 생성
-- [ ] 최종 패키지 구조 확인
+- [ ] 최종 패키지 구조 확인 (BGE-M3 모델 포함)
 
 ### 폐쇄망 PC (설치 및 실행)
 - [ ] 오프라인 패키지 복사
 - [ ] 관리자 권한 확인
 - [ ] Python 설치 (PATH 포함)
 - [ ] Python 설치 확인
+- [ ] **BGE-M3 모델 복사 및 확인 (models/bge-m3/)**
 - [ ] RAGTrace 패키지 설치
 - [ ] API 키 설정 (.env 파일)
 - [ ] 기본 테스트 (hello.py)
 - [ ] CLI 테스트
+- [ ] **BGE-M3 모델 로딩 테스트**
 - [ ] 웹 대시보드 실행
 - [ ] 브라우저 접속 확인
+- [ ] **전체 RAGAS 메트릭 평가 테스트 (임베딩 포함)**
 
 ---
 
