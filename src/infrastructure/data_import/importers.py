@@ -42,8 +42,8 @@ class ExcelImporter(DataImporter):
     def import_data(self, file_path: Union[str, Path]) -> List[EvaluationData]:
         """Excel 파일에서 데이터 Import"""
         try:
-            # Excel 파일 읽기
-            df = pd.read_excel(file_path, sheet_name=self.sheet_name)
+            # Excel 파일 읽기 (인코딩 문제 대응)
+            df = self._read_excel_with_fallback(file_path)
             
             # 필수 컬럼 확인
             missing_columns = [col for col in self.required_columns if col not in df.columns]
@@ -78,8 +78,8 @@ class ExcelImporter(DataImporter):
             if file_path.suffix.lower() not in ['.xlsx', '.xls']:
                 return False
             
-            # 파일 읽기 테스트
-            df = pd.read_excel(file_path, sheet_name=self.sheet_name, nrows=1)
+            # 파일 읽기 테스트 (fallback 메서드 사용)
+            df = self._read_excel_with_fallback(file_path)
             
             # 필수 컬럼 존재 확인
             return all(col in df.columns for col in self.required_columns)
@@ -115,6 +115,27 @@ class ExcelImporter(DataImporter):
         else:
             # 기타 타입인 경우 문자열로 변환
             return [str(contexts_value).strip()]
+    
+    def _read_excel_with_fallback(self, file_path: Union[str, Path]) -> pd.DataFrame:
+        """Excel 파일 읽기 (다양한 엔진과 옵션으로 시도)"""
+        file_path = Path(file_path)
+        engines_to_try = ['openpyxl', 'xlrd']
+        
+        for engine in engines_to_try:
+            try:
+                print(f"🔄 Excel 엔진 시도: {engine}")
+                df = pd.read_excel(file_path, sheet_name=self.sheet_name, engine=engine)
+                print(f"✅ 성공: {engine} 엔진으로 Excel 파일 읽기 완료")
+                return df
+            except Exception as e:
+                print(f"❌ 실패: {engine} - {str(e)[:100]}...")
+                continue
+        
+        # 모든 엔진 실패 시 오류 메시지
+        error_msg = f"Excel 파일을 읽을 수 없습니다.\n"
+        error_msg += f"시도한 엔진: {engines_to_try}\n"
+        error_msg += f"파일: {file_path}"
+        raise ImportError(error_msg)
 
 
 class CSVImporter(DataImporter):
@@ -180,21 +201,61 @@ class CSVImporter(DataImporter):
     
     def _read_csv_with_encoding(self, file_path: Union[str, Path], nrows: Optional[int] = None) -> pd.DataFrame:
         """인코딩을 자동 감지하여 CSV 파일 읽기"""
-        encodings_to_try = [self.encoding, 'utf-8', 'cp949', 'euc-kr', 'latin-1']
+        file_path = Path(file_path)
         
+        # 1단계: chardet로 인코딩 자동 감지
+        detected_encoding = None
+        try:
+            import chardet
+            with open(file_path, 'rb') as f:
+                raw_data = f.read(10000)  # 처음 10KB만 읽어서 감지
+                detection_result = chardet.detect(raw_data)
+                if detection_result and detection_result['confidence'] > 0.7:
+                    detected_encoding = detection_result['encoding']
+                    print(f"📊 인코딩 자동 감지: {detected_encoding} (신뢰도: {detection_result['confidence']:.2f})")
+        except ImportError:
+            print("⚠️ chardet 라이브러리가 없습니다. 기본 인코딩으로 시도합니다.")
+        except Exception as e:
+            print(f"⚠️ 인코딩 감지 실패: {e}")
+        
+        # 2단계: 감지된 인코딩을 우선으로 시도할 인코딩 목록 구성
+        encodings_to_try = []
+        if detected_encoding:
+            encodings_to_try.append(detected_encoding)
+        
+        # 기본 인코딩들 추가 (중복 제거)
+        base_encodings = [self.encoding, 'utf-8', 'cp949', 'euc-kr', 'latin-1', 'utf-8-sig', 'iso-8859-1']
+        for enc in base_encodings:
+            if enc not in encodings_to_try:
+                encodings_to_try.append(enc)
+        
+        # 3단계: 각 인코딩으로 시도
+        last_error = None
         for encoding in encodings_to_try:
             try:
-                return pd.read_csv(
+                print(f"🔄 인코딩 시도: {encoding}")
+                df = pd.read_csv(
                     file_path, 
                     encoding=encoding, 
                     delimiter=self.delimiter,
                     nrows=nrows
                 )
-            except UnicodeDecodeError:
+                print(f"✅ 성공: {encoding} 인코딩으로 파일 읽기 완료")
+                return df
+            except UnicodeDecodeError as e:
+                last_error = e
+                print(f"❌ 실패: {encoding} - {str(e)[:100]}...")
+                continue
+            except Exception as e:
+                last_error = e
+                print(f"❌ 오류: {encoding} - {str(e)[:100]}...")
                 continue
         
-        # 모든 인코딩 실패 시 마지막 시도
-        raise ImportError(f"지원되는 인코딩으로 파일을 읽을 수 없습니다: {encodings_to_try}")
+        # 4단계: 모든 인코딩 실패 시 오류 메시지
+        error_msg = f"지원되는 인코딩으로 파일을 읽을 수 없습니다.\n"
+        error_msg += f"시도한 인코딩: {encodings_to_try}\n"
+        error_msg += f"마지막 오류: {str(last_error)}"
+        raise ImportError(error_msg)
     
     def _parse_contexts(self, contexts_value: Any) -> List[str]:
         """contexts 값을 List[str]로 변환 (Excel과 동일한 로직)"""
