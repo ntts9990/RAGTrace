@@ -453,12 +453,12 @@ def show_qa_analysis_actual(individual_scores, evaluation_id, qa_data=None):
     # QA 선택 옵션 생성 (실제 점수와 질문 내용 기반)
     qa_options = []
     for i, qa_score in enumerate(individual_scores):
-        # 평균 점수 계산
+        # 평균 점수 계산 (None 값 제외)
         avg_score = 0
         if qa_score:
-            avg_score = (
-                sum(qa_score.values()) / len(qa_score) if qa_score.values() else 0
-            )
+            # None이 아닌 값들만 필터링하여 평균 계산
+            valid_scores = [score for score in qa_score.values() if score is not None]
+            avg_score = sum(valid_scores) / len(valid_scores) if valid_scores else 0
 
         # 질문 내용 미리보기 추가
         question_preview = "질문 정보 없음"
