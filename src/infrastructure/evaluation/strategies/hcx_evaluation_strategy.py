@@ -184,15 +184,31 @@ class HcxEvaluationStrategy(EvaluationStrategy):
             
             from ragas.metrics import faithfulness, answer_relevancy, context_recall, context_precision, answer_correctness
             
-            basic_metrics = [
-                faithfulness,
-                answer_relevancy, 
-                context_recall,
-                context_precision,
-                answer_correctness,
-            ]
-            
-            print("🔄 기본 RAGAS 메트릭 사용 (SingleTurnSample 호환)")
+            # HCX에서 faithfulness 파싱 문제 해결을 위한 설정
+            try:
+                # faithfulness 메트릭의 파서 설정 조정
+                if hasattr(faithfulness, 'llm'):
+                    faithfulness.llm = self.llm
+                
+                basic_metrics = [
+                    faithfulness,
+                    answer_relevancy, 
+                    context_recall,
+                    context_precision,
+                    answer_correctness,
+                ]
+                print("🔄 기본 RAGAS 메트릭 사용 (faithfulness 포함)")
+                
+            except Exception as metric_error:
+                print(f"⚠️ Faithfulness 메트릭 설정 오류: {metric_error}")
+                # faithfulness 제외하고 평가
+                basic_metrics = [
+                    answer_relevancy, 
+                    context_recall,
+                    context_precision,
+                    answer_correctness,
+                ]
+                print("🔄 Faithfulness 제외하고 평가 진행")
             
             try:
                 result = evaluate(

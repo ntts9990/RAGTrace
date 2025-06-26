@@ -564,13 +564,31 @@ def show_qa_score_chart_actual(scores, qa_number):
     col1, col2 = st.columns(2)
 
     with col1:
-        # 바 차트 (None 값 제외)
-        valid_scores = {k: v for k, v in scores.items() if v is not None}
-        metrics = list(valid_scores.keys())
-        values = list(valid_scores.values())
+        # 바 차트 (None 값은 0으로 표시하되 시각적으로 구분)
+        all_metrics = ["faithfulness", "answer_relevancy", "context_recall", "context_precision"]
+        if "answer_correctness" in scores:
+            all_metrics.append("answer_correctness")
+        
+        # 실제 존재하는 메트릭만 사용
+        existing_metrics = [m for m in all_metrics if m in scores]
+        metrics = existing_metrics
+        values = [scores.get(m, 0) if scores.get(m) is not None else 0 for m in metrics]
+        
+        # 실패 표시를 위한 색상 및 텍스트 설정
+        colors = []
+        texts = []
+        for i, m in enumerate(metrics):
+            original_value = scores.get(m)
+            if original_value is None:
+                colors.append("lightgray")  # 실패한 경우 회색
+                texts.append("실패")
+            else:
+                v = values[i]
+                colors.append("green" if v >= 0.8 else "orange" if v >= 0.6 else "red")
+                texts.append(f"{v:.3f}")
         
         if not metrics:
-            st.warning("⚠️ 유효한 점수가 없습니다 (모든 메트릭에서 파싱 실패)")
+            st.warning("⚠️ 평가할 메트릭이 없습니다")
             return
 
         fig = go.Figure(
@@ -578,11 +596,8 @@ def show_qa_score_chart_actual(scores, qa_number):
                 go.Bar(
                     x=metrics,
                     y=values,
-                    marker_color=[
-                        "green" if v >= 0.8 else "orange" if v >= 0.6 else "red"
-                        for v in values
-                    ],
-                    text=[f"{v:.3f}" for v in values],
+                    marker_color=colors,
+                    text=texts,
                     textposition="auto",
                 )
             ]
@@ -635,30 +650,30 @@ def show_evaluation_reasoning_actual(qa_number, scores, qa_content=None):
     metrics_analysis = {
         "faithfulness": {
             "description": "답변이 제공된 컨텍스트에 얼마나 충실한지 측정",
-            "score": scores.get("faithfulness", 0),
+            "score": scores.get("faithfulness"),
             "analysis": generate_faithfulness_analysis_actual(
-                scores.get("faithfulness", 0)
+                scores.get("faithfulness")
             ),
         },
         "answer_relevancy": {
             "description": "답변이 질문과 얼마나 관련이 있는지 측정",
-            "score": scores.get("answer_relevancy", 0),
+            "score": scores.get("answer_relevancy"),
             "analysis": generate_relevancy_analysis_actual(
-                scores.get("answer_relevancy", 0)
+                scores.get("answer_relevancy")
             ),
         },
         "context_recall": {
             "description": "Ground truth의 정보가 컨텍스트에서 얼마나 발견되는지 측정",
-            "score": scores.get("context_recall", 0),
+            "score": scores.get("context_recall"),
             "analysis": generate_recall_analysis_actual(
-                scores.get("context_recall", 0)
+                scores.get("context_recall")
             ),
         },
         "context_precision": {
             "description": "검색된 컨텍스트가 질문과 얼마나 관련이 있는지 측정",
-            "score": scores.get("context_precision", 0),
+            "score": scores.get("context_precision"),
             "analysis": generate_precision_analysis_actual(
-                scores.get("context_precision", 0)
+                scores.get("context_precision")
             ),
         },
     }
@@ -667,15 +682,16 @@ def show_evaluation_reasoning_actual(qa_number, scores, qa_content=None):
     if "answer_correctness" in scores:
         metrics_analysis["answer_correctness"] = {
             "description": "생성된 답변이 정답(ground truth)과 얼마나 일치하는지 측정",
-            "score": scores.get("answer_correctness", 0),
+            "score": scores.get("answer_correctness"),
             "analysis": generate_answer_correctness_analysis_actual(
-                scores.get("answer_correctness", 0)
+                scores.get("answer_correctness")
             ),
         }
 
     for metric, info in metrics_analysis.items():
+        score_text = f"{info['score']:.3f}" if info['score'] is not None else "실패"
         with st.expander(
-            f"📝 {metric.replace('_', ' ').title()} 분석 (점수: {info['score']:.3f})"
+            f"📝 {metric.replace('_', ' ').title()} 분석 (점수: {score_text})"
         ):
             st.markdown(f"**설명:** {info['description']}")
 
@@ -704,7 +720,16 @@ def generate_faithfulness_analysis_actual(score):
     improvement_tips = ""
     technical_details = ""
 
-    if score >= 0.9:
+    # None 값 처리 (파싱 실패)
+    if score is None:
+        base_analysis = """
+        **❌ 평가 실패**
+        - 이 항목에서 Faithfulness 평가가 실패했습니다
+        - LLM 응답 파싱 오류로 점수를 계산할 수 없었습니다
+        """
+        improvement_tips = "🔧 LLM 응답 형식을 확인하거나 다른 모델을 시도해보세요."
+        technical_details = "파싱 실패로 인해 분석할 수 없습니다."
+    elif score >= 0.9:
         base_analysis = """
         **🌟 탁월한 충실도 (0.9+)**
         - 답변이 제공된 컨텍스트에 매우 충실하게 기반하고 있습니다
@@ -788,7 +813,12 @@ def generate_relevancy_analysis_actual(score):
     improvement_tips = ""
     technical_details = ""
 
-    if score >= 0.9:
+    # None 값 처리 (파싱 실패)
+    if score is None:
+        base_analysis = "**❌ 평가 실패** - Answer Relevancy 평가가 실패했습니다"
+        improvement_tips = "🔧 LLM 응답 형식을 확인하거나 다른 모델을 시도해보세요."
+        technical_details = "파싱 실패로 인해 분석할 수 없습니다."
+    elif score >= 0.9:
         base_analysis = """
         **🎯 완벽한 관련성 (0.9+)**
         - 답변이 질문의 핵심 의도를 정확히 파악했습니다
