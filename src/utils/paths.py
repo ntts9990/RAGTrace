@@ -83,30 +83,35 @@ def get_evaluation_data_path(dataset_name: str) -> Path | None:
     Returns:
         Path: 데이터 파일 경로 (파일이 존재하지 않으면 None)
     """
-    # 1. 정확한 파일명으로 먼저 확인
+    # 1. 절대 경로인 경우 처리
+    dataset_path = Path(dataset_name)
+    if dataset_path.is_absolute() and dataset_path.exists():
+        return dataset_path
+    
+    # 2. 정확한 파일명으로 먼저 확인 (기존 매핑)
     if dataset_name in EVALUATION_DATA_FILES:
         file_path = EVALUATION_DATA_FILES[dataset_name]
         if file_path.exists():
             return file_path
     
-    # 2. 직접 파일명이 주어진 경우
+    # 3. data/ 디렉토리에서 직접 파일명 확인
     file_path = DATA_DIR / dataset_name
     if file_path.exists():
         return file_path
     
-    # 3. 확장자가 없는 경우 .json 추가해서 확인
+    # 4. 확장자가 없는 경우 .json 추가해서 확인
     if not dataset_name.endswith('.json'):
         json_path = DATA_DIR / f"{dataset_name}.json"
         if json_path.exists():
             return json_path
     
-    # 4. variant 키워드가 포함된 경우 처리
+    # 5. variant 키워드가 포함된 경우 처리 (호환성 유지)
     if "variant1" in dataset_name.lower():
         file_path = VARIANT1_EVALUATION_DATA
         if file_path.exists():
             return file_path
     
-    # 5. evaluation_data로 시작하는 경우 처리
+    # 6. evaluation_data로 시작하는 경우 처리 (호환성 유지)
     if dataset_name.startswith("evaluation_data") and not dataset_name.endswith('.json'):
         json_path = DATA_DIR / f"{dataset_name}.json"
         if json_path.exists():
@@ -122,10 +127,16 @@ def get_available_datasets() -> list[str]:
         list: 존재하는 데이터 파일명 목록
     """
     available = []
-    for name, path in EVALUATION_DATA_FILES.items():
-        if path.exists() and name != "default":
-            available.append(name)
-    return available
+    
+    # data/ 디렉토리의 모든 JSON 파일 검색
+    if DATA_DIR.exists():
+        for json_file in DATA_DIR.glob("*.json"):
+            # .env.example.json 같은 파일 제외
+            if not json_file.name.startswith('.'):
+                available.append(json_file.name)
+    
+    # 정렬해서 반환
+    return sorted(available)
 
 
 # 초기화: 필수 디렉토리 생성
