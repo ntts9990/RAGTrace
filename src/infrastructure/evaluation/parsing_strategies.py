@@ -39,32 +39,40 @@ class DataFrameParsingStrategy(ResultParsingStrategy):
             result_dict = {}
             individual_scores = []
             
-            # DataFrame에서 메트릭 값 추출 - API 실패 케이스 고려
+            # DataFrame에서 메트릭 값 추출 - 실패한 항목은 계산에서 제외
             for metric in metrics:
                 metric_name = metric.name
                 if metric_name in df.columns:
-                    metric_values = df[metric_name].fillna(0.2)  # NaN을 부분 점수로 대체
-                    result_dict[metric_name] = float(metric_values.mean())
-                    print(f"✅ {metric_name} 평균: {result_dict[metric_name]:.4f}")
+                    # NaN 값을 제외하고 유효한 점수만으로 평균 계산
+                    valid_scores = df[metric_name].dropna()
+                    if len(valid_scores) > 0:
+                        result_dict[metric_name] = float(valid_scores.mean())
+                        print(f"✅ {metric_name} 평균: {result_dict[metric_name]:.4f}")
+                    else:
+                        result_dict[metric_name] = 0.0
+                        print(f"❌ {metric_name}: 모든 평가 실패")
                     
-                    # NaN 개수 체크 및 알림
+                    # 실패 항목 개수 체크 및 알림
                     nan_count = df[metric_name].isna().sum()
+                    total_count = len(df[metric_name])
+                    success_count = total_count - nan_count
                     if nan_count > 0:
-                        print(f"⚠️  {metric_name}: {nan_count}개 평가 실패 (API 한도 초과)")
+                        print(f"📊 {metric_name}: {success_count}/{total_count}개 성공 (실패 {nan_count}개는 평균 계산에서 제외)")
                 else:
-                    result_dict[metric_name] = 0.2
-                    print(f"⚠️  {metric_name} 결과를 찾을 수 없습니다.")
+                    result_dict[metric_name] = 0.0
+                    print(f"❌ {metric_name} 결과를 찾을 수 없습니다.")
             
-            # 개별 점수 추출 - API 실패 시 부분 점수 부여
+            # 개별 점수 추출 - 실패한 항목은 None으로 기록
             for idx in range(len(dataset)):
                 qa_scores = {}
                 for metric in metrics:
                     metric_name = metric.name
                     if metric_name in df.columns and idx < len(df):
                         score_value = df.iloc[idx][metric_name]
-                        qa_scores[metric_name] = float(score_value) if pd.notna(score_value) else 0.2
+                        # NaN인 경우 None으로 처리 (평가 실패 표시)
+                        qa_scores[metric_name] = float(score_value) if pd.notna(score_value) else None
                     else:
-                        qa_scores[metric_name] = 0.2
+                        qa_scores[metric_name] = None  # 데이터 없음
                 individual_scores.append(qa_scores)
             
             result_dict["individual_scores"] = individual_scores
@@ -99,25 +107,31 @@ class ScoresDictParsingStrategy(ResultParsingStrategy):
                     scores = scores_dict[metric_name]
                     if isinstance(scores, list) and i < len(scores):
                         score_value = scores[i]
-                        qa_scores[metric_name] = float(score_value) if score_value == score_value else 0.0
+                        qa_scores[metric_name] = float(score_value) if score_value == score_value else None
                     else:
-                        qa_scores[metric_name] = float(scores) if scores == scores else 0.0
+                        qa_scores[metric_name] = float(scores) if scores == scores else None
                 else:
-                    qa_scores[metric_name] = 0.0
+                    qa_scores[metric_name] = None
             individual_scores.append(qa_scores)
 
-        # 각 메트릭별로 평균값 계산
+        # 각 메트릭별로 평균값 계산 - 유효한 점수만 사용
         for metric in metrics:
             metric_name = metric.name
             if metric_name in scores_dict:
                 scores = scores_dict[metric_name]
                 if isinstance(scores, list) and scores:
-                    valid_scores = [float(s) for s in scores if s == s]  # NaN 제외
-                    result_dict[metric_name] = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
+                    valid_scores = [float(s) for s in scores if s == s and s is not None]  # NaN과 None 제외
+                    if valid_scores:
+                        result_dict[metric_name] = sum(valid_scores) / len(valid_scores)
+                        print(f"✅ {metric_name} 평균: {result_dict[metric_name]:.4f} ({len(valid_scores)}/{len(scores)}개 성공)")
+                    else:
+                        result_dict[metric_name] = 0.0
+                        print(f"❌ {metric_name}: 모든 평가 실패")
                 else:
-                    result_dict[metric_name] = float(scores) if scores == scores else 0.0
+                    result_dict[metric_name] = float(scores) if scores == scores and scores is not None else 0.0
             else:
                 result_dict[metric_name] = 0.0
+                print(f"❌ {metric_name} 결과를 찾을 수 없습니다.")
 
         result_dict["individual_scores"] = individual_scores
         return result_dict
@@ -143,10 +157,16 @@ class AttributeParsingStrategy(ResultParsingStrategy):
             else:
                 result_dict[metric_name] = 0.0
         
-        # 개별 점수는 전체 평균으로 대체
+        # 개별 점수는 전체 평균으로 대체 (실패한 메트릭은 None)
         individual_scores = []
         for i in range(len(dataset)):
-            qa_scores = {metric.name: result_dict.get(metric.name, 0.0) for metric in metrics}
+            qa_scores = {}
+            for metric in metrics:
+                metric_name = metric.name
+                if result_dict.get(metric_name, 0.0) > 0:
+                    qa_scores[metric_name] = result_dict[metric_name]
+                else:
+                    qa_scores[metric_name] = None  # 평가 실패
             individual_scores.append(qa_scores)
 
         result_dict["individual_scores"] = individual_scores
