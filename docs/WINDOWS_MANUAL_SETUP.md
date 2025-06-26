@@ -277,6 +277,12 @@ pytest
 black
 torch           # CPU 전용 휠은 별도로 다운로드 가능
 uv
+# CSV/Excel 지원을 위한 추가 패키지들
+charset-normalizer
+python-dateutil
+pytz
+et-xmlfile      # openpyxl 의존성
+defusedxml      # xlrd 의존성
 ```
 
 **저장:** Ctrl + S, 파일명 확인 후 저장
@@ -307,7 +313,28 @@ copy run_dashboard.py RAGTrace-Complete-Offline\02_Source\
 copy hello.py RAGTrace-Complete-Offline\02_Source\
 copy pyproject.toml RAGTrace-Complete-Offline\02_Source\
 copy .env.example RAGTrace-Complete-Offline\02_Source\
+
+# CSV/Excel 지원을 위한 추가 파일들 (중요!)
+copy quick_eval.py RAGTrace-Complete-Offline\02_Source\ 2>nul || echo quick_eval.py not found - OK
+copy justfile RAGTrace-Complete-Offline\02_Source\ 2>nul || echo justfile not found - OK
+copy uv.toml RAGTrace-Complete-Offline\02_Source\ 2>nul || echo uv.toml not found - OK
+copy .python-version RAGTrace-Complete-Offline\02_Source\ 2>nul || echo .python-version not found - OK
+
+# 복사 완료 확인
+echo 📁 소스코드 복사 완료, 파일 목록 확인:
+dir RAGTrace-Complete-Offline\02_Source
 ```
+
+**필수 확인사항:**
+- `src\` 폴더: RAGTrace 메인 소스코드 (CSV/Excel 변환 로직 포함)
+- `cli.py`: CSV/Excel 변환 기능 포함된 CLI 도구
+- `data\` 폴더: 샘플 평가 데이터
+- 기타 설정 파일들
+
+**⚠️ CSV/Excel 지원 필수 요소:**
+- `src\utils\paths.py`: 파일 형식 감지 및 변환 로직
+- `src\utils\data_converter.py`: CSV/Excel → JSON 변환 엔진
+- `openpyxl`, `xlrd`, `chardet` 패키지: Excel/CSV 파싱용
 
 #### 6-5. Python 설치파일 복사
 ```cmd
