@@ -25,8 +25,9 @@ PowerShell 자동 스크립트에서 문제가 발생할 때 사용하는 **완�
 ### 🔒 폐쇄망 PC (실제 사용 환경)
 1. [오프라인 패키지 복사](#폐쇄망-pc-설치)
 2. [Python 설치](#폐쇄망-python-설치)
-3. [RAGTrace 패키지 설치](#폐쇄망-ragtrace-설치)
-4. [실행 및 확인](#폐쇄망-실행-확인)
+3. [가상환경 생성 및 활성화](#폐쇄망-가상환경-설정)
+4. [RAGTrace 패키지 설치](#폐쇄망-ragtrace-설치)
+5. [실행 및 확인](#폐쇄망-실행-확인)
 
 ---
 
@@ -207,30 +208,31 @@ notepad requirements.txt
 
 **메모장에 다음 내용 입력:**
 ```txt
-dependency-injector==4.48.1
-ragas==0.2.15
-google-generativeai==0.8.5
-langchain-core==0.3.65
-python-dotenv==1.1.0
-pydantic==2.11.7
-pydantic-settings==2.9.1
-pandas==2.3.0
-numpy==2.3.0
-openpyxl==3.1.5
-xlrd==2.0.2
-datasets==3.6.0
-scipy==1.15.0
-scikit-learn==1.6.0
-streamlit==1.45.1
-plotly==6.1.2
-sentence-transformers==4.1.0
-torch==2.7.1+cpu
-transformers==4.47.0
-requests==2.32.4
-psutil==7.0.0
-chardet==5.2.0
-pytest==8.1.1
-black==24.3.0
+dependency-injector
+ragas
+google-generativeai
+langchain-core
+python-dotenv
+pydantic
+pydantic-settings
+pandas
+numpy
+openpyxl
+xlrd
+datasets
+scipy
+scikit-learn
+streamlit
+plotly
+sentence-transformers
+transformers
+requests
+psutil
+chardet
+pytest
+black
+torch           # CPU 전용 휠은 별도로 다운로드 가능
+uv
 ```
 
 **저장:** Ctrl + S, 파일명 확인 후 저장
@@ -242,7 +244,7 @@ echo %CD%
 # 결과: C:\RAGTrace-Setup\RAGTrace\RAGTrace-Complete-Offline\01_Dependencies
 
 # 패키지 다운로드 (시간이 오래 걸림 - 약 10-15분)
-pip download -r requirements.txt --dest . --no-deps
+pip download -r requirements.txt -d ./packages
 ```
 
 **진행 과정:** 여러 `.whl` 파일들이 다운로드됨
@@ -281,25 +283,44 @@ notepad 00-install-all.bat
 **내용 입력:**
 ```batch
 @echo off
-echo RAGTrace 완전 설치 시작...
+echo [RAGTrace] 완전 설치 시작...
 
+:: 1. Python 설치
 echo 1/4: Python 설치 중...
 cd ..\05_Installers
 python-3.11.9-amd64.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
-timeout /t 60 /nobreak
 
-echo 2/4: PATH 새로고침...
-call refreshenv
+echo Python 설치 대기 중...
+:waitloop
+where python >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    timeout /t 2 >nul
+    goto waitloop
+)
 
+:: 2. PATH 확인
+echo 2/4: PATH 확인 및 환경 준비...
+where python
+if %ERRORLEVEL% NEQ 0 (
+    echo [경고] PATH가 반영되지 않았을 수 있습니다. CMD 창을 재시작해 주세요.
+)
+
+:: 3. 패키지 설치
 echo 3/4: RAGTrace 패키지 설치 중...
 cd ..\01_Dependencies
 python -m pip install --upgrade pip
-python -m pip install --no-index --find-links . -r requirements.txt
+python -m pip install --no-index --find-links . -r requirements.txt || (
+    echo [ERROR] 패키지 설치 실패!
+    pause
+    exit /b 1
+)
 
+:: 4. 설치 완료
 echo 4/4: 설치 완료!
 cd ..\02_Source
-echo API 키를 .env 파일에 설정하세요.
-echo 실행: python run_dashboard.py
+echo.
+echo ✅ API 키를 .env 파일에 설정하세요.
+echo ▶ 실행: python run_dashboard.py
 pause
 ```
 
@@ -369,13 +390,35 @@ python --version
 pip --version
 ```
 
+#### 4. UV 오프라인 설치
+```cmd
+cd C:\RAGTrace-Complete-Offline\01_Dependencies
+python -m pip install --no-index --find-links . uv
+```
+
+### 폐쇄망 가상환경 설정
+
+#### 1. UV 기반 가상환경 생성 & 활성화
+```cmd
+cd C:\RAGTrace-Complete-Offline
+where python
+:: Python이 설치된 경로 복사
+:: 예: C:\Users\<user>\AppData\Local\Programs\Python\Python311\python.exe
+:: 위 경로를 지정해서 가상환경 생성
+uv venv .venv --python "C:\Users\<user>\AppData\Local\Programs\Python\Python311\python.exe"
+.venv\Scripts\activate
+python --version   :: Python 3.11.9  ← 반드시 확인
+```
+
 ### 폐쇄망 RAGTrace 설치
 
 #### 1. 패키지 설치
 ```cmd
 cd C:\RAGTrace-Complete-Offline\01_Dependencies
-python -m pip install --upgrade pip
-python -m pip install --no-index --find-links . -r requirements.txt
+:: pip를 인터넷 없이 로컬 파일로 업그레이드
+uv pip install --no-index --find-links .\packages pip
+:: requirements.txt에 있는 패키지들을 로컬 파일로 설치
+uv pip install --no-index --find-links .\packages -r requirements.txt
 ```
 
 #### 2. API 키 설정
