@@ -704,11 +704,14 @@ def show_evaluation_reasoning_actual(qa_number, scores, qa_content=None):
             # 점수 구간별 해석 가이드
             st.markdown("---")
             st.markdown("**점수 해석:**")
-            if info["score"] >= 0.9:
+            score = info["score"]
+            if score is None:
+                st.error("❌ 평가 실패: 점수를 계산할 수 없습니다")
+            elif score >= 0.9:
                 st.success("🌟 우수 (0.9+): 매우 높은 성능")
-            elif info["score"] >= 0.8:
+            elif score >= 0.8:
                 st.success("✅ 양호 (0.8-0.9): 좋은 성능")
-            elif info["score"] >= 0.6:
+            elif score >= 0.6:
                 st.warning("⚠️ 보통 (0.6-0.8): 개선 여지 있음")
             else:
                 st.error("❌ 개선필요 (<0.6): 즉시 개선 필요")
