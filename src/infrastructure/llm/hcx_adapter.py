@@ -4,9 +4,10 @@ import threading
 import time
 
 from src.application.ports.llm import LlmPort
-from langchain_core.language_models.llms import LLM
+from langchain_core.language_models.llms import LLM, BaseLLM
 from langchain_core.outputs import GenerationChunk, Generation, LLMResult
-from langchain_core.prompt_values import PromptValue
+from langchain_core.prompt_values import PromptValue, StringPromptValue
+from langchain_core.callbacks import CallbackManagerForLLMRun
 
 
 # 글로벌 HCX API 요청 제한을 위한 세마포어
@@ -307,7 +308,7 @@ class HcxAdapter(LlmPort):
         return HcxLangChainCompat(adapter=self)
 
 
-class HcxLangChainCompat(LLM):
+class HcxLangChainCompat(BaseLLM):
     """HcxAdapter를 LangChain LLM처럼 사용하기 위한 래퍼 클래스"""
     
     def __init__(self, adapter: HcxAdapter, **kwargs):
@@ -324,7 +325,7 @@ class HcxLangChainCompat(LLM):
         # HCX는 자체 설정을 사용하므로 RunConfig는 무시
         pass
 
-    def _call(self, prompt: Any, stop: List[str] | None = None, run_manager=None, **kwargs: Any) -> str:
+    def _call(self, prompt: Any, stop: List[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any) -> str:
         # PromptValue 객체 처리 (StringPromptValue 포함)
         if isinstance(prompt, PromptValue):
             prompt = prompt.to_string()
@@ -611,12 +612,12 @@ class HcxLangChainCompat(LLM):
         return self.adapter._post_process_response(result)
         
     def _generate(
-        self, prompts: List[Any], stop: List[str] | None = None, **kwargs: Any
-    ) -> List[Generation]:
+        self, prompts: List[Any], stop: List[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any
+    ) -> LLMResult:
         generations = []
         for prompt in prompts:
-            # PromptValue 객체 처리 (StringPromptValue 포함)
-            if isinstance(prompt, PromptValue):
+            # PromptValue 객체 처리 (StringPromptValue 포함)  
+            if isinstance(prompt, (PromptValue, StringPromptValue)):
                 prompt_str = prompt.to_string()
             elif hasattr(prompt, 'to_string'):
                 prompt_str = prompt.to_string()
@@ -627,9 +628,10 @@ class HcxLangChainCompat(LLM):
             else:
                 prompt_str = prompt
                 
-            text = self._call(prompt_str, stop, **kwargs)
-            generations.append(Generation(text=text))
-        return generations
+            text = self._call(prompt_str, stop, run_manager, **kwargs)
+            generations.append([Generation(text=text)])
+        
+        return LLMResult(generations=generations)
 
     @property
     def _identifying_params(self) -> Dict[str, Any]:
