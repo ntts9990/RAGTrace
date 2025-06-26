@@ -1,0 +1,3 @@
+item_id,faithfulness,answer_relevancy,context_recall,context_precision,answer_correctness
+1,,0.8988638860422702,1.0,0.99999999995,
+2,,0.8233059727008842,1.0,0.99999999995,
