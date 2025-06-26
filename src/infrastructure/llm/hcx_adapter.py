@@ -357,25 +357,72 @@ class HcxLangChainCompat(LLM):
         """RAGAS 전용 프롬프트 처리 - 더 구조화된 응답 생성"""
         prompt_lower = prompt.lower()
         
-        # 1. Yes/No 분류 프롬프트
-        if "correctness_classifier" in prompt_lower or any(word in prompt_lower for word in ["correct", "incorrect", "yes", "no"]):
+        # 1. Faithfulness 관련 프롬프트 (우선순위 높음)
+        if "faithfulness" in prompt_lower or "statement" in prompt_lower:
+            return self._handle_faithfulness_prompt(prompt)
+        
+        # 2. Yes/No 분류 프롬프트
+        elif "correctness_classifier" in prompt_lower or any(word in prompt_lower for word in ["correct", "incorrect", "yes", "no"]):
             return self._handle_classification_prompt(prompt)
         
-        # 2. 점수 매기기 프롬프트  
+        # 3. 점수 매기기 프롬프트  
         elif any(word in prompt_lower for word in ["score", "rate", "scale"]):
             return self._handle_scoring_prompt(prompt)
         
-        # 3. 문장 추출 프롬프트
+        # 4. 문장 추출 프롬프트
         elif "statements" in prompt_lower or "extract" in prompt_lower:
             return self._handle_extraction_prompt(prompt)
         
-        # 4. 포맷 수정 프롬프트
+        # 5. 포맷 수정 프롬프트
         elif "fix_output_format" in prompt_lower:
             return self._handle_format_fix_prompt(prompt)
         
-        # 5. 기타 RAGAS 프롬프트
+        # 6. 기타 RAGAS 프롬프트
         else:
             return self._handle_general_ragas_prompt(prompt)
+    
+    def _handle_faithfulness_prompt(self, prompt: str) -> str:
+        """Faithfulness 전용 프롬프트 처리"""
+        prompt_lower = prompt.lower()
+        
+        # Faithfulness는 주로 문장 추출 또는 Yes/No 판단을 요구함
+        if "statements" in prompt_lower or "extract" in prompt_lower:
+            # 문장 추출 형태의 faithfulness
+            enhanced_prompt = f"""
+다음 텍스트에서 주요 문장들을 추출하여 JSON 배열 형식으로 반환하세요.
+정확히 다음 형식으로만 답변하세요: {{"statements": ["문장1", "문장2", "문장3"]}}
+
+질문:
+{prompt}
+
+응답 (JSON만):"""
+            result = self.adapter.generate_answer(question=enhanced_prompt, contexts=[])
+            return self._force_statements_format(result)
+            
+        elif any(word in prompt_lower for word in ["supported", "verify", "correct", "true", "false"]):
+            # Yes/No 판단 형태의 faithfulness
+            enhanced_prompt = f"""
+다음 질문에 대해 정확히 다음 JSON 형식으로만 답변하세요:
+{{"verdict": "Yes"}} 또는 {{"verdict": "No"}}
+
+질문:
+{prompt}
+
+응답 (JSON만):"""
+            result = self.adapter.generate_answer(question=enhanced_prompt, contexts=[])
+            return self._force_faithfulness_verdict_format(result)
+            
+        else:
+            # 일반적인 faithfulness 처리
+            enhanced_prompt = f"""
+다음 faithfulness 평가 질문에 대해 간단하고 명확한 JSON 형식으로 답변하세요.
+
+질문:
+{prompt}
+
+응답 (JSON 형식):"""
+            result = self.adapter.generate_answer(question=enhanced_prompt, contexts=[])
+            return self._ensure_valid_json_response(result)
     
     def _handle_classification_prompt(self, prompt: str) -> str:
         """분류 프롬프트 처리 (Yes/No)"""
@@ -522,10 +569,35 @@ class HcxLangChainCompat(LLM):
         
         return json.dumps({"statements": statements}, ensure_ascii=False)
     
+    def _force_faithfulness_verdict_format(self, result: str) -> str:
+        """Faithfulness verdict를 강제로 JSON 형식으로 변환"""
+        result_lower = result.lower().strip()
+        
+        # 이미 올바른 JSON인지 확인
+        if '{"verdict":' in result and ('yes' in result_lower or 'no' in result_lower):
+            return result
+        
+        # verdict 키워드로 시작하는 응답 처리
+        if result.startswith('verdict:') or result.startswith('판정:'):
+            verdict_text = result.split(':', 1)[1].strip().lower()
+            if any(word in verdict_text for word in ['yes', '예', '맞습니다', '참', 'true']):
+                return '{"verdict": "Yes"}'
+            else:
+                return '{"verdict": "No"}'
+        
+        # Yes/No 키워드 찾기
+        if any(word in result_lower for word in ['yes', '예', '맞습니다', '참', 'supported', 'correct', 'true']):
+            return '{"verdict": "Yes"}'
+        elif any(word in result_lower for word in ['no', '아니', '틀렸', '거짓', 'not supported', 'incorrect', 'false']):
+            return '{"verdict": "No"}'
+        else:
+            # 애매한 경우 보수적으로 No
+            return '{"verdict": "No"}'
+    
     def _ensure_valid_json_response(self, result: str) -> str:
         """응답이 유효한 JSON인지 확인하고 필요시 변환"""
-        # 기존 _extract_json_from_response 로직 재사용
-        return self.adapter._extract_json_from_response(result)
+        # 기존 _post_process_response 로직 재사용
+        return self.adapter._post_process_response(result)
         
     def _generate(
         self, prompts: List[str], stop: List[str] | None = None, **kwargs: Any
