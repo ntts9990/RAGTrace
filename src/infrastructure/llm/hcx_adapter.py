@@ -339,6 +339,18 @@ class HcxLangChainCompat(LLM):
         if "fix_output_format" in prompt.lower():
             print(f"[HCX] fix_output_format 프롬프트 감지 - 응답: {result[:200]}...")
         
+        # Faithfulness 디버깅
+        if "statements" in prompt.lower() or "faithfulness" in prompt.lower():
+            print(f"[HCX] Faithfulness 프롬프트 감지:")
+            print(f"   프롬프트: {prompt[:150]}...")
+            print(f"   응답: {result[:300]}...")
+            
+            # NLI Statement 프롬프트 특별 처리 - TP/FP 형식 감지
+            if '"TP"' in result and '"statement"' in result:
+                print(f"[HCX] NLI Statement 잘못된 형식 감지 - 수정 중...")
+                result = self._fix_nli_statement_format(result)
+                print(f"   수정된 응답: {result[:300]}...")
+        
         return result
     
     def _is_ragas_prompt(self, prompt: str) -> bool:
@@ -599,6 +611,62 @@ class HcxLangChainCompat(LLM):
         """응답이 유효한 JSON인지 확인하고 필요시 변환"""
         # 기존 _post_process_response 로직 재사용
         return self.adapter._post_process_response(result)
+    
+    def _fix_nli_statement_format(self, result: str) -> str:
+        """NLI Statement 응답을 RAGAS 기대 형식으로 변환"""
+        import json
+        import re
+        
+        try:
+            # HCX 응답 파싱
+            hcx_response = json.loads(result)
+            
+            # RAGAS 기대 형식으로 변환
+            statements = []
+            
+            # TP (True Positive) 처리 - verdict = 1
+            if "TP" in hcx_response:
+                for item in hcx_response["TP"]:
+                    statements.append({
+                        "statement": item.get("statement", ""),
+                        "reason": item.get("reason", ""),
+                        "verdict": 1
+                    })
+            
+            # FP (False Positive) 처리 - verdict = 0  
+            if "FP" in hcx_response:
+                for item in hcx_response["FP"]:
+                    statements.append({
+                        "statement": item.get("statement", ""),
+                        "reason": item.get("reason", ""),
+                        "verdict": 0
+                    })
+            
+            # TN (True Negative) 처리 - verdict = 0
+            if "TN" in hcx_response:
+                for item in hcx_response["TN"]:
+                    statements.append({
+                        "statement": item.get("statement", ""),
+                        "reason": item.get("reason", ""),
+                        "verdict": 0
+                    })
+            
+            # FN (False Negative) 처리 - verdict = 1
+            if "FN" in hcx_response:
+                for item in hcx_response["FN"]:
+                    statements.append({
+                        "statement": item.get("statement", ""),
+                        "reason": item.get("reason", ""),
+                        "verdict": 1
+                    })
+            
+            # RAGAS 기대 형식으로 반환
+            ragas_format = {"statements": statements}
+            return json.dumps(ragas_format, ensure_ascii=False)
+            
+        except Exception as e:
+            print(f"[HCX] NLI 형식 변환 실패: {e}")
+            return result
         
     def _generate(
         self, prompts: List[str], stop: List[str] | None = None, **kwargs: Any
