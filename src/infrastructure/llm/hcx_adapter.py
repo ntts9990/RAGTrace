@@ -94,7 +94,7 @@ class HcxAdapter(LlmPort):
 
         body = {
             "messages": messages,
-            "maxTokens": 1024,
+            "maxTokens": 4096,
             "temperature": 0.5,
             "topP": 0.8,
             "topK": 0,
