@@ -1,0 +1,97 @@
+{
+  "test_timestamp": "2025-06-30T17:34:30.041339",
+  "test_data": {
+    "question": "API 설계에서 RESTful 원칙이란 무엇인가요?",
+    "contexts": [
+      "RESTful API는 HTTP 메서드를 의미에 맞게 사용하는 것이 중요합니다.",
+      "자원(Resource)은 URI로 표현되며, 명사 형태로 작성해야 합니다.",
+      "상태 코드를 적절히 사용하여 요청 처리 결과를 명확히 전달해야 합니다."
+    ],
+    "answer": "RESTful 원칙은 웹 애플리케이션 개발에서 사용되는 아키텍처 스타일입니다. SOAP와 달리 가볍고 빠른 특징을 가지고 있으며, JSON과 XML 형식을 모두 지원합니다. 또한 마이크로서비스 아키텍처와 잘 어울리는 특징이 있어 많은 회사에서 채택하고 있습니다.",
+    "ground_truth": "RESTful 원칙은 HTTP 메서드의 의미적 사용, 자원의 URI 표현, 적절한 상태 코드 사용을 통해 일관되고 예측 가능한 API를 설계하는 것입니다."
+  },
+  "overall_success_rate": 100.0,
+  "test_passed": true,
+  "detailed_results": [
+    {
+      "model": "gemini",
+      "metric": "faithfulness",
+      "success": true,
+      "raw_response": "```json\n{\n  \"statements\": [\n    \"RESTful 원칙은 웹 애플리케이션 개발에서 사용되는 아키텍처 스타일입니다.\",\n    \"SOAP와 달리 가볍고 빠른 특징을 가지고 있으며, JSON과 XML 형식을 모두 지원합니다.\",\n    \"또한 마이크로서비스 아키텍처와 잘 어울리는 특징이 있어 많은 회사에서 채택하고 있습니다.\"\n  ]\n}\n```",
+      "parsed_response": {
+        "statements": [
+          "RESTful 원칙은 웹 애플리케이션 개발에서 사용되는 아키텍처 스타일입니다.",
+          "SOAP와 달리 가볍고 빠른 특징을 가지고 있으며, JSON과 XML 형식을 모두 지원합니다.",
+          "또한 마이크로서비스 아키텍처와 잘 어울리는 특징이 있어 많은 회사에서 채택하고 있습니다."
+        ]
+      }
+    },
+    {
+      "model": "hcx",
+      "metric": "faithfulness",
+      "success": true,
+      "raw_response": "```json\n{\n  \"statements\": [\n    \"RESTful 원칙은 웹 애플리케이션 개발에서 사용되는 아키텍처 스타일입니다.\",\n    \"SOAP와 달리 가볍고 빠른 특징을 가지고 있으며, JSON과 XML 형식을 모두 지원합니다.\",\n    \"또한 마이크로서비스 아키텍처와 잘 어울리는 특징이 있어 많은 회사에서 채택하고 있습니다.\"\n  ]\n}\n```",
+      "parsed_response": {
+        "statements": [
+          "RESTful 원칙은 웹 애플리케이션 개발에서 사용되는 아키텍처 스타일입니다.",
+          "SOAP와 달리 가볍고 빠른 특징을 가지고 있으며, JSON과 XML 형식을 모두 지원합니다.",
+          "또한 마이크로서비스 아키텍처와 잘 어울리는 특징이 있어 많은 회사에서 채택하고 있습니다."
+        ]
+      }
+    },
+    {
+      "model": "gemini",
+      "metric": "answer_relevancy",
+      "success": true,
+      "raw_response": "```json\n{\n  \"reason\": \"The answer provides a general definition of RESTful as an architectural style and lists some of its characteristics and advantages (light, fast, supports JSON/XML, good for microservices, widely adopted). However, the question specifically asks 'What are RESTful principles?' (RESTful 원칙이란 무엇인가요?). The answer fails to elaborate on the actual principles (e.g., Client-Server, Stateless, Cacheable, Uniform Interface, Layered System, Code-On-Demand) that define RESTful architecture. It describes what RESTful is and why it's used, but not its core architectural principles.\"\n}\n```",
+      "parsed_response": {
+        "reason": "The answer provides a general definition of RESTful as an architectural style and lists some of its characteristics and advantages (light, fast, supports JSON/XML, good for microservices, widely adopted). However, the question specifically asks 'What are RESTful principles?' (RESTful 원칙이란 무엇인가요?). The answer fails to elaborate on the actual principles (e.g., Client-Server, Stateless, Cacheable, Uniform Interface, Layered System, Code-On-Demand) that define RESTful architecture. It describes what RESTful is and why it's used, but not its core architectural principles."
+      }
+    },
+    {
+      "model": "hcx",
+      "metric": "answer_relevancy",
+      "success": true,
+      "raw_response": "{\"reason\": \"The answer provides a general overview of what RESTful principles are and how they relate to web application development, mentioning their advantages over SOAP and compatibility with microservices architecture. However, it lacks specific details about the six constraints of RESTful APIs (resource-based, client-server, stateless, cacheable, uniform interface, layered system) which would have made the explanation more comprehensive.\"}",
+      "parsed_response": {
+        "reason": "The answer provides a general overview of what RESTful principles are and how they relate to web application development, mentioning their advantages over SOAP and compatibility with microservices architecture. However, it lacks specific details about the six constraints of RESTful APIs (resource-based, client-server, stateless, cacheable, uniform interface, layered system) which would have made the explanation more comprehensive."
+      }
+    },
+    {
+      "model": "gemini",
+      "metric": "context_recall",
+      "success": true,
+      "raw_response": "```json\n{\n  \"reason\": \"The contexts explain the core components of RESTful principles (semantic use of HTTP methods, URI representation of resources, appropriate use of status codes). However, the ground truth also states the overarching goal of these principles: '일관되고 예측 가능한 API를 설계하는 것입니다' (designing consistent and predictable APIs). This specific outcome or purpose is not explicitly mentioned in the provided contexts.\"\n}\n```",
+      "parsed_response": {
+        "reason": "The contexts explain the core components of RESTful principles (semantic use of HTTP methods, URI representation of resources, appropriate use of status codes). However, the ground truth also states the overarching goal of these principles: '일관되고 예측 가능한 API를 설계하는 것입니다' (designing consistent and predictable APIs). This specific outcome or purpose is not explicitly mentioned in the provided contexts."
+      }
+    },
+    {
+      "model": "hcx",
+      "metric": "context_recall",
+      "success": true,
+      "raw_response": "{\"reason\": \"The contexts contain all necessary information to understand and explain what RESTful principles in API design entail. They cover the use of HTTP methods meaningfully, resource representation via URIs, and appropriate status code usage - all of which align directly with the ground truth statement.\"}",
+      "parsed_response": {
+        "reason": "The contexts contain all necessary information to understand and explain what RESTful principles in API design entail. They cover the use of HTTP methods meaningfully, resource representation via URIs, and appropriate status code usage - all of which align directly with the ground truth statement."
+      }
+    },
+    {
+      "model": "gemini",
+      "metric": "context_precision",
+      "success": true,
+      "raw_response": "```json\n{\n  \"reason\": \"The contexts are highly precise and relevant. They accurately describe core RESTful principles: the appropriate use of HTTP methods, the representation of resources via URIs using nouns, and the clear communication of request outcomes through status codes. There is no unnecessary information, and each point directly addresses the question.\"\n}\n```",
+      "parsed_response": {
+        "reason": "The contexts are highly precise and relevant. They accurately describe core RESTful principles: the appropriate use of HTTP methods, the representation of resources via URIs using nouns, and the clear communication of request outcomes through status codes. There is no unnecessary information, and each point directly addresses the question."
+      }
+    },
+    {
+      "model": "hcx",
+      "metric": "context_precision",
+      "success": true,
+      "raw_response": "{\"reason\": \"The contexts provided are both precise and highly relevant to the question about RESTful principles in API design. They succinctly cover key aspects such as the proper use of HTTP methods, resource representation via URIs, and the importance of status codes for clear communication of request outcomes. There is no extraneous or unrelated information included.\"}",
+      "parsed_response": {
+        "reason": "The contexts provided are both precise and highly relevant to the question about RESTful principles in API design. They succinctly cover key aspects such as the proper use of HTTP methods, resource representation via URIs, and the importance of status codes for clear communication of request outcomes. There is no extraneous or unrelated information included."
+      }
+    }
+  ]
+}

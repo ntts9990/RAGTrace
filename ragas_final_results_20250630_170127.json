@@ -1,0 +1,80 @@
+[
+  {
+    "model": "gemini",
+    "metric": "faithfulness",
+    "success": true,
+    "raw_response": "```json\n{\n  \"statements\": [\n    \"클린 아키텍처의 핵심 원칙은 의존성 규칙입니다.\",\n    \"이는 모든 소스코드 의존성이 외부에서 내부로 향해야 한다는 것을 의미합니다.\"\n  ]\n}\n```",
+    "parsed_response": {
+      "statements": [
+        "클린 아키텍처의 핵심 원칙은 의존성 규칙입니다.",
+        "이는 모든 소스코드 의존성이 외부에서 내부로 향해야 한다는 것을 의미합니다."
+      ]
+    }
+  },
+  {
+    "model": "hcx",
+    "metric": "faithfulness",
+    "success": true,
+    "raw_response": "{\"statements\": [\"클린 아키텍처의 핵심 원칙은 의존성 규칙입니다.\", \"이는 모든 소스코드 의존성이 외부에서 내부로 향해야 한다는 것을 의미합니다.\"]}",
+    "parsed_response": {
+      "statements": [
+        "클린 아키텍처의 핵심 원칙은 의존성 규칙입니다.",
+        "이는 모든 소스코드 의존성이 외부에서 내부로 향해야 한다는 것을 의미합니다."
+      ]
+    }
+  },
+  {
+    "model": "gemini",
+    "metric": "answer_relevancy",
+    "success": true,
+    "raw_response": "```json\n{\n  \"reason\": \"The answer directly addresses the question by identifying the 'Dependency Rule' (의존성 규칙) as the core principle of Clean Architecture. It further elaborates on what this rule entails, which is that all source code dependencies must point inwards, from outer layers to inner layers. This is a fundamental and widely recognized aspect of Clean Architecture, making the answer highly relevant and accurate.\"\n}\n```",
+    "parsed_response": {
+      "reason": "The answer directly addresses the question by identifying the 'Dependency Rule' (의존성 규칙) as the core principle of Clean Architecture. It further elaborates on what this rule entails, which is that all source code dependencies must point inwards, from outer layers to inner layers. This is a fundamental and widely recognized aspect of Clean Architecture, making the answer highly relevant and accurate."
+    }
+  },
+  {
+    "model": "hcx",
+    "metric": "answer_relevancy",
+    "success": true,
+    "raw_response": "{\"reason\": \"The answer directly addresses the question by identifying the core principle of Clean Architecture, which is the Dependency Rule. It succinctly explains that this rule dictates that all dependencies should point inwards from outside towards the center of the architecture, ensuring modularity and maintainability.\"}",
+    "parsed_response": {
+      "reason": "The answer directly addresses the question by identifying the core principle of Clean Architecture, which is the Dependency Rule. It succinctly explains that this rule dictates that all dependencies should point inwards from outside towards the center of the architecture, ensuring modularity and maintainability."
+    }
+  },
+  {
+    "model": "gemini",
+    "metric": "context_recall",
+    "success": true,
+    "raw_response": "```json\n{\n  \"reason\": \"The contexts contain all necessary information. The second context explicitly states that '가장 중요한 규칙은 '의존성 규칙'으로, 모든 소스 코드 의존성은 외부에서 내부로 향해야 합니다.' ('The most important rule is the 'Dependency Rule', where all source code dependencies must point inwards.'). '가장 중요한 규칙' directly corresponds to '핵심 원칙' (core principle) in the ground truth, and the rest of the sentence provides the name and explanation of the rule.\"\n}\n```",
+    "parsed_response": {
+      "reason": "The contexts contain all necessary information. The second context explicitly states that '가장 중요한 규칙은 '의존성 규칙'으로, 모든 소스 코드 의존성은 외부에서 내부로 향해야 합니다.' ('The most important rule is the 'Dependency Rule', where all source code dependencies must point inwards.'). '가장 중요한 규칙' directly corresponds to '핵심 원칙' (core principle) in the ground truth, and the rest of the sentence provides the name and explanation of the rule."
+    }
+  },
+  {
+    "model": "hcx",
+    "metric": "context_recall",
+    "success": true,
+    "raw_response": "{\"reason\": \"The contexts provide sufficient information about Clean Architecture's core principle, which is the Dependency Rule, and its direction (external to internal). This directly leads to the ground truth that all source code dependencies should follow this rule.\"}",
+    "parsed_response": {
+      "reason": "The contexts provide sufficient information about Clean Architecture's core principle, which is the Dependency Rule, and its direction (external to internal). This directly leads to the ground truth that all source code dependencies should follow this rule."
+    }
+  },
+  {
+    "model": "gemini",
+    "metric": "context_precision",
+    "success": true,
+    "raw_response": "```json\n{\n  \"reason\": \"The contexts are precise and highly relevant. The first sentence provides essential background by identifying the proponent and nature of Clean Architecture, which is helpful for understanding its principles. The second sentence directly addresses a core principle, the 'Dependency Rule,' which is indeed the most fundamental aspect of Clean Architecture. There is no unnecessary information; both sentences contribute to a clear and concise understanding of the topic in relation to the question.\"\n}\n```",
+    "parsed_response": {
+      "reason": "The contexts are precise and highly relevant. The first sentence provides essential background by identifying the proponent and nature of Clean Architecture, which is helpful for understanding its principles. The second sentence directly addresses a core principle, the 'Dependency Rule,' which is indeed the most fundamental aspect of Clean Architecture. There is no unnecessary information; both sentences contribute to a clear and concise understanding of the topic in relation to the question."
+    }
+  },
+  {
+    "model": "hcx",
+    "metric": "context_precision",
+    "success": true,
+    "raw_response": "{\"reason\": \"The contexts provided are both precise and relevant to the question asked. They correctly identify Robert C. Martin as the proponent of Clean Architecture and succinctly explain the primary rule - the Dependency Rule. This rule is indeed fundamental in guiding how components within software should interact, emphasizing that high-level policies and data structures should not depend on low-level details. The response avoids extraneous details while delivering a clear explanation of the core principle of Clean Architecture.\"}",
+    "parsed_response": {
+      "reason": "The contexts provided are both precise and relevant to the question asked. They correctly identify Robert C. Martin as the proponent of Clean Architecture and succinctly explain the primary rule - the Dependency Rule. This rule is indeed fundamental in guiding how components within software should interact, emphasizing that high-level policies and data structures should not depend on low-level details. The response avoids extraneous details while delivering a clear explanation of the core principle of Clean Architecture."
+    }
+  }
+]

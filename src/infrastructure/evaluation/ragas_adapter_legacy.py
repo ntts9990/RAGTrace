@@ -17,6 +17,7 @@ from ragas.metrics import (
     answer_correctness,
 )
 from ragas.run_config import RunConfig
+from ragas.llms import LangchainLLMWrapper
 
 from src.domain.prompts import PromptType
 from src.infrastructure.evaluation.custom_prompts import CustomPromptFactory
@@ -32,11 +33,12 @@ class RagasEvalAdapter:
         embeddings: Embeddings,
         prompt_type: Optional[PromptType] = None,
     ):
-        # LLM 어댑터에서 실제 LangChain 호환 LLM 객체 가져오기
+        # RAGAS 내부에서 sync/async 호출을 모두 지원하기 위해 LangchainLLMWrapper 사용
         if hasattr(llm, 'get_llm'):
-            self.llm = llm.get_llm()
+            base_llm = llm.get_llm()
         else:
-            self.llm = llm
+            base_llm = llm
+        self.llm = LangchainLLMWrapper(base_llm)
         self.embeddings = embeddings
         self.prompt_type = prompt_type or PromptType.DEFAULT
         
